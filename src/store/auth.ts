@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User as FirebaseUser } from 'firebase/auth';
-import * as authService from '../services/firebase/auth';
+import * as authService from '../services/authService';
 import { logger } from '../services/logging';
 
 export interface AuthState {
   user: FirebaseUser | null;
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   signup: (email: string, password: string, displayName: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;

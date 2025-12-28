@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
-import { db, auth } from '../firebase/config';
+import { db, auth } from '../services/firebase';
 import { getDocs, updateDoc } from 'firebase/firestore'; // Removed raw doc/collection
 import { useNinja } from '../context/NinjaContext';
 import { Question } from '../types';

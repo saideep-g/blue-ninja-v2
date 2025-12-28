@@ -13,7 +13,7 @@ import Achievements from './components/dashboard/Achievements';
 import AchievementUnlock from './components/dashboard/AchievementUnlock';
 import ConceptPowerMap from './components/dashboard/ConceptPowerMap';
 import MissionHistory from './components/dashboard/MissionHistory';
-import { auth } from './firebase/config';
+import { auth } from './services/firebase';
 import { BlueNinjaTheme } from './theme/themeConfig';
 import StudentInsightsReport from './components/dashboard/StudentInsightsReport';
 import TeacherAnalyticsDashboard from './components/admin/TeacherAnalyticsDashboard';

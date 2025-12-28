@@ -6,7 +6,7 @@
  */
 
 import curriculumV2Service, { getAllAtomsEnriched, loadCurriculumV2 } from './curriculumV2Service';
-import { db, auth } from '../firebase/config';
+import { db } from './firebase';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 
 interface MissionPhase {

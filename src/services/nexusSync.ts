@@ -5,7 +5,7 @@
  * Stores the entire question bank locally to allow for instant, offline auditing.
  */
 
-import { db } from '../firebase/config';
+import { db } from './firebase';
 import { collection, getDocs, writeBatch, doc } from 'firebase/firestore';
 import Dexie, { Table } from 'dexie';
 import { Question } from '../types';

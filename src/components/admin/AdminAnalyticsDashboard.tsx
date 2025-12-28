@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, auth } from '../../firebase/config';
+import { db, auth } from '../../services/firebase';
 import { collection, query, where, getDocs, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 function AdminAnalyticsDashboard() {
@@ -68,7 +68,7 @@ function AdminAnalyticsDashboard() {
         let unsubscribe = null;
 
         try {
-            console.log(`📍 Fetching logs for student: ${selectedStudent}`);
+            console.log(`📍 Fetching logs for student: ${selectedStudent} `);
 
             let q;
 
@@ -77,7 +77,7 @@ function AdminAnalyticsDashboard() {
                 const logsRef = collection(db, 'session_logs');
                 q = query(logsRef, orderBy('timestamp', 'desc'), limit(200));
             } else {
-                console.log(`📍 Querying logs for student: ${selectedStudent}`);
+                console.log(`📍 Querying logs for student: ${selectedStudent} `);
                 const logsRef = collection(db, 'students', selectedStudent, 'session_logs');
                 q = query(logsRef, orderBy('timestamp', 'desc'), limit(100));
             }
@@ -89,7 +89,7 @@ function AdminAnalyticsDashboard() {
 
                     const logData = snapshot.docs.map((doc, idx) => {
                         const data = doc.data();
-                        console.log(`  Log ${idx + 1}:`, {
+                        console.log(`  Log ${idx + 1}: `, {
                             id: doc.id,
                             studentId: data.studentId,
                             questionId: data.questionId,
@@ -236,10 +236,10 @@ function AdminAnalyticsDashboard() {
                     <div className="flex flex-wrap gap-3 mb-4">
                         <button
                             onClick={() => setSelectedStudent('ALL')}
-                            className={`px-4 py-2 rounded-lg font-bold transition-all ${selectedStudent === 'ALL'
+                            className={`px - 4 py - 2 rounded - lg font - bold transition - all ${selectedStudent === 'ALL'
                                 ? 'bg-blue-600 text-white shadow-md'
                                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                }`}
+                                } `}
                         >
                             👥 All Students ({students.length})
                         </button>
@@ -247,10 +247,10 @@ function AdminAnalyticsDashboard() {
                             <button
                                 key={student.id}
                                 onClick={() => setSelectedStudent(student.id)}
-                                className={`px-4 py-2 rounded-lg font-bold transition-all text-sm ${selectedStudent === student.id
+                                className={`px - 4 py - 2 rounded - lg font - bold transition - all text - sm ${selectedStudent === student.id
                                     ? 'bg-blue-600 text-white shadow-md'
                                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                    }`}
+                                    } `}
                                 title={student.name}
                             >
                                 {student.name.split(' ')[0]}
@@ -330,7 +330,7 @@ function AdminAnalyticsDashboard() {
                                                 <button
                                                     onClick={() => {
                                                         console.log('Full log data:', log);
-                                                        alert(`Log printed to console. Check F12 → Console tab`);
+                                                        alert(`Log printed to console.Check F12 → Console tab`);
                                                     }}
                                                     className="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-bold text-xs"
                                                 >

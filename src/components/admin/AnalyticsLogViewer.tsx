@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, auth } from '../../firebase/config';
+import { db, auth } from '../../services/firebase';
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 /**
@@ -411,8 +411,8 @@ function AnalyticsLogViewer() {
                                 key={student.id}
                                 onClick={() => setSelectedStudent(student.id)}
                                 className={`p-4 rounded-lg border-2 transition-all text-left ${selectedStudent === student.id
-                                        ? 'border-blue-600 bg-blue-50 shadow-md'
-                                        : 'border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100'
+                                    ? 'border-blue-600 bg-blue-50 shadow-md'
+                                    : 'border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100'
                                     }`}
                             >
                                 <p className="font-bold text-slate-900">{student.name}</p>
@@ -430,10 +430,10 @@ function AnalyticsLogViewer() {
                             <div
                                 key={idx}
                                 className={`rounded-lg p-4 border-l-4 ${insight.type === 'summary' ? 'bg-blue-50 border-blue-500' :
-                                        insight.type === 'momentum' ? 'bg-yellow-50 border-yellow-500' :
-                                            insight.type === 'struggle' ? 'bg-red-50 border-red-500' :
-                                                insight.type === 'learning' ? 'bg-green-50 border-green-500' :
-                                                    'bg-purple-50 border-purple-500'
+                                    insight.type === 'momentum' ? 'bg-yellow-50 border-yellow-500' :
+                                        insight.type === 'struggle' ? 'bg-red-50 border-red-500' :
+                                            insight.type === 'learning' ? 'bg-green-50 border-green-500' :
+                                                'bg-purple-50 border-purple-500'
                                     }`}
                             >
                                 <div className="flex items-start gap-3">
@@ -474,8 +474,8 @@ function AnalyticsLogViewer() {
                     <button
                         onClick={() => setViewMode('insights')}
                         className={`px-6 py-3 rounded-lg font-bold transition-all ${viewMode === 'insights'
-                                ? 'bg-blue-600 text-white shadow-lg'
-                                : 'bg-white border-2 border-slate-200 text-slate-700 hover:border-blue-300'
+                            ? 'bg-blue-600 text-white shadow-lg'
+                            : 'bg-white border-2 border-slate-200 text-slate-700 hover:border-blue-300'
                             }`}
                     >
                         💡 Story View (Insightful)
@@ -483,8 +483,8 @@ function AnalyticsLogViewer() {
                     <button
                         onClick={() => setViewMode('raw')}
                         className={`px-6 py-3 rounded-lg font-bold transition-all ${viewMode === 'raw'
-                                ? 'bg-slate-600 text-white shadow-lg'
-                                : 'bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300'
+                            ? 'bg-slate-600 text-white shadow-lg'
+                            : 'bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300'
                             }`}
                     >
                         📋 Raw Data (Technical)
@@ -552,12 +552,12 @@ function AnalyticsLogViewer() {
                                                     <div
                                                         key={insightIdx}
                                                         className={`rounded p-3 border-l-4 ${insight.type === 'success' ? 'bg-green-50 border-green-500' :
-                                                                insight.type === 'recovery' ? 'bg-yellow-50 border-yellow-500' :
-                                                                    insight.type === 'struggle' ? 'bg-red-50 border-red-500' :
-                                                                        insight.type === 'speed' ? 'bg-blue-50 border-blue-500' :
-                                                                            insight.type === 'concept' ? 'bg-purple-50 border-purple-500' :
-                                                                                insight.type === 'action' ? 'bg-orange-50 border-orange-500' :
-                                                                                    'bg-slate-50 border-slate-300'
+                                                            insight.type === 'recovery' ? 'bg-yellow-50 border-yellow-500' :
+                                                                insight.type === 'struggle' ? 'bg-red-50 border-red-500' :
+                                                                    insight.type === 'speed' ? 'bg-blue-50 border-blue-500' :
+                                                                        insight.type === 'concept' ? 'bg-purple-50 border-purple-500' :
+                                                                            insight.type === 'action' ? 'bg-orange-50 border-orange-500' :
+                                                                                'bg-slate-50 border-slate-300'
                                                             }`}
                                                     >
                                                         <p className="text-sm font-bold text-slate-900">
@@ -586,8 +586,8 @@ function AnalyticsLogViewer() {
                                                             <div
                                                                 key={field}
                                                                 className={`p-2 rounded text-xs border ${isMissing
-                                                                        ? 'bg-red-50 border-red-200'
-                                                                        : 'bg-green-50 border-green-200'
+                                                                    ? 'bg-red-50 border-red-200'
+                                                                    : 'bg-green-50 border-green-200'
                                                                     }`}
                                                             >
                                                                 <p className="font-bold text-slate-600 uppercase text-xs mb-1">{field}</p>
@@ -622,8 +622,8 @@ function AnalyticsLogViewer() {
                                                         <div
                                                             key={field}
                                                             className={`p-3 rounded border ${isMissing
-                                                                    ? 'bg-red-50 border-red-200'
-                                                                    : 'bg-green-50 border-green-200'
+                                                                ? 'bg-red-50 border-red-200'
+                                                                : 'bg-green-50 border-green-200'
                                                                 }`}
                                                         >
                                                             <p className="text-xs font-bold text-slate-600 uppercase mb-1">

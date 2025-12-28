@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, auth } from '../../firebase/config';
+import { db, auth } from '../../services/firebase';
 // Added getDoc and doc to the imports as they are used in fetchStudentStats logic
 import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
 

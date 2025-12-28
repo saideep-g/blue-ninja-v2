@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
-import { db, auth } from '../firebase/config'; // db still needed for some direct ops? Maybe not if we use service completely.
+import { db, auth } from '../services/firebase'; // db still needed for some direct ops? Maybe not if we use service completely.
 import { getDocs, doc, updateDoc, collection, query, limit, orderBy } from 'firebase/firestore';
 import { useNinja } from '../context/NinjaContext';
 import { Question } from '../types';
