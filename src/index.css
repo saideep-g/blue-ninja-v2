@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    /* Uses the dynamic background variable from our Theme Engine */
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    @apply min-h-screen font-sans antialiased;
+  }
+}
+
+@layer components {
+
+  /* The "Summer Cloud" card style */
+  .ninja-card {
+    background-color: var(--color-card);
+    @apply backdrop-blur-md border-4 border-white rounded-[2.5rem] p-8 shadow-2xl transition-all duration-300;
+  }
+
+  /* Interactive Blue Ninja buttons */
+  .btn-primary {
+    background-color: var(--color-primary);
+    @apply text-white py-4 px-8 rounded-2xl font-bold text-lg hover:shadow-lg hover:shadow-blue-200 active:scale-95 transition-all flex justify-center items-center gap-2;
+  }
+
+  .input-field {
+    @apply w-full p-4 rounded-2xl bg-white/50 border-2 border-blue-100 focus:border-blue-400 focus:ring-0 outline-none text-lg transition-all;
+  }
+}
+
+/* Add to the bottom of index.css */
+@layer utilities {
+  .touch-none {
+    touch-action: none;
+  }
+
+  /* Smooth scrolling for the Dashboard Power Map */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Ensure cards don't feel too cramped on small screens */
+@media (max-width: 640px) {
+  .ninja-card {
+    @apply p-5 rounded-[1.5rem] border-2;
+  }
+
+  .btn-primary {
+    @apply py-3 text-base;
+  }
+}
+
+/* Mobile-first responsive design */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+
+  /* Larger touch targets for mobile */
+  button {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* Full-width cards on mobile */
+  .card {
+    margin: 0;
+    border-radius: 12px;
+  }
+
+  /* Adjust font sizes for mobile */
+  h1 {
+    font-size: 28px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  /* Remove hover effects on touch devices */
+  @media (hover: none) and (pointer: coarse) {
+    .card:hover {
+      transform: none;
+    }
+
+    button:hover {
+      transform: none;
+    }
+  }
+
+  /* Safe area for notch-aware phones */
+  @supports (padding: max(0px)) {
+    body {
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+    }
+  }
+}
+
+/* Landscape mode */
+@media (max-height: 600px) and (orientation: landscape) {
+  .header {
+    padding: 8px 0;
+  }
+
+  .card {
+    padding: 12px;
+  }
+}
+
+/* Large screens */
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1200px;
+  }
+}
+
+:root {
+  /* Purple to Coral gradient */
+  --gradient-primary: linear-gradient(135deg, #A855F7 0%, #F43F5E 100%);
+  --gradient-success: linear-gradient(135deg, #10B981 0%, #06B6D4 100%);
+
+  /* Colors */
+  --color-primary: #A855F7;
+  --color-accent: #F43F5E;
+  --color-secondary: #06B6D4;
+  --color-success: #10B981;
+  --color-text: #1F2937;
+  --color-bg: #FAFAFA;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Modern cards with subtle animations */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Smooth gradient backgrounds */
+.gradient-bg {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+/* Button styles */
+.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  transform: scale(1.05);
+}
+
+.btn-primary:active {
+  transform: scale(0.95);
+}
