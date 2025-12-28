@@ -10,6 +10,9 @@ interface ProfileState {
   preferredLanguage: 'en' | 'te' | 'hi';
   theme: 'light' | 'dark' | 'system';
   notifications: boolean;
+  dailyQuestionCount: number;
+  diagnosticQuestionCount: number;
+  excludedChapters: string[];
   isLoading: boolean;
   error: string | null;
 
@@ -27,6 +30,9 @@ export const useProfileStore = create<ProfileState>(
       preferredLanguage: 'en',
       theme: 'system',
       notifications: true,
+      dailyQuestionCount: 5,
+      diagnosticQuestionCount: 10,
+      excludedChapters: [],
       isLoading: false,
       error: null,
 

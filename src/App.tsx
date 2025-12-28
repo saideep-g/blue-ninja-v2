@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { NinjaProvider, useNinja } from './context/NinjaContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -22,6 +22,7 @@ import AnalyticsLogViewer from './components/admin/AnalyticsLogViewer';
 import AdminQuestionsPanel from './components/admin/AdminQuestionsPanel';
 import CurriculumViewer from './components/curriculum/CurriculumViewer';
 import TemplateWorkbench from './components/templates/TemplateWorkbench';
+import UserProfile from './components/profile/UserProfile';
 
 import coreCurriculum from './data/cbse7_core_curriculum_v3.json';
 import templateLibrary from './data/template_library_v3.json';
@@ -259,7 +260,17 @@ function BlueNinjaContent() {
                 </span>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-4 items-center">
+              <Link to="/profile" className="flex items-center gap-2 group transition-all hover:scale-105">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-400 to-indigo-500 p-0.5 shadow-sm">
+                  <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                    <span className="text-xs font-black text-indigo-500">
+                      {(user?.displayName || 'N').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-xs font-black text-blue-800 uppercase tracking-widest group-hover:text-blue-600 hidden md:block">Profile</span>
+              </Link>
               <button
                 onClick={() => auth.signOut()}
                 className="text-xs font-black text-blue-400 uppercase tracking-widest hover:text-blue-800 transition-colors"
@@ -396,6 +407,7 @@ export default function App() {
             }
           />
           <Route path="/template/:templateId" element={<TemplateWorkbench />} />
+          <Route path="/profile" element={<UserProfile />} />
           {/* Catch-all: redirect unknown routes to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -7,6 +7,9 @@ export interface UserSettings {
   preferredLanguage: 'en' | 'te' | 'hi';
   theme: 'light' | 'dark' | 'system';
   notifications: boolean;
+  dailyQuestionCount: number;
+  diagnosticQuestionCount: number;
+  excludedChapters: string[];
 }
 
 export async function getUserProfile(userId: string) {
@@ -31,7 +34,7 @@ export async function getUserProfile(userId: string) {
 export async function updateUserProfile(userId: string, settings: Partial<UserSettings>) {
   try {
     logger.info('💾 Updating profile...');
-    
+
     const existingProfile = await idb.getUserProfile(userId);
     const updatedProfile = {
       ...(existingProfile || {
