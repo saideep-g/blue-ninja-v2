@@ -381,7 +381,7 @@ export default function App() {
           />
           <Route path="/admin/questions" element={<AdminQuestionsPanel />} />
           <Route path="/curriculum" element={<CurriculumViewer />} />
-
+          <Route path="/template/:templateId" element={<TemplateWorkbench />} />
           {/* Catch-all: redirect unknown routes to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
