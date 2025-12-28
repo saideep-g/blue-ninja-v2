@@ -1,9 +1,3 @@
-/**
- * IndexedDB Type Definitions for Blue Ninja v3
- * Database: BlueNinjaDB (8 tables)
- * Powered by: Dexie.js
- */
-
 export interface User {
   id: string;
   email: string;
@@ -27,7 +21,7 @@ export interface UserProfile {
 
 export interface Question {
   id: string;
-  template: string; // 'mcq', 'fill-blank', 'essay', etc.
+  template: string;
   subject: string;
   topic: string;
   level: 'easy' | 'medium' | 'hard';
@@ -57,10 +51,10 @@ export interface Assessment {
 export interface Progress {
   id: string;
   userId: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   questionsAttempted: number;
   questionsCorrect: number;
-  timeSpent: number; // seconds
+  timeSpent: number;
   topics: Record<string, { attempted: number; correct: number }>;
   synced: boolean;
 }
@@ -68,7 +62,7 @@ export interface Progress {
 export interface DailyMission {
   id: string;
   userId: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   mission: string;
   description: string;
   completed: boolean;
