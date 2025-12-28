@@ -31,16 +31,7 @@ const createConverter = <T>(schema?: ZodType<any>) => ({
         // Inject ID which is often missing in data but required by Model
         const dataWithId = { ...data, id: snapshot.id };
 
-        if (schema) {
-            const result = schema.safeParse(dataWithId);
-            if (!result.success) {
-                console.warn(`[Firestore] Validation Failed for ${snapshot.ref.path}:`, result.error.format());
-                // Fallback: Return raw data but warned. 
-                // This prevents white-screen-of-death but alerts developer.
-                return dataWithId as unknown as T;
-            }
-            return result.data as T;
-        }
+        // Validation removed as per request to support V3 migration
         return dataWithId as unknown as T;
     }
 });

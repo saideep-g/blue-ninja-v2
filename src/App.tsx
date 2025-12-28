@@ -126,7 +126,7 @@ function StudentApp() {
 
       {effectiveView === 'DAILY_MISSION' && !dailyComplete && (
         <div className="pb-20">
-          <header className="max-w-4xl mx-auto p-6 flex justify-between items-center">
+          <header className="max-w-7xl mx-auto p-6 flex justify-between items-center">
             <h1 className="text-2xl font-black italic text-blue-800 tracking-tighter uppercase">Daily Flight</h1>
             <div className="flex flex-col items-end">
               <span className="font-bold text-blue-900">{dailyIdx + 1} / {dailyTotal}</span>
@@ -135,7 +135,7 @@ function StudentApp() {
               </div>
             </div>
           </header>
-          <main className="max-w-2xl mx-auto mt-8 px-4">
+          <main className="max-w-7xl mx-auto mt-8 px-4">
             {dailyQ ? (
               <MissionCard question={dailyQ} onAnswer={handleDailyAnswer} />
             ) : (
@@ -149,7 +149,7 @@ function StudentApp() {
       )}
 
       {effectiveView === 'DASHBOARD' && (
-        <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto">
+        <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
           <AchievementUnlock achievement={activeAchievement} />
           <header className="flex justify-between items-center mb-10">
             <div>
@@ -197,7 +197,7 @@ function StudentApp() {
 
       {effectiveView === 'QUEST' && !diagComplete && (
         <div className="pb-20">
-          <header className="max-w-4xl mx-auto p-6 flex justify-between items-center">
+          <header className="max-w-7xl mx-auto p-6 flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-black italic text-blue-800 tracking-tighter uppercase">Entrance Quest</h1>
               <div className="w-full h-1 bg-blue-100 rounded-full mt-1 overflow-hidden">
@@ -209,7 +209,7 @@ function StudentApp() {
               <span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest mt-1">Mission {diagIdx + 1} / {diagTotal}</span>
             </div>
           </header>
-          <main className="max-w-2xl mx-auto mt-8 px-4">
+          <main className="max-w-7xl mx-auto mt-8 px-4">
             {diagQ ? (
               <MissionCard question={diagQ} onStartRecovery={startRecoveryTimer} onAnswer={handleDiagAnswer} />
             ) : (

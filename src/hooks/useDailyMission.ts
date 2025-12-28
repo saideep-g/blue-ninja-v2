@@ -54,8 +54,8 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                     id: item.item_id || item.id,
                     atom: item.atom_id || item.atom, // Normalize for logic
                     type: item.template_id || item.type
-                }));
-                console.log(`[useDailyMission] Loaded ${allQuestions.length} items from V3 Bundle.`);
+                })).filter((q: any) => q.type === 'TWO_TIER');
+                console.log(`[useDailyMission] Loaded ${allQuestions.length} items from V3 Bundle (Filtered: TWO_TIER).`);
             } else {
                 console.warn("[useDailyMission] No V3 Bundles found. Falling back to legacy collection.");
                 // Legacy Fallback

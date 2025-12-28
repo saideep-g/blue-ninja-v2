@@ -21,6 +21,11 @@ const TwoTierAdapter: React.FC<TemplateRouterProps> = ({ question, onSubmit }) =
 
   // Transform V2 Question to V3 QuestionItem on the fly
   const item: QuestionItem = useMemo(() => {
+    // DIRECT PASSTHROUGH: If it's already a V3 item (has stages), use it.
+    if ((question as any).stages && Array.isArray((question as any).stages)) {
+      return question as any as QuestionItem;
+    }
+
     const config = question.content?.interaction?.config || {};
     const options = (config.options || []).map((opt: any, idx: number) => ({
       id: `opt-${idx}`, // Generate synthetic IDs if missing

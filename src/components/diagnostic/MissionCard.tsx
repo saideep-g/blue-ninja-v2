@@ -1,321 +1,60 @@
 // @ts-nocheck
-import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useRef, useEffect } from 'react';
+import { TemplateRouter } from '../templates/TemplateRouter';
+import { motion } from 'framer-motion';
 
 /**
- * MissionCard: Complete Implementation with Consistent onAnswer Signature
- * Fully handles LaTeX rendering, engagement framing, and hurdle tracking.
- * Detailed comments explain the logic flow for VS Code diffing.
- * Ensures the 'Bonus Mission' (Follow-Up) is visible and interactable 
- * after an incorrect answer is submitted.
- * Implements Auto-Advance, Success Animations, and Thinking-Time Tracking.
+ * MissionCard (Unified Template Wrapper)
  * 
- * CRITICAL FIX: All onAnswer calls now use EXACTLY 5 parameters:
- * onAnswer(isCorrect, choice, isRecovered, tag, timeSpentSeconds)
- * 
- * - timeSpent is converted from milliseconds to seconds
- * - speedRating is calculated by the handler in App.jsx
- * - No extra parameters like rating, cappedTime
+ * Delegates rendering to the TemplateRouter to support both V2 and V3 questions.
+ * This replaces the legacy hardcoded rendering logic.
  */
-function MissionCard({ question, onAnswer, onStartRecovery = null as any }) {
-    // Local state to track the ninja's current selection before submission
-    const [selectedOption, setSelectedOption] = useState(null);
-    // Controls the visibility of the "Ninja Insight" feedback layer
-    const [showFeedback, setShowFeedback] = useState(false);
-    // Stores the specific distractor data for the selected wrong answer
-    const [feedbackData, setFeedbackData] = useState(null);
-
-    // Add a local loading state for typeset
-    const [isTypesetting, setIsTypesetting] = useState(false);
-
-    // Performance State
-    const [isCorrectPulse, setIsCorrectPulse] = useState(false);
-    const [speedRating, setSpeedRating] = useState(null); // 'SPRINT', 'NORMAL', 'SLOW'
-
-    const [thinkingTime, setThinkingTime] = useState(0);
-    const [isPaused, setIsPaused] = useState(false);
-
-    const timerRef = useRef(null);
-
-    // Phase 2: High-precision timer for "Thinking Time"
+function MissionCard({ question, onAnswer, onStartRecovery }) {
     const startTimeRef = useRef(Date.now());
 
+    // Reset timer when question changes
     useEffect(() => {
-        // Reset timer when a new question loads
         startTimeRef.current = Date.now();
-        setSelectedOption(null);
-        setShowFeedback(false);
-        setIsCorrectPulse(false);
-        setSpeedRating(null);
-        setThinkingTime(0);
-    }, [question?.id]);
+    }, [question?.id || question?.item_id]);
 
-    /**
-     * Effect to trigger MathJax typeset whenever the content changes.
-     * This ensures formulas like $a^m \times a^n$ render correctly after every mission update.
-     */
-    useEffect(() => {
-        if (window.MathJax) {
-            setIsTypesetting(true);
-            window.MathJax.typesetPromise().then(() => {
-                setIsTypesetting(false);
-            });
-        }
-    }, [question, showFeedback]);
-
-    /**
-     * Memoized shuffle to ensure options appear in a different order every time.
-     * Prevents pattern memorization based on option position.
-     */
-    const shuffledOptions = useMemo(() => {
-        if (!question) return [];
-        const options = [
-            question.correct_answer,
-            ...question.distractors.map(d => d.option)
-        ];
-        return options.sort(() => Math.random() - 0.5);
-    }, [question]);
-
-    /**
-     * calculatePerformance
-     * Determines the Speed Factor based on Difficulty.
-     * Baseline: 8 seconds per difficulty level.
-     * Returns: 'SPRINT' | 'NORMAL' | 'SLOW'
-     */
-    const calculatePerformance = (timeSpent) => {
-        const expectedTime = (question.difficulty || 3) * 8000;
-        const speedFactor = timeSpent / expectedTime;
-
-        if (speedFactor < 0.6) return 'SPRINT';
-        if (speedFactor < 1.2) return 'NORMAL';
-        return 'SLOW';
-    };
-
-    // Phase 3: Pause timer when tab is hidden or student is idle
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            setIsPaused(document.hidden);
-        };
-
-        document.addEventListener("visibilitychange", handleVisibilityChange);
-
-        // Start active thinking timer
-        timerRef.current = setInterval(() => {
-            if (!isPaused) {
-                setThinkingTime(prev => prev + 1000);
-            }
-        }, 1000);
-
-        return () => {
-            clearInterval(timerRef.current);
-            document.removeEventListener("visibilitychange", handleVisibilityChange);
-        };
-    }, [isPaused]);
-
-    /**
-     * handleCheck - Logic to check the primary answer.
-     * If correct: Triggers success animation and auto-advances after 1.2s.
-     * If wrong: Shows Ninja Insight and starts recovery timer.
-     * 
-     * CRITICAL FIX: Converts timeSpentMs to timeSpentSeconds
-     * and calls onAnswer with EXACTLY 5 parameters
-     */
-    const handleCheck = () => {
-        // Convert milliseconds to seconds for logging
+    const handleTemplateSubmit = (result: any) => {
         const timeSpentMs = Date.now() - startTimeRef.current;
         const timeSpentSeconds = Math.round(timeSpentMs / 1000);
-        const isCorrect = selectedOption === question.correct_answer;
 
-        if (isCorrect) {
-            const rating = calculatePerformance(timeSpentMs);
-            setSpeedRating(rating);
-            setIsCorrectPulse(true);
-            // UX Decision: 1.2s pause for the "Success Beat" before auto-advancing
-            // Asymmetrical feedback: Auto-advance after 1.2s to preserve momentum
-            setTimeout(() => {
-                // ✅ FIXED: Call with exactly 5 parameters
-                // The handler in App.jsx will calculate speedRating from timeSpentSeconds
-                onAnswer(true, selectedOption, false, null, timeSpentSeconds);
-            }, 1200);
-        } else {
-            // Step 12: Extract the diagnostic_tag to track misconceptions (Hurdles)
-            const distractor = question.distractors.find(d => d.option === selectedOption);
-            setFeedbackData(distractor);
-            setShowFeedback(true);
+        // Normalize result from different templates
+        // V2 usually returns: { isCorrect, selectedIndex, feedback }
+        // V3 Adapter returns: { isCorrect, explanation, tier1Correct }
+        const isCorrect = result.isCorrect === true;
 
-            // Step 10: Signal the high-precision recovery timer to start
-            if (onStartRecovery) onStartRecovery();
-        }
+        const choice = result.selectedIndex ?? result.choice ?? null;
 
-        setThinkingTime(0); // Reset for next mission
+        // For V3/TwoTier, recovery is internal (scaffolding).
+        // We pass isRecovered=false to the parent as the "recovered" concept 
+        // in useDiagnostic (velocity) might not map 1:1 to the new template's internal remediation.
+        // If needed, we can expand result to include recovery status.
+
+        onAnswer(
+            isCorrect,
+            choice,
+            false, // isRecovered default
+            null, // tag default
+            timeSpentSeconds
+        );
     };
 
     if (!question) return null;
 
     return (
         <motion.div
-            layout
-            className="ninja-card relative overflow-hidden"
-            animate={speedRating === 'SPRINT' ? { scale: [1, 1.02, 1] } : {}}
-            transition={{ duration: 0.5, repeat: isCorrectPulse ? 0 : Infinity }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-6xl mx-auto p-4"
         >
-            {/* Speed Animation Overlays (Sprinting Streaks) */}
-            <AnimatePresence>
-                {speedRating === 'SPRINT' && isCorrectPulse && (
-                    <motion.div
-                        initial={{ opacity: 0, x: -100 }}
-                        animate={{ opacity: 0.1, x: 500 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.8, repeat: Infinity }}
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-400 to-transparent pointer-events-none skew-x-12"
-                    />
-                )}
-            </AnimatePresence>
-
-            {/* Module & Atom Badge */}
-            <div className="flex justify-between items-center mb-6">
-                <span className="px-3 py-1 bg-blue-50 text-[var(--color-primary)] text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100">
-                    {question.module} • {question.atom}
-                </span>
-
-                {/* Speed Tag */}
-                {speedRating && (
-                    <motion.span
-                        initial={{ scale: 0 }} animate={{ scale: 1 }}
-                        className={`text-[9px] font-black uppercase px-2 py-1 rounded ${speedRating === 'SPRINT' ? 'bg-yellow-400 text-blue-900' : 'bg-blue-100 text-blue-600'
-                            }`}
-                    >
-                        ⚡ {speedRating} FLOW
-                    </motion.span>
-                )}
-            </div>
-
-            {/* Main Question Text */}
-            <div className={`mb-10 transition-opacity duration-300 ${isTypesetting ? 'opacity-0' : 'opacity-100'
-                }`}>
-                <h2 className="text-2xl md:text-3xl font-bold text-slate-800 leading-tight">
-                    {question.text}
-                </h2>
-            </div>
-
-            {!showFeedback ? (
-                <div className="space-y-3">
-                    {/* Answer Selection Grid */}
-                    <div className="grid grid-cols-1 gap-3">
-                        {shuffledOptions.map((option, index) => {
-                            const isSelected = selectedOption === option;
-                            return (
-                                <button
-                                    key={index}
-                                    onClick={() => !isCorrectPulse && setSelectedOption(option)}
-                                    className={`p-5 rounded-2xl text-left font-bold transition-all border-2 relative overflow-hidden ${isSelected
-                                        ? isCorrectPulse
-                                            ? 'bg-green-500 border-green-500 text-white shadow-xl'
-                                            : 'bg-blue-600 border-blue-600 text-white shadow-lg'
-                                        : 'bg-white border-blue-50 text-slate-700 hover:border-blue-200 hover:bg-blue-50'
-                                        } ${isCorrectPulse && isSelected ? 'animate-bounce' : ''}`}
-                                >
-                                    {option}
-                                    {isCorrectPulse && isSelected && (
-                                        <motion.span
-                                            initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-2xl"
-                                        >
-                                            ✨
-                                        </motion.span>
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {!isCorrectPulse && (
-                        <button
-                            disabled={!selectedOption}
-                            onClick={handleCheck}
-                            className={`w-full mt-8 py-5 rounded-2xl font-black text-lg transition-all ${selectedOption
-                                ? 'bg-[var(--color-accent)] text-blue-900 shadow-xl cursor-pointer active:scale-95'
-                                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                }`}
-                        >
-                            Check Answer ➤
-                        </button>
-                    )}
-                </div>
-            ) : (
-                /* Engagement Framing UI (Ninja Insight) */
-                /* The Recovery Flow */
-                <div className="space-y-6 animate-in zoom-in duration-300">
-                    <div className="p-6 bg-yellow-50 border-2 border-yellow-200 rounded-3xl">
-                        <h3 className="text-xl font-black text-yellow-700 uppercase italic mb-2">
-                            Ninja Insight! 💡
-                        </h3>
-                        <p className="text-lg text-yellow-900 font-medium">
-                            {feedbackData?.engagement_framing || "You're getting warmer! Let's try to look at this differently."}
-                        </p>
-                    </div>
-
-                    {/* Follow-up Bonus Mission for Recovery Velocity Tracking */}
-                    {feedbackData?.follow_up ? (
-                        <div className="p-6 bg-blue-50 border-2 border-blue-100 rounded-3xl">
-                            <h4 className="text-sm font-black text-blue-400 uppercase tracking-widest mb-3">Bonus Mission</h4>
-                            <p className="font-bold text-blue-800 mb-4">{feedbackData.follow_up.text}</p>
-                            <div className="grid grid-cols-1 gap-2">
-                                {feedbackData.follow_up.options?.map((opt, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => {
-                                            // Convert milliseconds to seconds
-                                            const timeSpentMs = Date.now() - startTimeRef.current;
-                                            const timeSpentSeconds = Math.round(timeSpentMs / 1000);
-                                            const recoveryCorrect = opt === feedbackData.follow_up.correct;
-
-                                            // ✅ FIXED: Call with exactly 5 parameters
-                                            // isCorrect = false (wrong first attempt)
-                                            // choice = selectedOption (original wrong answer)
-                                            // isRecovered = recoveryCorrect (correct on bonus)
-                                            // tag = feedbackData.diagnostic_tag (misconception)
-                                            // timeSpentSeconds = calculated in seconds
-                                            onAnswer(false, selectedOption, recoveryCorrect, feedbackData.diagnostic_tag, timeSpentSeconds);
-
-                                            setShowFeedback(false);
-                                            setFeedbackData(null);
-                                            setSelectedOption(null);
-                                        }}
-                                        className="p-4 bg-white border-2 border-blue-100 rounded-xl text-left font-bold text-blue-700 hover:border-blue-400 transition-all"
-                                    >
-                                        {opt}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        /* If no follow-up is defined in the JSON, provide a way to continue */
-                        <button
-                            onClick={() => {
-                                // Convert milliseconds to seconds
-                                const timeSpentMs = Date.now() - startTimeRef.current;
-                                const timeSpentSeconds = Math.round(timeSpentMs / 1000);
-
-                                // ✅ FIXED: Call with exactly 5 parameters
-                                // isCorrect = false (student got it wrong)
-                                // choice = selectedOption (original wrong answer)
-                                // isRecovered = false (no bonus mission to recover)
-                                // tag = feedbackData?.diagnostic_tag (misconception)
-                                // timeSpentSeconds = calculated in seconds
-                                onAnswer(false, selectedOption, false, feedbackData?.diagnostic_tag, timeSpentSeconds);
-
-                                setShowFeedback(false);
-                                setFeedbackData(null);
-                                setSelectedOption(null);
-                            }}
-                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 transition-all"
-                        >
-                            Next Mission ➤
-                        </button>
-                    )}
-                </div>
-            )}
+            <TemplateRouter
+                question={question}
+                onSubmit={handleTemplateSubmit}
+                isSubmitting={false}
+            />
         </motion.div>
     );
 }
