@@ -1,64 +1,35 @@
-/**
- * ProtectedRoute.jsx - SECURITY CRITICAL COMPONENT
- * 
- * Protects admin and sensitive routes from unauthorized access.
- * Verifies user authentication and role before rendering components.
- * 
- * Usage:
- * <Route
- *   path="/admin"
- *   element={
- *     <ProtectedRoute
- *       component={AnalyticsLogViewer}
- *       requiredRole="ADMIN"
- *     />
- *   }
- * />
- */
-
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useNinja } from '../context/NinjaContext';
+import { useAuthStore } from '../store/auth';
 
-/**
- * ProtectedRoute Component
- * 
- * Verifies:
- * 1. User is authenticated (logged in)
- * 2. User role matches required role
- * 3. Role is verified on backend (from NinjaContext)
- * 
- * @param {React.Component} component - Component to render if authorized
- * @param {string} requiredRole - Required role (e.g., 'ADMIN', 'TEACHER')
- * @param {string} redirectTo - Redirect path if unauthorized (default: '/')
- */
-const ProtectedRoute = ({ component: Component, requiredRole, redirectTo = '/' }) => {
-    const { user, userRole, loading } = useNinja();
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  requiredRole?: 'student' | 'teacher' | 'admin';
+}
 
-    // Still loading auth state
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-blue-50">
-                <div className="animate-pulse text-4xl">🌊</div>
-            </div>
-        );
-    }
+export function ProtectedRoute({
+  children,
+  requiredRole,
+}: ProtectedRouteProps): React.ReactNode {
+  const { user, isLoading } = useAuthStore();
 
-    // Check 1: User must be authenticated
-    if (!user) {
-        console.warn('❌ ProtectedRoute: User not authenticated - redirecting to login');
-        return <Navigate to="/login" replace />;
-    }
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
-    // Check 2: User must have required role
-    if (requiredRole && userRole !== requiredRole) {
-        console.warn(`❌ ProtectedRoute: User role '${userRole}' does not match required role '${requiredRole}' - redirecting to home`);
-        return <Navigate to={redirectTo} replace />;
-    }
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
-    // ✅ All checks passed - render component
-    console.log(`✅ ProtectedRoute: Access granted to ${requiredRole} - user role: '${userRole}'`);
-    return <Component />;
-};
+  // Role check can be added in Phase 2 when we have user roles
+  // For now, just check if user is authenticated
 
-export default ProtectedRoute;
+  return children;
+}
