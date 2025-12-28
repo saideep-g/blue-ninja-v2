@@ -137,7 +137,7 @@ function StudentApp() {
           </header>
           <main className="max-w-7xl mx-auto mt-8 px-4">
             {dailyQ ? (
-              <MissionCard question={dailyQ} onAnswer={handleDailyAnswer} />
+              <MissionCard key={dailyQ.id} question={dailyQ} onAnswer={handleDailyAnswer} onStartRecovery={null} />
             ) : (
               <div className="ninja-card flex flex-col items-center justify-center py-20">
                 <div className="animate-spin text-4xl mb-4">🌊</div>

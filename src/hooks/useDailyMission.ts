@@ -49,9 +49,10 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                 const bundleData = bundleSnap.docs[0].data();
                 const rawItems = bundleData.items || [];
                 // Map V3 items to internal Question interface
-                allQuestions = rawItems.map((item: any) => ({
+                allQuestions = rawItems.map((item: any, index: number) => ({
                     ...item,
-                    id: item.item_id || item.id,
+                    // Ensure unique ID for React Keys, even if bundle has duplicates
+                    id: `${item.item_id || item.id}-${index}`,
                     atom: item.atom_id || item.atom, // Normalize for logic
                     type: item.template_id || item.type
                 })).filter((q: any) => q.type === 'TWO_TIER');

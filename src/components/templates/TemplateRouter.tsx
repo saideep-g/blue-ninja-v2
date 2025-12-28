@@ -17,7 +17,7 @@ interface TemplateRouterProps {
 // ----------------------------------------------------------------------
 // ADAPTER: V2 Question -> V3 QuestionItem (For TwoTierTemplate)
 // ----------------------------------------------------------------------
-const TwoTierAdapter: React.FC<TemplateRouterProps> = ({ question, onSubmit }) => {
+const TwoTierAdapter: React.FC<TemplateRouterProps & { onAnswer: (result: any) => void }> = ({ question, onAnswer }) => {
 
   // Transform V2 Question to V3 QuestionItem on the fly
   const item: QuestionItem = useMemo(() => {
@@ -83,22 +83,33 @@ const TwoTierAdapter: React.FC<TemplateRouterProps> = ({ question, onSubmit }) =
     };
   }, [question]);
 
+  const attemptsRef = React.useRef(1);
+
   // Handle V3 Telemetry -> V2 'onSubmit' translation
   const handleTelemetry = (event: string, payload: any) => {
+    if (event === 'tier_1_correct') {
+      attemptsRef.current = payload.attempts || 1;
+    }
+
     if (event === 'tier_2_submitted') {
       // Map V3 submission back to V2 expected format
-      onSubmit({
-        isCorrect: true, // If they reached here, they passed Tier 1
+      // We pass rich data in the explanation field or as extra props
+      onAnswer({
+        isCorrect: true,
         explanation: payload.text,
-        tier1Correct: true
+        tier1Correct: true,
+        attempts: attemptsRef.current,
+        isRecovered: attemptsRef.current > 1
       });
     }
     // Handle terminal failure (3 wrong attempts)
     if (event === 'item_terminated') {
-      onSubmit({
+      onAnswer({
         isCorrect: false,
         explanation: 'Terminated',
-        tier1Correct: false
+        tier1Correct: false,
+        attempts: 3,
+        isRecovered: false
       });
     }
   };
@@ -138,7 +149,6 @@ export function TemplateRouter({ question, onSubmit, isSubmitting = false, readO
   return (
     <TemplateComponent
       question={question}
-      onSubmit={onSubmit} // Pass onSubmit specifically for Adapter
       onAnswer={onSubmit} // Pass onAnswer for V2 templates
       isSubmitting={isSubmitting}
       readOnly={readOnly}

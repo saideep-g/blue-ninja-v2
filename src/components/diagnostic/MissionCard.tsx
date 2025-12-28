@@ -24,20 +24,19 @@ function MissionCard({ question, onAnswer, onStartRecovery }) {
         // Normalize result from different templates
         // V2 usually returns: { isCorrect, selectedIndex, feedback }
         // V3 Adapter returns: { isCorrect, explanation, tier1Correct }
+        // Adapter returns rich data now (explanation, isRecovered, attempts)
         const isCorrect = result.isCorrect === true;
+        const isRecovered = result.isRecovered === true;
 
-        const choice = result.selectedIndex ?? result.choice ?? null;
-
-        // For V3/TwoTier, recovery is internal (scaffolding).
-        // We pass isRecovered=false to the parent as the "recovered" concept 
-        // in useDiagnostic (velocity) might not map 1:1 to the new template's internal remediation.
-        // If needed, we can expand result to include recovery status.
+        // Ensure we capture the reasoning or choice ID
+        // If it's a Two-Tier, we might have an explanation text instead of a simple choice index
+        const choice = result.selectedIndex ?? result.choice ?? result.explanation ?? "COMPLETED";
 
         onAnswer(
             isCorrect,
             choice,
-            false, // isRecovered default
-            null, // tag default
+            isRecovered,
+            null, // tag default (TODO: extract form diagnostic info if needed)
             timeSpentSeconds
         );
     };

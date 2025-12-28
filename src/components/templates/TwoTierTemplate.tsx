@@ -93,7 +93,7 @@ export const TwoTierTemplate: React.FC<Props> = ({
 
     // Map failure count to hint levels (Max level 3)
     const levelIndex = Math.min(failureCount, ladder.length - 1);
-    const activeHint = ladder[levelIndex] || { text: remediation.hint };
+    const activeHint = ladder[levelIndex] || { text: remediation.hint, level: 1, type: 'CONCEPT' };
 
     return {
       ...remediation,
@@ -270,11 +270,10 @@ export const TwoTierTemplate: React.FC<Props> = ({
             {activeRemediation && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                className={`p-10 rounded-[40px] border shadow-2xl relative overflow-hidden flex-1 flex flex-col justify-center ${isAnushkaContext ? 'bg-pink-50 border-pink-100' : 'bg-amber-50 border-amber-100'
-                  }`}
+                className={`p-10 rounded-[40px] border shadow-2xl relative overflow-hidden flex-1 flex flex-col justify-center bg-amber-50 border-amber-100`}
               >
                 <div className="flex gap-6 items-start">
-                  <div className={`p-4 rounded-2xl shadow-lg ${isAnushkaContext ? 'bg-pink-500 text-white' : 'bg-amber-500 text-white'}`}>
+                  <div className={`p-4 rounded-2xl shadow-lg bg-amber-500 text-white`}>
                     <Sparkles size={32} />
                   </div>
                   <div>
