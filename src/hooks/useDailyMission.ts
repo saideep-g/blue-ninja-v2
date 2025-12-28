@@ -4,7 +4,7 @@ import { db, auth } from '../services/firebase'; // db still needed for some dir
 import { getDocs, doc, updateDoc, collection, query, limit, orderBy } from 'firebase/firestore';
 import { useNinja } from '../context/NinjaContext';
 import { Question } from '../types';
-import { diagnosticQuestionsCollection, getStudentRef } from '../services/db';
+import { diagnosticQuestionsCollection, getStudentRef, questionBundlesCollection } from '../services/db';
 
 /**
  * useDailyMission Hook
@@ -39,7 +39,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
         try {
             // V3: Fetch Bundle
             let allQuestions: Question[] = [];
-            const bundlesRef = collection(db, 'question_bundles_v3');
+            const bundlesRef = questionBundlesCollection;
             // Fetch any available bundle (optimized for 0 reads if cached, but here we query once)
             // Ideally we'd cache this in IDB, but for now we fetch fresh.
             const bundleQuery = query(bundlesRef, limit(1));

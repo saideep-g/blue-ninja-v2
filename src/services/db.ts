@@ -75,6 +75,14 @@ export const questionsCollection = collection(db, 'questions').withConverter(cre
 
 
 /**
+ * Question Bundles Collection
+ * Path: /question_bundles_v3/{id}
+ * (No converter for now, raw data)
+ */
+export const questionBundlesCollection = collection(db, 'question_bundles_v3');
+
+
+/**
  * Session Logs Sub-Collection
  * Path: /students/{uid}/session_logs/{logId}
  */

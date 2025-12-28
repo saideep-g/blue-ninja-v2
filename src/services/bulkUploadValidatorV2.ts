@@ -6,6 +6,7 @@
  */
 
 import { validateQuestionV2 } from './questionValidatorV2';
+import { validateQuestionV3 } from './questionValidatorV3';
 
 interface TaskResult {
   index?: number;
@@ -21,6 +22,7 @@ interface ValidationOptions {
   checkForDuplicates?: boolean;
   maxParallel?: number;
   performanceMetrics?: boolean;
+  format?: 'V2' | 'V3_BUNDLE' | 'LEGACY';
 }
 
 /**
@@ -97,7 +99,8 @@ export async function validateBulkUploadV2(data: any, options: ValidationOptions
     progressCallback = null,
     checkForDuplicates = true,
     maxParallel = 4,
-    performanceMetrics = true
+    performanceMetrics = true,
+    format = 'V2'
   } = options;
 
   const startTime = performance.now();
@@ -145,7 +148,7 @@ export async function validateBulkUploadV2(data: any, options: ValidationOptions
   }
 
   console.log(
-    `[BulkValidatorV2] Starting validation of ${items.length} items`
+    `[BulkValidatorV2] Starting validation of ${items.length} items (Format: ${format})`
   );
 
   const results: any = {
@@ -196,7 +199,10 @@ export async function validateBulkUploadV2(data: any, options: ValidationOptions
     const validationTasks = items.map((item, index) => {
       return async (): Promise<TaskResult> => {
         try {
-          const validation = await validateQuestionV2(item);
+          const validation = (format === 'V3_BUNDLE' || item.schema_version === '3.0')
+            ? await validateQuestionV3(item)
+            : await validateQuestionV2(item);
+
           return {
             index,
             item,
@@ -318,8 +324,9 @@ export async function validateBulkUploadV2(data: any, options: ValidationOptions
       if (validation.errors) {
         for (const error of validation.errors) {
           const code = error.code || 'UNKNOWN';
-          results.summary.errorCodeFrequency[code] =
-            (results.summary.errorCodeFrequency[code] || 0) + 1;
+          const codeKey = typeof code === 'string' ? code : JSON.stringify(code);
+          results.summary.errorCodeFrequency[codeKey] =
+            (results.summary.errorCodeFrequency[codeKey] || 0) + 1;
         }
       }
     }
@@ -401,7 +408,7 @@ export function generateValidationReportV2(validationResults: any) {
       itemId: r.itemId,
       templateId: r.templateId,
       errorCount: r.errors?.length || 0,
-      errors: r.errors?.slice(0, 2).map((e: any) => `${e.code}: ${e.message}`) || []
+      errors: r.errors?.slice(0, 2).map((e: any) => `${e.code || 'ERR'}: ${e.message || e}`) || []
     }))
     .slice(0, 20);
 

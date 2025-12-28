@@ -5,12 +5,12 @@
  * Service for publishing validated V2 format questions to Firestore.
  */
 
-import { getFirestore, collection, doc, setDoc, updateDoc, getDoc, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, getDoc, query, where, getDocs, writeBatch, collection } from 'firebase/firestore';
+import { db } from './firebase';
+import { questionBundlesCollection } from './db';
 
-const db = getFirestore();
 const QUESTIONS_COLLECTION = 'questions';
 const PUBLISH_LOGS_COLLECTION = 'publish_logs';
-const QUESTION_BUNDLES_COLLECTION = 'question_bundles_v3';
 const QUESTION_BANKS_COLLECTION = 'question_banks';
 
 /**
@@ -42,7 +42,7 @@ export async function publishBundleToFirestore(bundleData: any, options: Publish
   };
 
   try {
-    const docRef = doc(collection(db, QUESTION_BUNDLES_COLLECTION), bundleId);
+    const docRef = doc(questionBundlesCollection, bundleId);
 
     // Add metadata for easier querying/management
     const finalData = {
