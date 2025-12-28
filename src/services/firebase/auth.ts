@@ -7,12 +7,9 @@ import {
   setPersistence,
   browserLocalPersistence,
 } from 'firebase/auth';
-import { getAuth } from 'firebase/auth';
-import { firebaseApp } from './config';
+import { auth } from '../../firebase/config';
 import * as idb from '../idb';
 import { logger } from '../logging';
-
-const auth = getAuth(firebaseApp);
 
 // Enable persistence
 setPersistence(auth, browserLocalPersistence).catch((error) => {

@@ -11,7 +11,7 @@ import {
 import { db } from '../firebase/config';
 import { NinjaStats, Question, QuestionLog } from '../types';
 import { ZodType } from 'zod';
-import { QuestionSchema } from '../schemas/questions';
+import { questionSchema as QuestionSchema } from '../schemas/questions';
 
 /**
  * Generic Converter Generator

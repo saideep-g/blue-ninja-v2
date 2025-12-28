@@ -21,6 +21,7 @@ import ParentDashboard from './components/parent/ParentDashboard';
 import AnalyticsLogViewer from './components/admin/AnalyticsLogViewer';
 import AdminQuestionsPanel from './components/admin/AdminQuestionsPanel';
 import CurriculumViewer from './components/curriculum/CurriculumViewer';
+import TemplateWorkbench from './components/templates/TemplateWorkbench';
 
 
 /**
@@ -375,7 +376,7 @@ export default function App() {
             element={
               <ProtectedRoute
                 component={AnalyticsLogViewer}
-                requiredRole="ADMIN"
+                requiredRole="admin"
               />
             }
           />
