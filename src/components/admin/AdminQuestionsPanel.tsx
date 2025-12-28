@@ -44,6 +44,25 @@ export default function AdminQuestionsPanel() {
   const [step, setStep] = useState(UPLOAD_STEPS.UPLOAD);
   const [sessionId, setSessionId] = useState(null);
 
+  // DEMO DATA
+  const loadDemoBundle = async () => {
+    try {
+      const demoData = await import('../../data/cbse7_gold_questions_v3_medium_kpop_cdrama_set1.json');
+      const data = demoData.default || demoData;
+      setRawBundle(data);
+      setQuestions(data.items || []);
+      setFormatDetected('V3_BUNDLE');
+      setStep(UPLOAD_STEPS.REVIEW);
+      setSuccessMessage("Loaded Demo Bundle!");
+      // Mock random session ID
+      setSessionId(window.crypto.randomUUID());
+      // Trigger validation
+      setTimeout(() => handleValidate(data.items || []), 500);
+    } catch (e) {
+      setError("Failed to load demo bundle: " + e.message);
+    }
+  };
+
   // Data state
   const [questions, setQuestions] = useState([]);
   const [rawBundle, setRawBundle] = useState(null);
@@ -502,7 +521,17 @@ export default function AdminQuestionsPanel() {
       {/* Main Content */}
       <div className="bg-white rounded-xl shadow-lg">
         {step === UPLOAD_STEPS.UPLOAD && (
-          <FileUploadZone onUpload={handleFileUpload} />
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-end">
+              <button
+                onClick={loadDemoBundle}
+                className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 text-sm font-semibold"
+              >
+                ⚡ Load V3 Demo Bundle
+              </button>
+            </div>
+            <FileUploadZone onUpload={handleFileUpload} />
+          </div>
         )}
 
         {step === UPLOAD_STEPS.VALIDATING && (

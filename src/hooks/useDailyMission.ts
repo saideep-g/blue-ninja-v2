@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { db, auth } from '../firebase/config'; // db still needed for some direct ops? Maybe not if we use service completely.
-import { getDocs, doc, updateDoc } from 'firebase/firestore';
+import { getDocs, doc, updateDoc, collection, query, limit, orderBy } from 'firebase/firestore';
 import { useNinja } from '../context/NinjaContext';
 import { Question } from '../types';
 import { diagnosticQuestionsCollection, getStudentRef } from '../services/db';
@@ -37,17 +37,36 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
 
         setIsLoading(true);
         try {
-            // USE TYPED REF
-            const qSnap = await getDocs(diagnosticQuestionsCollection);
-            if (qSnap.empty) {
-                console.warn("No questions found");
-                setMissionQuestions([]);
-                setIsLoading(false);
-                return;
+            // V3: Fetch Bundle
+            let allQuestions: Question[] = [];
+            const bundlesRef = collection(db, 'question_bundles_v3');
+            // Fetch any available bundle (optimized for 0 reads if cached, but here we query once)
+            // Ideally we'd cache this in IDB, but for now we fetch fresh.
+            const bundleQuery = query(bundlesRef, limit(1));
+            const bundleSnap = await getDocs(bundleQuery);
+
+            if (!bundleSnap.empty) {
+                const bundleData = bundleSnap.docs[0].data();
+                const rawItems = bundleData.items || [];
+                // Map V3 items to internal Question interface
+                allQuestions = rawItems.map((item: any) => ({
+                    ...item,
+                    id: item.item_id || item.id,
+                    atom: item.atom_id || item.atom, // Normalize for logic
+                    type: item.template_id || item.type
+                }));
+                console.log(`[useDailyMission] Loaded ${allQuestions.length} items from V3 Bundle.`);
+            } else {
+                console.warn("[useDailyMission] No V3 Bundles found. Falling back to legacy collection.");
+                // Legacy Fallback
+                const qSnap = await getDocs(diagnosticQuestionsCollection);
+                if (qSnap.empty) {
+                    setMissionQuestions([]);
+                    setIsLoading(false);
+                    return;
+                }
+                allQuestions = qSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Question));
             }
-            // Data is ALREADY valid 'Question' objects due to withConverter!
-            // Data is ALREADY valid 'Question' objects due to withConverter!
-            const allQuestions = qSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Question));
 
             const mastery = ninjaStats.mastery || {};
             const hurdles = ninjaStats.hurdles || {};
@@ -124,7 +143,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
 
         const cappedThinkingTime = Math.min(timeSpent, 60);
 
-        const currentAtom = currentQuestion.atom || 'UNKNOWN_ATOM';
+        const currentAtom = currentQuestion.atom || (currentQuestion as any).atom_id || 'UNKNOWN_ATOM';
         const masteryBefore = ninjaStats.mastery[currentAtom] || 0.5;
         let masteryChange = isCorrect ? 0.05 : (isRecovered ? 0.02 : -0.05);
         const masteryAfter = Math.min(0.99, Math.max(0.1, masteryBefore + masteryChange));
