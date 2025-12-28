@@ -16,6 +16,7 @@ import { nexusDB } from '../services/nexusSync';
 import { User as FirebaseUser } from 'firebase/auth';
 import { NinjaStats, QuestionLog } from '../types';
 import { getStudentRef, getSessionLogsCollection } from '../services/db';
+import { initializeV3Mastery } from '../services/masteryService';
 
 interface NinjaContextType {
     user: FirebaseUser | null;
@@ -82,6 +83,9 @@ export function NinjaProvider({ children }: { children: ReactNode }) {
             console.group('🔐 [NinjaContext] Auth Initialization');
             setUser(user);
             if (user) {
+                // Initialize V3 Mastery (One-time check)
+                initializeV3Mastery(user.uid).catch(console.error);
+
                 console.log('👤 User UID:', user.uid);
                 const localSession = localStorage.getItem(`ninja_session_${user.uid}`);
 

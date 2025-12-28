@@ -10,7 +10,74 @@ import { getFirestore, collection, doc, setDoc, updateDoc, getDoc, query, where,
 const db = getFirestore();
 const QUESTIONS_COLLECTION = 'questions';
 const PUBLISH_LOGS_COLLECTION = 'publish_logs';
+const QUESTION_BUNDLES_COLLECTION = 'question_bundles_v3';
 const QUESTION_BANKS_COLLECTION = 'question_banks';
+
+/**
+ * Publish a generic JSON bundle to Firestore as a single document.
+ * Optimized for V3 read patterns (fetch once, use locally).
+ */
+export async function publishBundleToFirestore(bundleData: any, options: PublishOptions = {}): Promise<PublishSummary> {
+  const { userId = 'unknown', bankId = 'default' } = options;
+  const startTime = Date.now();
+  const bundleId = bundleData.bundle_id || `bundle_${Date.now()}`;
+
+  console.log(`[FirestoreQuestionService] Publishing bundle: ${bundleId}`);
+
+  const summary: PublishSummary = {
+    bankId,
+    userId,
+    startedAt: new Date().toISOString(),
+    completedAt: null,
+    totalAttempted: 1, // It's 1 bundle
+    totalPublished: 0,
+    totalSkipped: 0,
+    totalFailed: 0,
+    published: [],
+    skipped: [],
+    failed: [],
+    stats: { byTemplate: {}, byModule: {}, byAtom: {} },
+    errors: [],
+    warnings: []
+  };
+
+  try {
+    const docRef = doc(collection(db, QUESTION_BUNDLES_COLLECTION), bundleId);
+
+    // Add metadata for easier querying/management
+    const finalData = {
+      ...bundleData,
+      _metadata: {
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: userId,
+        sizeBytes: JSON.stringify(bundleData).length,
+        itemCount: Array.isArray(bundleData.items) ? bundleData.items.length : 0
+      }
+    };
+
+    await setDoc(docRef, finalData);
+
+    summary.totalPublished = 1;
+    summary.published.push(bundleId);
+    summary.completedAt = new Date().toISOString();
+    summary.durationMs = Date.now() - startTime;
+
+    console.log(`[FirestoreQuestionService] Bundle ${bundleId} published successfully.`);
+    return summary;
+
+  } catch (error: any) {
+    console.error('[FirestoreQuestionService] Bundle publish error:', error);
+    summary.totalFailed = 1;
+    summary.failed.push({ itemId: bundleId, error: error.message });
+    summary.errors.push({
+      code: 'BUNDLE_UPLOAD_FAILED',
+      message: error.message,
+      severity: 'CRITICAL'
+    });
+    throw error;
+  }
+}
+
 
 interface PublishOptions {
   userId?: string;
@@ -408,5 +475,6 @@ function chunkArray(array: any[], size: number) {
 }
 
 export default {
-  publishQuestionsToFirestore
+  publishQuestionsToFirestore,
+  publishBundleToFirestore
 };

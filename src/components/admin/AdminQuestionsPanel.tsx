@@ -16,7 +16,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { validateBulkUploadV2 } from '../../services/bulkUploadValidatorV2';
-import { publishQuestionsToFirestore } from '../../services/firestoreQuestionService';
+import { publishQuestionsToFirestore, publishBundleToFirestore } from '../../services/firestoreQuestionService';
 import { useIndexedDB } from '../../hooks/useIndexedDB';
 import FileUploadZone from './FileUploadZone';
 import ValidationReportPanel from './ValidationReportPanel';
@@ -46,6 +46,7 @@ export default function AdminQuestionsPanel() {
 
   // Data state
   const [questions, setQuestions] = useState([]);
+  const [rawBundle, setRawBundle] = useState(null);
   const [validationResults, setValidationResults] = useState(null);
   const [publishResults, setPublishResults] = useState(null);
 
@@ -138,6 +139,14 @@ export default function AdminQuestionsPanel() {
 
         if (items.length === 0) {
           throw new Error('No items found in file');
+        }
+
+        // V3 Bundle Detection
+        if (parsedData.schema_version === "3.0" || parsedData.bundle_id) {
+          detectedFormat = 'V3_BUNDLE';
+          setRawBundle(parsedData);
+        } else {
+          setRawBundle(null);
         }
 
         setFormatDetected(detectedFormat);
@@ -301,15 +310,35 @@ export default function AdminQuestionsPanel() {
         setStep(UPLOAD_STEPS.PUBLISHING);
 
         // Publish to Firestore
-        const firebaseResults = await publishQuestionsToFirestore(validQuestions, {
-          bankId,
-          userId: 'admin-user',
-          batchSize: 500,
-          onProgress: (progress) => {
-            setPublishProgress(Math.round((progress.itemsProcessed / progress.totalItems) * 100));
-          },
-          conflictResolution: 'SKIP'
-        });
+        // Publish to Firestore
+        let firebaseResults;
+
+        console.log('Publishing format:', formatDetected);
+
+        if (formatDetected === 'V3_BUNDLE' && rawBundle) {
+          // Construct bundle with only valid/selected items
+          const finalBundle = {
+            ...rawBundle,
+            items: validQuestions,
+            updated_at: new Date().toISOString()
+          };
+
+          firebaseResults = await publishBundleToFirestore(finalBundle, {
+            bankId,
+            userId: 'admin-user'
+          });
+        } else {
+          // Legacy/V2 Item-by-item publish
+          firebaseResults = await publishQuestionsToFirestore(validQuestions, {
+            bankId,
+            userId: 'admin-user',
+            batchSize: 500,
+            onProgress: (progress) => {
+              setPublishProgress(Math.round((progress.itemsProcessed / progress.totalItems) * 100));
+            },
+            conflictResolution: 'SKIP'
+          });
+        }
 
         // Combine validation and publish results
         setPublishResults({
@@ -430,8 +459,8 @@ export default function AdminQuestionsPanel() {
           className={`px-3 py-1 rounded-full ${[UPLOAD_STEPS.UPLOAD, UPLOAD_STEPS.VALIDATING, UPLOAD_STEPS.REVIEW, UPLOAD_STEPS.PUBLISHING, UPLOAD_STEPS.COMPLETED].indexOf(
             step
           ) >= 0
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-200 text-slate-600'
+            ? 'bg-blue-600 text-white'
+            : 'bg-slate-200 text-slate-600'
             }`}
         >
           1. Upload
@@ -440,30 +469,30 @@ export default function AdminQuestionsPanel() {
           className={`w-8 h-0.5 ${[UPLOAD_STEPS.VALIDATING, UPLOAD_STEPS.REVIEW, UPLOAD_STEPS.PUBLISHING, UPLOAD_STEPS.COMPLETED].indexOf(
             step
           ) >= 0
-              ? 'bg-blue-600'
-              : 'bg-slate-200'
+            ? 'bg-blue-600'
+            : 'bg-slate-200'
             }`}
         />
         <div
           className={`px-3 py-1 rounded-full ${[UPLOAD_STEPS.VALIDATING, UPLOAD_STEPS.REVIEW, UPLOAD_STEPS.PUBLISHING, UPLOAD_STEPS.COMPLETED].indexOf(
             step
           ) >= 0
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-200 text-slate-600'
+            ? 'bg-blue-600 text-white'
+            : 'bg-slate-200 text-slate-600'
             }`}
         >
           2. Review
         </div>
         <div
           className={`w-8 h-0.5 ${[UPLOAD_STEPS.PUBLISHING, UPLOAD_STEPS.COMPLETED].indexOf(step) >= 0
-              ? 'bg-blue-600'
-              : 'bg-slate-200'
+            ? 'bg-blue-600'
+            : 'bg-slate-200'
             }`}
         />
         <div
           className={`px-3 py-1 rounded-full ${[UPLOAD_STEPS.PUBLISHING, UPLOAD_STEPS.COMPLETED].indexOf(step) >= 0
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-200 text-slate-600'
+            ? 'bg-blue-600 text-white'
+            : 'bg-slate-200 text-slate-600'
             }`}
         >
           3. Publish
