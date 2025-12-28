@@ -17,7 +17,7 @@ import { auth } from './firebase/config';
 import { BlueNinjaTheme } from './theme/themeConfig';
 import StudentInsightsReport from './components/dashboard/StudentInsightsReport';
 import TeacherAnalyticsDashboard from './components/admin/TeacherAnalyticsDashboard';
-import ParentDashboard from './components/parent/ParentDashboard';
+import ParentDashboard from './components/admin/ParentDashboard';
 import AnalyticsLogViewer from './components/admin/AnalyticsLogViewer';
 import AdminQuestionsPanel from './components/admin/AdminQuestionsPanel';
 import CurriculumViewer from './components/curriculum/CurriculumViewer';
