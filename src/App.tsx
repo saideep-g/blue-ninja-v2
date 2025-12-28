@@ -23,6 +23,10 @@ import AdminQuestionsPanel from './components/admin/AdminQuestionsPanel';
 import CurriculumViewer from './components/curriculum/CurriculumViewer';
 import TemplateWorkbench from './components/templates/TemplateWorkbench';
 
+import coreCurriculum from './data/cbse7_core_curriculum_v3.json';
+import templateLibrary from './data/template_library_v3.json';
+import assessmentGuide from './data/cbse7_assessment_guide_v3.json';
+
 
 /**
  * Blue Ninja Content Component - SECURITY FIXED
@@ -381,7 +385,16 @@ export default function App() {
             }
           />
           <Route path="/admin/questions" element={<AdminQuestionsPanel />} />
-          <Route path="/curriculum" element={<CurriculumViewer />} />
+          <Route
+            path="/curriculum"
+            element={
+              <CurriculumViewer
+                coreCurriculum={coreCurriculum as any}
+                templateLibrary={templateLibrary as any}
+                assessmentGuide={assessmentGuide as any}
+              />
+            }
+          />
           <Route path="/template/:templateId" element={<TemplateWorkbench />} />
           {/* Catch-all: redirect unknown routes to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
