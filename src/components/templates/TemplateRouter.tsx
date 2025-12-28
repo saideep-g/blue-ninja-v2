@@ -6,6 +6,7 @@ import { QuestionItem } from '../../types/curriculum.v3';
 // Import templates
 import { MCQTemplate } from './MCQTemplate';
 import { TwoTierTemplate } from './TwoTierTemplate';
+import { NumericInputTemplate } from './NumericInputTemplate';
 
 interface TemplateRouterProps {
   question: Question;
@@ -124,14 +125,11 @@ const TwoTierAdapter: React.FC<TemplateRouterProps & { onAnswer: (result: any) =
   );
 };
 
-// ----------------------------------------------------------------------
-// ROUTER
-// ----------------------------------------------------------------------
-
 const TEMPLATE_REGISTRY: Record<string, React.ComponentType<any>> = {
   'MCQ_CONCEPT': MCQTemplate,
   'MCQ_SKILL': MCQTemplate,
-  'TWO_TIER': TwoTierAdapter, // USE ADAPTER
+  'TWO_TIER': TwoTierAdapter,
+  'NUMERIC_INPUT': NumericInputTemplate,
 };
 
 export function TemplateRouter({ question, onSubmit, isSubmitting = false, readOnly = false }: TemplateRouterProps) {
