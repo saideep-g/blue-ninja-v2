@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuthStore } from '../store/auth';
+import { useNinja } from '../context/NinjaContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,9 +11,10 @@ export function ProtectedRoute({
   children,
   requiredRole,
 }: ProtectedRouteProps): React.ReactNode {
-  const { user, isLoading } = useAuthStore();
+  // Use NinjaContext instead of legacy auth store
+  const { user, loading, userRole } = useNinja();
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
@@ -28,10 +29,16 @@ export function ProtectedRoute({
     return <Navigate to="/login" replace />;
   }
 
-  // Role check can be added in Phase 2 when we have user roles
-  // For now, just check if user is authenticated
+  // Validate Role if specified
+  if (requiredRole && requiredRole.toUpperCase() !== userRole) {
+    return <Navigate to="/" replace />;
+  }
 
-  return children;
+  return (
+    <>
+      {children}
+    </>
+  );
 }
 
 export default ProtectedRoute;

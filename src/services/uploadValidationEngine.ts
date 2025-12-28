@@ -3,11 +3,10 @@
  * ======================================
  * 
  * A unified, high-integrity validation engine for the Question Upload Portal.
- * Orchestrates V2/V3 validation, duplicate detection, and internal consistency checks.
+ * Orchestrates V3 validation, duplicate detection, and internal consistency checks.
  */
 
 import { validateQuestionV3 } from './questionValidatorV3';
-import { validateQuestionV2 } from './questionValidatorV2';
 
 export interface ValidationIssue {
     severity: 'CRITICAL' | 'WARNING' | 'INFO';
@@ -85,21 +84,29 @@ export async function runFullValidationSuite(
         const itemIssues: ValidationIssue[] = [];
         let isValid = true;
 
-        // 1. Schema Check (V2 vs V3)
-        // Detect version per item or use document default
-        const version = item.schema_version || schemaVersion;
-        const isV3 = version === '3.0' || version === 'V3' || !!item.bundle_id; // Heuristic if bundle_id is on item (unlikely) or just passed.
-
+        // 1. Schema Check (V3 Only)
         let coreResult;
+
+        // Detect V3-ishness
+        const version = item.schema_version || schemaVersion;
+        const isV3 = version === '3.0' || version === 'V3' || !!item.bundle_id || !!item.atom_id;
+
         if (isV3) {
             coreResult = await validateQuestionV3(item);
         } else {
-            coreResult = await validateQuestionV2(item);
+            // Treat non-V3 as invalid legacy
+            coreResult = {
+                itemId: item.item_id || 'UNKNOWN',
+                isValid: false,
+                errors: ['Legacy V2 format not supported. Ensure item has atom_id/template_id and no telemetry.'],
+                warnings: [],
+                qualityGrade: 'F' as const
+            };
         }
 
         // Map core errors to Issues
-        coreResult.errors.forEach(e => itemIssues.push({ severity: 'CRITICAL', code: 'SCHEMA_VIOLATION', message: e }));
-        coreResult.warnings.forEach(w => itemIssues.push({ severity: 'WARNING', code: 'BEST_PRACTICE', message: w }));
+        coreResult.errors.forEach((e: string) => itemIssues.push({ severity: 'CRITICAL', code: 'SCHEMA_VIOLATION', message: e }));
+        coreResult.warnings.forEach((w: string) => itemIssues.push({ severity: 'WARNING', code: 'BEST_PRACTICE', message: w }));
 
         // 2. Internal Consistency (Duplicate Options, etc)
         const consistencyIssues = checkInternalConsistency(item);
