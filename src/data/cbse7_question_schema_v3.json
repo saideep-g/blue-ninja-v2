@@ -1,0 +1,520 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cbse7.local/schemas/question_items_v3.json",
+  "title": "CBSE7 Question Items Schema v3 (Lean + Granular Diagnostics)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "items"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "3.0"
+    },
+    "bundle_id": {
+      "type": "string",
+      "description": "Optional ID for the question bank (e.g., GOLD_V3_MEDIUM_SET1)."
+    },
+    "source_manifest": {
+      "type": "string",
+      "description": "Filename or URI of the manifest this bank is intended to be used with."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/QuestionItem"
+      },
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "RichText": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "latex": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "media_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional key to external media (if any). Keep null for self-rendered diagrams."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Interaction": {
+      "type": "object",
+      "required": [
+        "type",
+        "config"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Renderer key inside your Template Library (e.g., number_line_place)."
+        },
+        "config": {
+          "type": "object",
+          "description": "Template-specific payload. Validated by Template Library (Doc2) at runtime."
+        }
+      },
+      "additionalProperties": false
+    },
+    "AnswerKey": {
+      "type": "object",
+      "description": "Template-specific expected answer(s). Keep ONLY unique keys needed to grade this item.",
+      "additionalProperties": true
+    },
+    "Evidence": {
+      "type": "object",
+      "required": [
+        "outcome_type"
+      ],
+      "properties": {
+        "outcome_type": {
+          "type": "string",
+          "enum": [
+            "conceptual",
+            "procedural",
+            "logical",
+            "transfer"
+          ]
+        },
+        "outcome_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional reference to a specific outcome within the atom (if outcomes are addressable)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "DiagnosticRef": {
+      "type": "object",
+      "required": [
+        "misconception_id"
+      ],
+      "properties": {
+        "misconception_id": {
+          "type": "string",
+          "description": "Stable ID from Core Curriculum misconception_library."
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional author note. Do not show to learners."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ErrorModelRule": {
+      "type": "object",
+      "required": [
+        "id",
+        "when",
+        "diagnostic"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "when": {
+          "type": "object",
+          "description": "Machine-checkable condition for mapping open responses to misconceptions.",
+          "properties": {
+            "equals": {
+              "type": [
+                "number",
+                "string",
+                "null"
+              ]
+            },
+            "in_set": {
+              "type": "array",
+              "items": {
+                "type": [
+                  "number",
+                  "string"
+                ]
+              }
+            },
+            "regex": {
+              "type": "string"
+            },
+            "numeric_range": {
+              "type": "object",
+              "required": [
+                "min",
+                "max"
+              ],
+              "properties": {
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "diagnostic": {
+          "$ref": "#/$defs/DiagnosticRef"
+        },
+        "hint_override": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional short hint text override for THIS rule only. Prefer leaving null and using central scaffolding strategies."
+        }
+      },
+      "additionalProperties": false
+    },
+    "RecoveryOverride": {
+      "type": "object",
+      "required": [
+        "strategy_id"
+      ],
+      "properties": {
+        "strategy_id": {
+          "type": "string",
+          "description": "Scaffolding strategy ID from Assessment Guide."
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Optional strategy parameters for this item only."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Stage": {
+      "type": "object",
+      "required": [
+        "stage_id",
+        "prompt",
+        "interaction",
+        "answer_key"
+      ],
+      "properties": {
+        "stage_id": {
+          "type": "string"
+        },
+        "atom_id_override": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional: if this stage targets a different atom (e.g., Tier 2 justification atom)."
+        },
+        "prompt": {
+          "$ref": "#/$defs/RichText"
+        },
+        "instruction": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "interaction": {
+          "$ref": "#/$defs/Interaction"
+        },
+        "answer_key": {
+          "$ref": "#/$defs/AnswerKey"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "minItems": 1
+        },
+        "grading_overrides": {
+          "type": "object",
+          "description": "Overrides to template defaults (e.g., tolerance). Keep only what differs.",
+          "additionalProperties": true
+        },
+        "diagnostics": {
+          "type": "object",
+          "description": "Only for non-option templates or step-based templates. For option-based templates, diagnostics should be INLINE within options in interaction.config.",
+          "properties": {
+            "error_model": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ErrorModelRule"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "recovery_override": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RecoveryOverride"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unlock_logic": {
+          "type": "object",
+          "description": "Controls branching/hiding of later stages (e.g., show Tier 2 only after Tier 1 is correct).",
+          "properties": {
+            "show_when": {
+              "type": "string",
+              "enum": [
+                "always",
+                "after_stage_correct",
+                "after_stage_attempts_exceeded"
+              ],
+              "default": "always"
+            },
+            "depends_on_stage_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "max_attempts": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "QuestionItem": {
+      "type": "object",
+      "required": [
+        "item_id",
+        "atom_id",
+        "template_id",
+        "difficulty",
+        "evidence"
+      ],
+      "properties": {
+        "item_id": {
+          "type": "string"
+        },
+        "atom_id": {
+          "type": "string"
+        },
+        "template_id": {
+          "type": "string",
+          "description": "Template ID that selects renderer + validator from Template Library."
+        },
+        "difficulty": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "context_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional non-pedagogical tags (e.g., cricket, fashion, biology). Not required for telemetry."
+        },
+        "prompt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RichText"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "instruction": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stimulus": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Optional supporting data/diagram. Prefer self-rendered diagrams via interaction.config.",
+          "additionalProperties": true
+        },
+        "interaction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interaction"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "answer_key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AnswerKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "minItems": 1,
+          "description": "Which outcome types this item is designed to measure."
+        },
+        "grading_overrides": {
+          "type": "object",
+          "description": "Overrides to template grading defaults (tolerance, equivalence mode, partial credit policy).",
+          "additionalProperties": true
+        },
+        "diagnostics": {
+          "type": "object",
+          "description": "For open-response templates only. For option-based templates, diagnostics should be INLINE within options in interaction.config.",
+          "properties": {
+            "error_model": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ErrorModelRule"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "recovery_override": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RecoveryOverride"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Stage"
+          },
+          "minItems": 2,
+          "description": "Optional multi-stage structure (two-tier, multi-step). If present, top-level interaction/answer_key may be null."
+        },
+        "transfer": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Optional transfer mini-item. Prefer storing as a minimal QuestionItem-like object without duplicating template defaults.",
+          "properties": {
+            "template_id": {
+              "type": "string"
+            },
+            "prompt": {
+              "$ref": "#/$defs/RichText"
+            },
+            "interaction": {
+              "$ref": "#/$defs/Interaction"
+            },
+            "answer_key": {
+              "$ref": "#/$defs/AnswerKey"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Evidence"
+              },
+              "minItems": 1
+            },
+            "grading_overrides": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Authoring metadata (not used for telemetry).",
+          "properties": {
+            "version": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "author": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "created_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "description": "If stages exist, interaction and answer_key may be null; otherwise they must exist.",
+          "if": {
+            "required": [
+              "stages"
+            ]
+          },
+          "then": {},
+          "else": {
+            "required": [
+              "prompt",
+              "interaction",
+              "answer_key"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

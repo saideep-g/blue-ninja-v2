@@ -1,0 +1,787 @@
+{
+  "schema_version": "3.0",
+  "document_type": "assessment_and_generation_guide",
+  "curriculum_id": "cbse7-olympiad-eapcet-foundation",
+  "generated_at": "2025-12-27T12:00:00+00:00",
+  "mastery_profiles": [
+    {
+      "mastery_profile_id": "MP_CORE_CONCEPT",
+      "name": "Core Concept (CBSE)",
+      "intent": "Solid understanding with common misconceptions removed.",
+      "requirements": {
+        "min_attempts": 8,
+        "accuracy_last_8": 0.8,
+        "must_include_templates": [
+          "TWO_TIER",
+          "TRANSFER_MINI"
+        ],
+        "must_clear_misconception_probe": true
+      }
+    },
+    {
+      "mastery_profile_id": "MP_CORE_FLUENCY",
+      "name": "Core Fluency (speed + accuracy)",
+      "intent": "Fast, reliable execution for school tests and early exam prep.",
+      "requirements": {
+        "min_attempts": 10,
+        "accuracy_last_10": 0.9,
+        "median_time_sec_target": 45,
+        "must_include_templates": [
+          "NUMERIC_INPUT",
+          "ERROR_ANALYSIS"
+        ],
+        "no_more_than_hints_per_item": 1
+      }
+    },
+    {
+      "mastery_profile_id": "MP_REASONING",
+      "name": "Reasoning & Proof-lite",
+      "intent": "Explain, justify, and connect representations.",
+      "requirements": {
+        "min_attempts": 8,
+        "accuracy_last_8": 0.75,
+        "must_include_templates": [
+          "STEP_BUILDER",
+          "TWO_TIER",
+          "TRANSFER_MINI"
+        ],
+        "must_score_rubric_min": {
+          "reasoning": 2,
+          "representation": 2
+        }
+      }
+    },
+    {
+      "mastery_profile_id": "MP_OLYMPIAD",
+      "name": "Olympiad Challenge",
+      "intent": "Non-routine problems, patterns, clever observations.",
+      "requirements": {
+        "min_attempts": 6,
+        "accuracy_last_6": 0.7,
+        "must_include_templates": [
+          "STEP_BUILDER",
+          "TRANSFER_MINI"
+        ],
+        "allowed_hints": 2,
+        "must_solve_at_least_1_high_difficulty": true
+      }
+    },
+    {
+      "mastery_profile_id": "MP_EAPCET_FOUND",
+      "name": "EAPCET Foundation",
+      "intent": "Algebra/geometry fluency building blocks with time discipline.",
+      "requirements": {
+        "min_attempts": 12,
+        "accuracy_last_12": 0.9,
+        "median_time_sec_target": 40,
+        "must_include_templates": [
+          "NUMERIC_INPUT",
+          "SORT_ORDER",
+          "ERROR_ANALYSIS"
+        ],
+        "interleaving_required": true
+      }
+    }
+  ],
+  "sequencing_engine": {
+    "session_arc": [
+      {
+        "phase": "warm_up",
+        "time_min": 3,
+        "rule": "2-3 retrieval items from past mastered atoms (spaced review)."
+      },
+      {
+        "phase": "diagnose",
+        "time_min": 4,
+        "rule": "1 misconception-probe + 1 representation item for today's atom."
+      },
+      {
+        "phase": "teach_by_example",
+        "time_min": 4,
+        "rule": "1 worked example with 'hide steps' toggle; learner predicts next step."
+      },
+      {
+        "phase": "guided_practice",
+        "time_min": 8,
+        "rule": "2-3 items escalating: scaffolded -> normal -> mixed."
+      },
+      {
+        "phase": "transfer",
+        "time_min": 4,
+        "rule": "1 novel context item; require estimate/check step."
+      },
+      {
+        "phase": "reflect",
+        "time_min": 2,
+        "rule": "quick self-explain: 'what trick helped' + confidence rating."
+      }
+    ],
+    "adaptation_rules": [
+      {
+        "if": "two_wrong_in_a_row_same_atom",
+        "then": "switch_template_to_reveal_representation + show micro-lesson"
+      },
+      {
+        "if": "wrong_matches_known_misconception",
+        "then": "serve_repair_item(target_misconception) then retry original"
+      },
+      {
+        "if": "fast_correct_3x",
+        "then": "increase_difficulty or introduce interleaving with neighbor atom"
+      },
+      {
+        "if": "high_hint_use",
+        "then": "serve_strategy_atom (problem-solving foundations) item next"
+      }
+    ],
+    "interleaving_policy": {
+      "after_mastery": "mix 20-30% items from adjacent atoms and prerequisites",
+      "rule": "never give >3 identical template types consecutively"
+    }
+  },
+  "spaced_review_scheduler": {
+    "model": "SM2-lite + retrieval-first",
+    "initial_intervals_days": [
+      1,
+      3,
+      7,
+      14,
+      30
+    ],
+    "promotion_rule": "advance interval when item correct with low hint and confidence>=3",
+    "demotion_rule": "if wrong, back to previous interval and tag misconception",
+    "daily_review_cap_minutes": 8
+  },
+  "analytics_spec": {
+    "event_schema_version": "1.0",
+    "core_events": {
+      "item_served": [
+        "user_id",
+        "session_id",
+        "item_id",
+        "atom_id",
+        "template_id",
+        "difficulty",
+        "timestamp"
+      ],
+      "first_action": [
+        "item_id",
+        "time_to_first_action_ms",
+        "action_type"
+      ],
+      "attempt_submitted": [
+        "item_id",
+        "attempt_id",
+        "response",
+        "is_correct",
+        "time_on_task_ms",
+        "hints_used",
+        "steps_used"
+      ],
+      "feedback_shown": [
+        "item_id",
+        "feedback_type",
+        "misconception_id(optional)"
+      ],
+      "confidence_rated": [
+        "item_id",
+        "confidence_1_to_5"
+      ],
+      "repair_item_linked": [
+        "item_id",
+        "repair_item_id",
+        "misconception_id"
+      ]
+    },
+    "derived_metrics": {
+      "mastery_probability": "Bayesian update using correctness + template weight + transfer weight",
+      "misconception_rate": "wrong answers mapped to misconception_id / attempts",
+      "fluency_index": "accuracy-weighted speed (per template normalization)",
+      "transfer_index": "accuracy on transfer items vs core items",
+      "forgetting_risk": "time since last correct vs interval schedule"
+    }
+  },
+  "generation_prompts": {
+    "global_system_prompt": "You are an expert Grade 7 CBSE + Olympiad math item writer. Generate questions that measure understanding, not guessing. Always include: clear stem, required data for the template, correct answer, solution steps, misconception tags (when applicable), and a short transfer follow-up. Keep English simple (India). Avoid trick wording unless the atom is Olympiad.",
+    "global_constraints": [
+      "Every item must map to exactly one atom_id and one template_id.",
+      "Numbers should be grade-appropriate; avoid heavy fractions unless atom is fractions/rational.",
+      "Include a quick estimation or check step in the solution when meaningful.",
+      "For girls/teens: keep contexts respectful and varied (sports, science, art, shopping, coding, travel), avoid stereotypes.",
+      "Avoid 'glitz' dependencies: interaction should provide mathematical insight."
+    ],
+    "template_prompt_recipes": [
+      {
+        "template_id": "TWO_TIER",
+        "prompt": "Create a two-tier item: Tier-1 asks for the answer; Tier-2 asks 'why' with 4 reason options including 2 common misconceptions from the atom's misconception list."
+      },
+      {
+        "template_id": "ERROR_ANALYSIS",
+        "prompt": "Write a short incorrect worked solution (2-4 steps) that contains exactly one targeted misconception. Ask learner to identify the error type and correct the step."
+      },
+      {
+        "template_id": "NUMBER_LINE_PLACE",
+        "prompt": "Ask learner to place a value on a number line. Include line_min/max and a target_value. Provide a solution that explains placement and comparisons."
+      },
+      {
+        "template_id": "STEP_BUILDER",
+        "prompt": "Generate a multi-step problem and provide an expected step sequence (3-6 steps). Steps must be checkable and not too open-ended."
+      },
+      {
+        "template_id": "TRANSFER_MINI",
+        "prompt": "Generate a novel context question using the same concept but different surface features. Provide a 1-sentence reflection prompt: 'What was similar to the earlier problem?'"
+      }
+    ]
+  },
+  "json_schemas": {
+    "question_item_base_schema": {
+      "type": "object",
+      "required": [
+        "item_id",
+        "atom_id",
+        "template_id",
+        "data",
+        "answer_key"
+      ],
+      "properties": {
+        "item_id": {
+          "type": "string"
+        },
+        "atom_id": {
+          "type": "string"
+        },
+        "template_id": {
+          "type": "string"
+        },
+        "difficulty": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "data": {
+          "type": "object",
+          "description": "Unique facts for this item. Must satisfy Template Library data_contract for template_id."
+        },
+        "answer_key": {
+          "type": "object",
+          "description": "Unique correct answer and accepted variants for this item."
+        },
+        "misconception_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional stable misconception IDs from Core misconception_library."
+        },
+        "context_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional surface tags for content analysis (e.g., cricket, fashion, biology)."
+        }
+      }
+    },
+    "validation_pipeline_notes": "Composable validation: base schema (Assessment) + template data contract (Template Library) + curriculum constraints (Core)."
+  },
+  "notes_for_engineering_path": {
+    "why_now": "EAPCET is years away, but algebra manipulation, coordinate thinking, and geometry reasoning are built early so later trigonometry/graphs feel natural.",
+    "focus_atoms": [
+      "ENG7-COORDINATE-FOUNDATION",
+      "ENG7-CALC-FLUENCY"
+    ],
+    "weekly_micro_sprints": "2 short timed sets/week (6-8 minutes) to build calm speed without stress."
+  },
+  "design_notes": {
+    "notes": [],
+    "v3_changes": [
+      "Added logic_bridge: mastery and remediation resolved via Core->Assessment and Template Library.",
+      "Added scaffolding_strategies and misconception_strategy_defaults to eliminate per-item hint duplication.",
+      "Updated base question schema to a lean structure; template validates item.data."
+    ]
+  },
+  "logic_bridge": {
+    "fetch_hierarchy": {
+      "question_item": "unique facts + answer_key + misconception links",
+      "core_curriculum": "context, outcomes, prerequisites, misconception library, template recommendations",
+      "template_library": "display defaults, telemetry requirements, per-template data contract",
+      "assessment_guide": "mastery standards, sequencing rules, remediation strategy library"
+    },
+    "resolution_order": [
+      "Validate item root against question_item_base_schema (this file).",
+      "Validate item.data against template_library.templates[].data_contract for template_id.",
+      "Lookup atom_id in Core: allowed templates, prerequisites, misconception defaults, mastery_profile_id.",
+      "Lookup mastery_profile_id here: evidence requirements, thresholds, review cadence.",
+      "If incorrect, map misconception_id -> scaffolding strategy and render the appropriate recovery ladder."
+    ]
+  },
+  "scaffolding_strategies": [
+    {
+      "strategy_id": "STR_GENERIC_CLARIFY",
+      "name": "Clarify the rule with a tiny example",
+      "intent": "Default when no specific strategy matches.",
+      "hint_ladder": [
+        {
+          "level": 1,
+          "type": "concept",
+          "text": "Restate the rule in one sentence and try a 1-step example with small numbers."
+        },
+        {
+          "level": 2,
+          "type": "worked_micro",
+          "text": "Show a worked micro-example, then ask the student to finish a parallel one."
+        },
+        {
+          "level": 3,
+          "type": "scaffold",
+          "text": "Provide a partially completed solution and ask for the missing step."
+        }
+      ],
+      "recommended_templates": [
+        "WORKED_EXAMPLE_COMPLETE",
+        "TWO_TIER",
+        "NUMERIC_INPUT"
+      ]
+    },
+    {
+      "strategy_id": "STR_NUM_LINE_SIGN",
+      "name": "Number-line grounding for sign and direction",
+      "intent": "Fix sign confusion, negative moves, and ordering.",
+      "hint_ladder": [
+        {
+          "level": 1,
+          "type": "visual",
+          "text": "Place the numbers on a number line. Right is bigger, left is smaller."
+        },
+        {
+          "level": 2,
+          "type": "procedure",
+          "text": "Convert the operation into hops. Start value stays fixed; hops move from it."
+        },
+        {
+          "level": 3,
+          "type": "check",
+          "text": "Estimate first: should the answer be >0 or <0? Then compute."
+        }
+      ],
+      "recommended_templates": [
+        "NUMBER_LINE_PLACE",
+        "STEP_ORDER",
+        "ERROR_ANALYSIS"
+      ]
+    },
+    {
+      "strategy_id": "STR_PERCENT_BASE",
+      "name": "Percent base changes (discount then tax)",
+      "intent": "Fix errors where percent is taken on the wrong base.",
+      "hint_ladder": [
+        {
+          "level": 1,
+          "type": "concept",
+          "text": "Percent always means 'of the current base'. Identify the base after each step."
+        },
+        {
+          "level": 2,
+          "type": "table",
+          "text": "Use a two-row table: Step | Base | Percent | Amount."
+        },
+        {
+          "level": 3,
+          "type": "equation",
+          "text": "Rewrite as multipliers: after discount multiply by (1−d), then tax multiply by (1+t)."
+        }
+      ],
+      "recommended_templates": [
+        "ERROR_ANALYSIS",
+        "MULTI_STEP_WORD",
+        "WORKED_EXAMPLE_COMPLETE"
+      ]
+    },
+    {
+      "strategy_id": "STR_FRACTION_RECIPROCAL",
+      "name": "Reciprocal and fraction division",
+      "intent": "Fix flipping the wrong fraction or mixing rules.",
+      "hint_ladder": [
+        {
+          "level": 1,
+          "type": "concept",
+          "text": "Only flip the divisor (the fraction you divide by)."
+        },
+        {
+          "level": 2,
+          "type": "procedure",
+          "text": "Rewrite division as multiplication by reciprocal, then multiply tops and bottoms."
+        },
+        {
+          "level": 3,
+          "type": "simplify",
+          "text": "Simplify before multiplying (cross-cancel) to reduce errors."
+        }
+      ],
+      "recommended_templates": [
+        "WORKED_EXAMPLE_COMPLETE",
+        "ERROR_ANALYSIS",
+        "NUMERIC_INPUT"
+      ]
+    },
+    {
+      "strategy_id": "STR_UNDO_ORDER",
+      "name": "Undo order in equations (reverse operations)",
+      "intent": "Fix doing division before subtraction, or changing one side only.",
+      "hint_ladder": [
+        {
+          "level": 1,
+          "type": "concept",
+          "text": "Undo operations in reverse order. First undo +/−, then ×/÷."
+        },
+        {
+          "level": 2,
+          "type": "balance",
+          "text": "Whatever you do to one side, do to the other to keep balance."
+        },
+        {
+          "level": 3,
+          "type": "check",
+          "text": "Substitute your x back into the original equation to verify."
+        }
+      ],
+      "recommended_templates": [
+        "BALANCE_OPS",
+        "STEP_ORDER",
+        "ERROR_ANALYSIS"
+      ]
+    },
+    {
+      "strategy_id": "STR_DISTRIBUTIVE",
+      "name": "Parentheses and distributive property",
+      "intent": "Fix dropping parentheses or partial distribution.",
+      "hint_ladder": [
+        {
+          "level": 1,
+          "type": "concept",
+          "text": "Multiply the outside term by every term inside the bracket."
+        },
+        {
+          "level": 2,
+          "type": "tiles",
+          "text": "Use area/tiles model: each product becomes a rectangle area."
+        },
+        {
+          "level": 3,
+          "type": "check",
+          "text": "Test with a small x value to see if expressions match."
+        }
+      ],
+      "recommended_templates": [
+        "EXPRESSION_INPUT",
+        "WORKED_EXAMPLE_COMPLETE",
+        "ERROR_ANALYSIS"
+      ]
+    },
+    {
+      "strategy_id": "STR_LIKE_TERMS",
+      "name": "Combine like terms correctly",
+      "intent": "Fix mixing unlike terms or changing variables.",
+      "hint_ladder": [
+        {
+          "level": 1,
+          "type": "concept",
+          "text": "Only terms with exactly the same variable part can be combined."
+        },
+        {
+          "level": 2,
+          "type": "color",
+          "text": "Group like terms (same variable) before adding coefficients."
+        },
+        {
+          "level": 3,
+          "type": "check",
+          "text": "Plug in x=1 to check if simplification changed the value."
+        }
+      ],
+      "recommended_templates": [
+        "CLASSIFY_SORT",
+        "EXPRESSION_INPUT",
+        "TWO_TIER"
+      ]
+    },
+    {
+      "strategy_id": "STR_ANGLE_RELATIONS",
+      "name": "Angle relationships",
+      "intent": "Fix vertical, complementary, supplementary, straight line sums.",
+      "hint_ladder": [
+        {
+          "level": 1,
+          "type": "concept",
+          "text": "Use the one rule that applies: straight line = 180°, around a point = 360°, vertical angles equal."
+        },
+        {
+          "level": 2,
+          "type": "mark",
+          "text": "Mark equal angles and write an equation before calculating."
+        },
+        {
+          "level": 3,
+          "type": "transfer",
+          "text": "Re-draw the same structure rotated; angle relationships stay the same."
+        }
+      ],
+      "recommended_templates": [
+        "GEOMETRY_TAP",
+        "STEP_ORDER",
+        "NUMERIC_INPUT"
+      ]
+    },
+    {
+      "strategy_id": "STR_TRIANGLE_INEQUALITY",
+      "name": "Triangle inequality check",
+      "intent": "Fix accepting invalid triangles.",
+      "hint_ladder": [
+        {
+          "level": 1,
+          "type": "concept",
+          "text": "For a triangle, sum of two sides must be greater than the third."
+        },
+        {
+          "level": 2,
+          "type": "procedure",
+          "text": "Sort sides: a≤b≤c. Check a+b>c only."
+        },
+        {
+          "level": 3,
+          "type": "visual",
+          "text": "Imagine two sticks trying to meet: if they just touch (a+b=c), it collapses."
+        }
+      ],
+      "recommended_templates": [
+        "CLASSIFY_SORT",
+        "ERROR_ANALYSIS",
+        "MCQ_CONCEPT"
+      ]
+    },
+    {
+      "strategy_id": "STR_DATA_STATISTICS",
+      "name": "Order-first for median and range",
+      "intent": "Fix statistics errors from unsorted data.",
+      "hint_ladder": [
+        {
+          "level": 1,
+          "type": "procedure",
+          "text": "Always order the data first."
+        },
+        {
+          "level": 2,
+          "type": "visual",
+          "text": "Pair from ends toward the center to find the middle."
+        },
+        {
+          "level": 3,
+          "type": "check",
+          "text": "For odd count: 1 middle. For even: average the two middles."
+        }
+      ],
+      "recommended_templates": [
+        "STEP_ORDER",
+        "NUMERIC_INPUT",
+        "ERROR_ANALYSIS"
+      ]
+    },
+    {
+      "strategy_id": "STR_UNIT_SCALE",
+      "name": "Unit scaling with metric ladder",
+      "intent": "Fix conversion errors (L↔mL, km↔m).",
+      "hint_ladder": [
+        {
+          "level": 1,
+          "type": "concept",
+          "text": "Metric units scale by powers of 10 (×10, ×100, ×1000)."
+        },
+        {
+          "level": 2,
+          "type": "ladder",
+          "text": "Use a unit ladder and count steps. Right multiply, left divide."
+        },
+        {
+          "level": 3,
+          "type": "sanity",
+          "text": "Sanity check: converting to smaller units increases the number."
+        }
+      ],
+      "recommended_templates": [
+        "NUMERIC_INPUT",
+        "MATCHING",
+        "STEP_ORDER"
+      ]
+    }
+  ],
+  "misconception_strategy_defaults": {
+    "MIS_017238C681": "STR_DATA_STATISTICS",
+    "MIS_01DE480827": "STR_LIKE_TERMS",
+    "MIS_03E2A2F24E": "STR_DATA_STATISTICS",
+    "MIS_05AA7CB520": "STR_GENERIC_CLARIFY",
+    "MIS_06A3653607": "STR_DISTRIBUTIVE",
+    "MIS_085AC8551F": "STR_GENERIC_CLARIFY",
+    "MIS_090B344871": "STR_GENERIC_CLARIFY",
+    "MIS_09B3FB3D50": "STR_GENERIC_CLARIFY",
+    "MIS_0AC2F78659": "STR_GENERIC_CLARIFY",
+    "MIS_0DB0BB1958": "STR_GENERIC_CLARIFY",
+    "MIS_0DD4B90FB5": "STR_GENERIC_CLARIFY",
+    "MIS_101785805E": "STR_ANGLE_RELATIONS",
+    "MIS_116CD7DA0D": "STR_ANGLE_RELATIONS",
+    "MIS_127F51E42E": "STR_GENERIC_CLARIFY",
+    "MIS_12F9B27031": "STR_ANGLE_RELATIONS",
+    "MIS_14163D6EEF": "STR_PERCENT_BASE",
+    "MIS_15EE377699": "STR_PERCENT_BASE",
+    "MIS_16DD9EA28A": "STR_GENERIC_CLARIFY",
+    "MIS_1B55BC1E23": "STR_NUM_LINE_SIGN",
+    "MIS_1C569509EC": "STR_GENERIC_CLARIFY",
+    "MIS_1C633324B6": "STR_GENERIC_CLARIFY",
+    "MIS_1CDF8A468C": "STR_GENERIC_CLARIFY",
+    "MIS_1F80368666": "STR_UNIT_SCALE",
+    "MIS_20AE8C4BF7": "STR_GENERIC_CLARIFY",
+    "MIS_20B1401535": "STR_GENERIC_CLARIFY",
+    "MIS_21FF091745": "STR_GENERIC_CLARIFY",
+    "MIS_22F1E12FE2": "STR_GENERIC_CLARIFY",
+    "MIS_24F70C8B2D": "STR_UNIT_SCALE",
+    "MIS_267D9B409D": "STR_GENERIC_CLARIFY",
+    "MIS_289127C87C": "STR_FRACTION_RECIPROCAL",
+    "MIS_28A808D789": "STR_DISTRIBUTIVE",
+    "MIS_2970B7DE1C": "STR_GENERIC_CLARIFY",
+    "MIS_2ACA197113": "STR_ANGLE_RELATIONS",
+    "MIS_2FE48FC220": "STR_ANGLE_RELATIONS",
+    "MIS_32C4C64D58": "STR_UNDO_ORDER",
+    "MIS_32D6058A91": "STR_GENERIC_CLARIFY",
+    "MIS_34CD110872": "STR_FRACTION_RECIPROCAL",
+    "MIS_355DA9E5E5": "STR_GENERIC_CLARIFY",
+    "MIS_3862202C61": "STR_GENERIC_CLARIFY",
+    "MIS_3C1808EABD": "STR_DISTRIBUTIVE",
+    "MIS_3CE791F072": "STR_ANGLE_RELATIONS",
+    "MIS_3D9E164878": "STR_GENERIC_CLARIFY",
+    "MIS_40394F1D2C": "STR_GENERIC_CLARIFY",
+    "MIS_453C5DC3D6": "STR_GENERIC_CLARIFY",
+    "MIS_45E5AC3C80": "STR_GENERIC_CLARIFY",
+    "MIS_4639A1D293": "STR_GENERIC_CLARIFY",
+    "MIS_46BF14E08A": "STR_GENERIC_CLARIFY",
+    "MIS_47024413AF": "STR_NUM_LINE_SIGN",
+    "MIS_49DC8E5D73": "STR_GENERIC_CLARIFY",
+    "MIS_49F389671A": "STR_DATA_STATISTICS",
+    "MIS_4AC0309788": "STR_GENERIC_CLARIFY",
+    "MIS_4AC4225EA1": "STR_ANGLE_RELATIONS",
+    "MIS_4CD56D6CC4": "STR_GENERIC_CLARIFY",
+    "MIS_4D1AEAAA2D": "STR_GENERIC_CLARIFY",
+    "MIS_4D40E07B3F": "STR_GENERIC_CLARIFY",
+    "MIS_50D1E919B7": "STR_GENERIC_CLARIFY",
+    "MIS_52E80A7EAB": "STR_GENERIC_CLARIFY",
+    "MIS_534661853A": "STR_GENERIC_CLARIFY",
+    "MIS_55053D33E3": "STR_GENERIC_CLARIFY",
+    "MIS_563E6C70BD": "STR_LIKE_TERMS",
+    "MIS_56D00EE58A": "STR_DATA_STATISTICS",
+    "MIS_57B95E3199": "STR_GENERIC_CLARIFY",
+    "MIS_58A85F5A01": "STR_ANGLE_RELATIONS",
+    "MIS_5AF59FB3C9": "STR_NUM_LINE_SIGN",
+    "MIS_5C330E4012": "STR_UNDO_ORDER",
+    "MIS_5CFEA2EE71": "STR_GENERIC_CLARIFY",
+    "MIS_5F26BB85E0": "STR_GENERIC_CLARIFY",
+    "MIS_60F85A9E01": "STR_GENERIC_CLARIFY",
+    "MIS_60FBC9FA22": "STR_DATA_STATISTICS",
+    "MIS_635A69E773": "STR_GENERIC_CLARIFY",
+    "MIS_63E161ADED": "STR_GENERIC_CLARIFY",
+    "MIS_655825A3EE": "STR_NUM_LINE_SIGN",
+    "MIS_65DC9CE155": "STR_DATA_STATISTICS",
+    "MIS_6605A1F620": "STR_GENERIC_CLARIFY",
+    "MIS_680B55BE2D": "STR_GENERIC_CLARIFY",
+    "MIS_6A052EB6AA": "STR_GENERIC_CLARIFY",
+    "MIS_6A2B7F6BAB": "STR_GENERIC_CLARIFY",
+    "MIS_6C07879D02": "STR_GENERIC_CLARIFY",
+    "MIS_6D0456042E": "STR_DATA_STATISTICS",
+    "MIS_6E068B381D": "STR_GENERIC_CLARIFY",
+    "MIS_70108497AB": "STR_UNDO_ORDER",
+    "MIS_71204AE506": "STR_NUM_LINE_SIGN",
+    "MIS_71886F3674": "STR_GENERIC_CLARIFY",
+    "MIS_757E388479": "STR_UNIT_SCALE",
+    "MIS_76A3545F6C": "STR_GENERIC_CLARIFY",
+    "MIS_77F26D0479": "STR_GENERIC_CLARIFY",
+    "MIS_793F6CC5E2": "STR_GENERIC_CLARIFY",
+    "MIS_7AFFFF8B85": "STR_GENERIC_CLARIFY",
+    "MIS_7D2A3DD76A": "STR_GENERIC_CLARIFY",
+    "MIS_7ECBDC87FF": "STR_UNDO_ORDER",
+    "MIS_841DC5C893": "STR_UNIT_SCALE",
+    "MIS_86A924CA56": "STR_UNIT_SCALE",
+    "MIS_87E7B530E7": "STR_ANGLE_RELATIONS",
+    "MIS_8DDC5FC2FF": "STR_GENERIC_CLARIFY",
+    "MIS_8F69C71754": "STR_FRACTION_RECIPROCAL",
+    "MIS_8FE65C77FD": "STR_GENERIC_CLARIFY",
+    "MIS_901B0DC5AC": "STR_GENERIC_CLARIFY",
+    "MIS_903A073B33": "STR_GENERIC_CLARIFY",
+    "MIS_90634565CF": "STR_DATA_STATISTICS",
+    "MIS_93771D1276": "STR_GENERIC_CLARIFY",
+    "MIS_940A20EA2A": "STR_GENERIC_CLARIFY",
+    "MIS_94DC533DF6": "STR_GENERIC_CLARIFY",
+    "MIS_963499EFB4": "STR_UNDO_ORDER",
+    "MIS_98D62BEB7D": "STR_ANGLE_RELATIONS",
+    "MIS_9AEF347F7C": "STR_ANGLE_RELATIONS",
+    "MIS_9C543341CF": "STR_DISTRIBUTIVE",
+    "MIS_9E8B6236AA": "STR_NUM_LINE_SIGN",
+    "MIS_9EF9BC7457": "STR_GENERIC_CLARIFY",
+    "MIS_9F82DE69F0": "STR_UNIT_SCALE",
+    "MIS_A1205673C0": "STR_LIKE_TERMS",
+    "MIS_A13D0467B9": "STR_GENERIC_CLARIFY",
+    "MIS_A1672A5AA9": "STR_GENERIC_CLARIFY",
+    "MIS_A445CB257B": "STR_GENERIC_CLARIFY",
+    "MIS_A9309CD3DF": "STR_ANGLE_RELATIONS",
+    "MIS_A9FD16E578": "STR_UNIT_SCALE",
+    "MIS_ACFC9D73C5": "STR_UNDO_ORDER",
+    "MIS_AFCF456F25": "STR_GENERIC_CLARIFY",
+    "MIS_B0386EEA07": "STR_UNIT_SCALE",
+    "MIS_B2A9639701": "STR_NUM_LINE_SIGN",
+    "MIS_B65CBFBEC6": "STR_NUM_LINE_SIGN",
+    "MIS_B6D37C9DAF": "STR_GENERIC_CLARIFY",
+    "MIS_BA68685584": "STR_UNIT_SCALE",
+    "MIS_BB313C0AF7": "STR_UNDO_ORDER",
+    "MIS_BDC70D6604": "STR_GENERIC_CLARIFY",
+    "MIS_BE757EEDC9": "STR_GENERIC_CLARIFY",
+    "MIS_C00ABB8490": "STR_GENERIC_CLARIFY",
+    "MIS_C0692FD2C7": "STR_GENERIC_CLARIFY",
+    "MIS_C1C8AC60DE": "STR_GENERIC_CLARIFY",
+    "MIS_C4C946ECCA": "STR_GENERIC_CLARIFY",
+    "MIS_C4E23CED88": "STR_NUM_LINE_SIGN",
+    "MIS_C6F20B95B3": "STR_GENERIC_CLARIFY",
+    "MIS_C9577A8E0D": "STR_GENERIC_CLARIFY",
+    "MIS_CC3F33BC35": "STR_ANGLE_RELATIONS",
+    "MIS_CC830DDFAD": "STR_UNDO_ORDER",
+    "MIS_D20B6C7611": "STR_NUM_LINE_SIGN",
+    "MIS_D34E59A7A1": "STR_GENERIC_CLARIFY",
+    "MIS_D3CC617AD0": "STR_GENERIC_CLARIFY",
+    "MIS_D496859548": "STR_GENERIC_CLARIFY",
+    "MIS_D706C01326": "STR_GENERIC_CLARIFY",
+    "MIS_D7CD6012B7": "STR_GENERIC_CLARIFY",
+    "MIS_D8010D64A2": "STR_GENERIC_CLARIFY",
+    "MIS_D811433BD1": "STR_GENERIC_CLARIFY",
+    "MIS_D817443FC4": "STR_PERCENT_BASE",
+    "MIS_D849D3B631": "STR_GENERIC_CLARIFY",
+    "MIS_DBDEADA5F9": "STR_UNIT_SCALE",
+    "MIS_DEB296F5B3": "STR_UNDO_ORDER",
+    "MIS_DEF0102777": "STR_NUM_LINE_SIGN",
+    "MIS_E1FC5A8E6A": "STR_PERCENT_BASE",
+    "MIS_E29EF07B92": "STR_GENERIC_CLARIFY",
+    "MIS_E5EFB3E9DF": "STR_GENERIC_CLARIFY",
+    "MIS_E643E74EF0": "STR_DISTRIBUTIVE",
+    "MIS_E7835CCFA8": "STR_GENERIC_CLARIFY",
+    "MIS_E8ADC2891F": "STR_GENERIC_CLARIFY",
+    "MIS_E9ECE46605": "STR_GENERIC_CLARIFY",
+    "MIS_EAD8D5C9A9": "STR_NUM_LINE_SIGN",
+    "MIS_EE36BAACAF": "STR_NUM_LINE_SIGN",
+    "MIS_F09C02064F": "STR_DATA_STATISTICS",
+    "MIS_F0E3CFB5C3": "STR_ANGLE_RELATIONS",
+    "MIS_F1D2BD9B49": "STR_GENERIC_CLARIFY",
+    "MIS_F230A2FE70": "STR_GENERIC_CLARIFY",
+    "MIS_F3B7D3449E": "STR_GENERIC_CLARIFY",
+    "MIS_F3BE79050F": "STR_GENERIC_CLARIFY",
+    "MIS_F475A3CF79": "STR_GENERIC_CLARIFY",
+    "MIS_F5BF26E101": "STR_PERCENT_BASE",
+    "MIS_F6971A33CB": "STR_GENERIC_CLARIFY",
+    "MIS_F77CFE8E39": "STR_ANGLE_RELATIONS",
+    "MIS_F7B22A82EF": "STR_GENERIC_CLARIFY",
+    "MIS_FB97D2F62B": "STR_ANGLE_RELATIONS"
+  }
+}

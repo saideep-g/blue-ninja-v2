@@ -1,0 +1,2884 @@
+{
+  "schema_version": "3.0",
+  "bundle_id": "V3GOLD.MED.KPOP_CDRAMA.SET1",
+  "source_manifest": "cbse7_manifest_v3.json",
+  "created_at": "2025-12-27T17:51:35Z",
+  "items": [
+    {
+      "item_id": "V3MED.KPOP.SET1.MCQ_CONCEPT.001",
+      "atom_id": "CBSE7.CH01.INT.02",
+      "template_id": "MCQ_CONCEPT",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "K-pop streaming: Yesterday a song was at 12,500 plays. Today it is at 11,950 plays. What is the change (today − yesterday)?",
+        "latex": null
+      },
+      "instruction": "Choose the best answer.",
+      "interaction": {
+        "type": "mcq_concept",
+        "config": {
+          "options": [
+            {
+              "id": "A",
+              "text": "+550",
+              "diagnostic": {
+                "misconception_id": "MIS_1B55BC1E23",
+                "confidence": 0.9
+              }
+            },
+            {
+              "id": "B",
+              "text": "−550"
+            },
+            {
+              "id": "C",
+              "text": "+11,950",
+              "diagnostic": {
+                "misconception_id": "MIS_127F51E42E",
+                "confidence": 0.9
+              }
+            },
+            {
+              "id": "D",
+              "text": "−11,950",
+              "diagnostic": {
+                "misconception_id": "MIS_127F51E42E",
+                "confidence": 0.9
+              }
+            }
+          ],
+          "shuffle": true,
+          "single_select": true
+        }
+      },
+      "answer_key": {
+        "correct_option_id": "B"
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.MCQ_CONCEPT.002",
+      "atom_id": "CBSE7.CH08.CQ.02",
+      "template_id": "MCQ_CONCEPT",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "C‑drama snack budget: A café gives a 20% discount on a ₹250 bill. How much money is discounted?",
+        "latex": null
+      },
+      "instruction": "Choose the best answer.",
+      "interaction": {
+        "type": "mcq_concept",
+        "config": {
+          "options": [
+            {
+              "id": "A",
+              "text": "₹50"
+            },
+            {
+              "id": "B",
+              "text": "₹230",
+              "diagnostic": {
+                "misconception_id": "MIS_127F51E42E",
+                "confidence": 0.9
+              }
+            },
+            {
+              "id": "C",
+              "text": "₹20",
+              "diagnostic": {
+                "misconception_id": "MIS_F5BF26E101",
+                "confidence": 0.9
+              }
+            },
+            {
+              "id": "D",
+              "text": "₹70",
+              "diagnostic": {
+                "misconception_id": "MIS_127F51E42E",
+                "confidence": 0.9
+              }
+            }
+          ],
+          "shuffle": true,
+          "single_select": true
+        }
+      },
+      "answer_key": {
+        "correct_option_id": "A"
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.MCQ_CONCEPT.003",
+      "atom_id": "CBSE7.CH03.DATA.04",
+      "template_id": "MCQ_CONCEPT",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Fan poll scores: 4, 6, 9, 10, 11. What is the median?",
+        "latex": null
+      },
+      "instruction": "Choose the best answer.",
+      "interaction": {
+        "type": "mcq_concept",
+        "config": {
+          "options": [
+            {
+              "id": "A",
+              "text": "8",
+              "diagnostic": {
+                "misconception_id": "MIS_963499EFB4",
+                "confidence": 0.9
+              }
+            },
+            {
+              "id": "B",
+              "text": "9"
+            },
+            {
+              "id": "C",
+              "text": "10",
+              "diagnostic": {
+                "misconception_id": "MIS_6D0456042E",
+                "confidence": 0.9
+              }
+            },
+            {
+              "id": "D",
+              "text": "40",
+              "diagnostic": {
+                "misconception_id": "MIS_127F51E42E",
+                "confidence": 0.9
+              }
+            }
+          ],
+          "shuffle": true,
+          "single_select": true
+        }
+      },
+      "answer_key": {
+        "correct_option_id": "B"
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.TWO_TIER.004",
+      "atom_id": "CBSE7.CH02.FRD.03",
+      "template_id": "TWO_TIER",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "logical"
+        }
+      ],
+      "stages": [
+        {
+          "stage_id": "tier1",
+          "prompt": {
+            "text": "WIFTY study schedule: Which is bigger, 3/8 or 1/3?",
+            "latex": null
+          },
+          "instruction": "Answer Tier 1 first.",
+          "interaction": {
+            "type": "mcq_concept",
+            "config": {
+              "options": [
+                {
+                  "id": "A",
+                  "text": "3/8"
+                },
+                {
+                  "id": "B",
+                  "text": "1/3",
+                  "diagnostic": {
+                    "misconception_id": "MIS_085AC8551F",
+                    "confidence": 0.9
+                  }
+                },
+                {
+                  "id": "C",
+                  "text": "2/5"
+                },
+                {
+                  "id": "D",
+                  "text": "4/10",
+                  "diagnostic": {
+                    "misconception_id": "MIS_127F51E42E",
+                    "confidence": 0.9
+                  }
+                }
+              ],
+              "shuffle": true,
+              "single_select": true
+            }
+          },
+          "answer_key": {
+            "correct_option_id": "B"
+          },
+          "evidence": [
+            {
+              "outcome_type": "conceptual"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "always",
+            "depends_on_stage_id": null,
+            "max_attempts": null
+          }
+        },
+        {
+          "stage_id": "tier2",
+          "prompt": {
+            "text": "How did you decide without using a calculator?",
+            "latex": null
+          },
+          "instruction": "Explain in 1–2 sentences.",
+          "interaction": {
+            "type": "short_explain",
+            "config": {
+              "rubric_points": [
+                "Use a common denominator or compare cross-products.",
+                "Mention a clear comparison method."
+              ],
+              "max_chars": 220
+            }
+          },
+          "answer_key": {
+            "key_points": [
+              "Convert to common denominator: 3/8 = 9/24 and 1/3 = 8/24, so 3/8 > 1/3 OR cross-multiply: 3×3 ? 1×8."
+            ]
+          },
+          "evidence": [
+            {
+              "outcome_type": "logical"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "after_stage_correct",
+            "depends_on_stage_id": "tier1",
+            "max_attempts": 2
+          }
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.TWO_TIER.005",
+      "atom_id": "CBSE7.CH08.CQ.03",
+      "template_id": "TWO_TIER",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "logical"
+        }
+      ],
+      "stages": [
+        {
+          "stage_id": "tier1",
+          "prompt": {
+            "text": "Merch price: A hoodie costs ₹300. It increases by 10%. What is the new price?",
+            "latex": null
+          },
+          "instruction": "Answer Tier 1 first.",
+          "interaction": {
+            "type": "mcq_concept",
+            "config": {
+              "options": [
+                {
+                  "id": "A",
+                  "text": "₹300",
+                  "diagnostic": {
+                    "misconception_id": "MIS_F5BF26E101",
+                    "confidence": 0.9
+                  }
+                },
+                {
+                  "id": "B",
+                  "text": "₹330"
+                },
+                {
+                  "id": "C",
+                  "text": "₹360",
+                  "diagnostic": {
+                    "misconception_id": "MIS_127F51E42E",
+                    "confidence": 0.9
+                  }
+                },
+                {
+                  "id": "D",
+                  "text": "₹303",
+                  "diagnostic": {
+                    "misconception_id": "MIS_127F51E42E",
+                    "confidence": 0.9
+                  }
+                }
+              ],
+              "shuffle": true,
+              "single_select": true
+            }
+          },
+          "answer_key": {
+            "correct_option_id": "B"
+          },
+          "evidence": [
+            {
+              "outcome_type": "procedural"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "always",
+            "depends_on_stage_id": null,
+            "max_attempts": null
+          }
+        },
+        {
+          "stage_id": "tier2",
+          "prompt": {
+            "text": "Why is it not correct to just add 10 to 300?",
+            "latex": null
+          },
+          "instruction": "Explain in 1–2 sentences.",
+          "interaction": {
+            "type": "short_explain",
+            "config": {
+              "rubric_points": [
+                "Explain that 10% means 10 per 100.",
+                "Compute 10% of 300, then add."
+              ],
+              "max_chars": 220
+            }
+          },
+          "answer_key": {
+            "key_points": [
+              "10% of 300 is 30 (not 10). New price = 300 + 30 = 330."
+            ]
+          },
+          "evidence": [
+            {
+              "outcome_type": "conceptual"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "after_stage_correct",
+            "depends_on_stage_id": "tier1",
+            "max_attempts": 2
+          }
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.TWO_TIER.006",
+      "atom_id": "CBSE7.CH01.INT.05",
+      "template_id": "TWO_TIER",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "logical"
+        }
+      ],
+      "stages": [
+        {
+          "stage_id": "tier1",
+          "prompt": {
+            "text": "Temperature scene: In the story, it’s −2°C in the morning and 3°C at noon. What is the change (noon − morning)?",
+            "latex": null
+          },
+          "instruction": "Answer Tier 1 first.",
+          "interaction": {
+            "type": "mcq_concept",
+            "config": {
+              "options": [
+                {
+                  "id": "A",
+                  "text": "−5"
+                },
+                {
+                  "id": "B",
+                  "text": "+5",
+                  "diagnostic": {
+                    "misconception_id": "MIS_1B55BC1E23",
+                    "confidence": 0.9
+                  }
+                },
+                {
+                  "id": "C",
+                  "text": "−13",
+                  "diagnostic": {
+                    "misconception_id": "MIS_127F51E42E",
+                    "confidence": 0.9
+                  }
+                },
+                {
+                  "id": "D",
+                  "text": "+13",
+                  "diagnostic": {
+                    "misconception_id": "MIS_127F51E42E",
+                    "confidence": 0.9
+                  }
+                }
+              ],
+              "shuffle": true,
+              "single_select": true
+            }
+          },
+          "answer_key": {
+            "correct_option_id": "B"
+          },
+          "evidence": [
+            {
+              "outcome_type": "procedural"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "always",
+            "depends_on_stage_id": null,
+            "max_attempts": null
+          }
+        },
+        {
+          "stage_id": "tier2",
+          "prompt": {
+            "text": "Explain using a number line idea.",
+            "latex": null
+          },
+          "instruction": "Explain in 1–2 sentences.",
+          "interaction": {
+            "type": "short_explain",
+            "config": {
+              "rubric_points": [
+                "Mention moving right from −2 to 3.",
+                "Count steps: +5."
+              ],
+              "max_chars": 220
+            }
+          },
+          "answer_key": {
+            "key_points": [
+              "From −2 move 5 steps right to reach 3, so change is +5."
+            ]
+          },
+          "evidence": [
+            {
+              "outcome_type": "conceptual"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "after_stage_correct",
+            "depends_on_stage_id": "tier1",
+            "max_attempts": 2
+          }
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.NUMERIC_INPUT.007",
+      "atom_id": "CBSE7.CH02.FRD.01",
+      "template_id": "NUMERIC_INPUT",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Choreo practice: Day 1 = 1/4 hour, Day 2 = 1/6 hour. Total practice time (in hours) = ?",
+        "latex": null
+      },
+      "instruction": "Answer as a fraction in simplest form.",
+      "interaction": {
+        "type": "numeric_input",
+        "config": {
+          "mode": "fraction",
+          "require_simplest_form": true
+        }
+      },
+      "answer_key": {
+        "value": "5/12"
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "conceptual"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "R1",
+            "when": {
+              "equals": "2/10"
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_085AC8551F",
+              "confidence": 0.9
+            }
+          },
+          {
+            "id": "R2",
+            "when": {
+              "equals": "1/10"
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_127F51E42E",
+              "confidence": 0.9
+            }
+          },
+          {
+            "id": "R3",
+            "when": {
+              "regex": "^\\s*([0-9]+)\\s*/\\s*([0-9]+)\\s*$"
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_127F51E42E",
+              "confidence": 0.9
+            },
+            "hint_override": "Use a common denominator: 12 is a good choice."
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.NUMERIC_INPUT.008",
+      "atom_id": "CBSE7.CH11.MENS.02",
+      "template_id": "NUMERIC_INPUT",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Set design: A rectangular banner is 12 cm long and 8 cm wide. Find its area (cm²).",
+        "latex": null
+      },
+      "instruction": "Enter an integer.",
+      "interaction": {
+        "type": "numeric_input",
+        "config": {
+          "mode": "integer",
+          "unit": "cm^2"
+        }
+      },
+      "answer_key": {
+        "value": 96
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "R1",
+            "when": {
+              "equals": 40
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_127F51E42E",
+              "confidence": 0.9
+            },
+            "hint_override": "Area of rectangle = length × breadth."
+          },
+          {
+            "id": "R2",
+            "when": {
+              "equals": 20
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_127F51E42E",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.NUMERIC_INPUT.009",
+      "atom_id": "CBSE7.CH08.CQ.01",
+      "template_id": "NUMERIC_INPUT",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Fan club coupon: 15% of ₹200 is how much?",
+        "latex": null
+      },
+      "instruction": "Enter the amount in rupees.",
+      "interaction": {
+        "type": "numeric_input",
+        "config": {
+          "mode": "integer",
+          "unit": "₹"
+        }
+      },
+      "answer_key": {
+        "value": 30
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "conceptual"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "R1",
+            "when": {
+              "equals": 300
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_F5BF26E101",
+              "confidence": 0.9
+            }
+          },
+          {
+            "id": "R2",
+            "when": {
+              "equals": 15
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_F5BF26E101",
+              "confidence": 0.9
+            },
+            "hint_override": "15% means 15 out of 100, so multiply by 15/100."
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.EXPRESSION_INPUT.010",
+      "atom_id": "CBSE7.CH12.ALG.01",
+      "template_id": "EXPRESSION_INPUT",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Scriptwriting: If each episode takes x hours to edit, and bonus clips take 3 hours, write the total time for 5 episodes plus bonus clips.",
+        "latex": "5x + 3"
+      },
+      "instruction": "Type an algebraic expression in simplest form.",
+      "interaction": {
+        "type": "expression_input",
+        "config": {
+          "mode": "algebra",
+          "allow_equivalent": true
+        }
+      },
+      "answer_key": {
+        "canonical_latex": "5x + 3",
+        "equivalence": "symbolic"
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "R1",
+            "when": {
+              "regex": "^\\s*5\\s*\\+\\s*x\\s*\\+\\s*3\\s*$"
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_127F51E42E",
+              "confidence": 0.9
+            },
+            "hint_override": "5 episodes means 5×x, not 5 + x."
+          },
+          {
+            "id": "R2",
+            "when": {
+              "regex": "^\\s*8x\\s*$"
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_127F51E42E",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.EXPRESSION_INPUT.011",
+      "atom_id": "CBSE7.CH13.EXP.02",
+      "template_id": "EXPRESSION_INPUT",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Stage lights: Simplify 2a + 3a − a.",
+        "latex": "2a + 3a - a"
+      },
+      "instruction": "Enter the simplified expression.",
+      "interaction": {
+        "type": "expression_input",
+        "config": {
+          "mode": "algebra",
+          "allow_equivalent": false
+        }
+      },
+      "answer_key": {
+        "canonical_latex": "4a",
+        "equivalence": "string"
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "R1",
+            "when": {
+              "regex": "^\\s*6a\\s*$"
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_127F51E42E",
+              "confidence": 0.9
+            },
+            "hint_override": "Add coefficients: 2 + 3 − 1."
+          },
+          {
+            "id": "R2",
+            "when": {
+              "regex": "^\\s*2a\\s*$"
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_127F51E42E",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.EXPRESSION_INPUT.012",
+      "atom_id": "CBSE7.CH04.EQ.03",
+      "template_id": "EXPRESSION_INPUT",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Notebook math: Expand 3(x + 4).",
+        "latex": "3(x+4)"
+      },
+      "instruction": "Use the distributive property.",
+      "interaction": {
+        "type": "expression_input",
+        "config": {
+          "mode": "algebra",
+          "allow_equivalent": true
+        }
+      },
+      "answer_key": {
+        "canonical_latex": "3x + 12",
+        "equivalence": "symbolic"
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "R1",
+            "when": {
+              "regex": "^\\s*3x\\s*\\+\\s*4\\s*$"
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_06A3653607",
+              "confidence": 0.9
+            },
+            "hint_override": "Multiply 3 by BOTH x and 4."
+          },
+          {
+            "id": "R2",
+            "when": {
+              "regex": "^\\s*3x\\s*\\+\\s*7\\s*$"
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_06A3653607",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.SHORT_EXPLAIN.013",
+      "atom_id": "CBSE7.CH01.INT.04",
+      "template_id": "SHORT_EXPLAIN",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "In a fan edit, the caption says “subtracting a negative makes it smaller.” Explain why this is incorrect using a number line idea.",
+        "latex": null
+      },
+      "instruction": "Write 1–3 sentences.",
+      "interaction": {
+        "type": "short_explain",
+        "config": {
+          "rubric_points": [
+            "Mention that subtracting a negative is the same as adding a positive.",
+            "Describe direction change on number line."
+          ],
+          "max_chars": 260
+        }
+      },
+      "answer_key": {
+        "key_points": [
+          "Subtracting (−n) means move right by n, so the number increases (or stays same if n=0)."
+        ]
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "logical"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.SHORT_EXPLAIN.014",
+      "atom_id": "CBSE7.CH02.FRD.04",
+      "template_id": "SHORT_EXPLAIN",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Why must you convert 0.5 to a fraction or to a common denominator when comparing it with 3/8?",
+        "latex": null
+      },
+      "instruction": "Write 1–3 sentences.",
+      "interaction": {
+        "type": "short_explain",
+        "config": {
+          "rubric_points": [
+            "State that comparisons require same form or same unit.",
+            "Mention converting 0.5 to 1/2 or to eighths."
+          ],
+          "max_chars": 260
+        }
+      },
+      "answer_key": {
+        "key_points": [
+          "Convert 0.5 to 1/2 = 4/8; then 4/8 > 3/8. Using same denominator avoids guessing."
+        ]
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.SHORT_EXPLAIN.015",
+      "atom_id": "CBSE7.CH03.DATA.02",
+      "template_id": "SHORT_EXPLAIN",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "A chart of weekly views has one very high value and the rest are small. Would the mean or median better represent a ‘typical’ week? Explain.",
+        "latex": null
+      },
+      "instruction": "Write 1–3 sentences.",
+      "interaction": {
+        "type": "short_explain",
+        "config": {
+          "rubric_points": [
+            "Say median is less affected by an outlier.",
+            "Connect to typical value."
+          ],
+          "max_chars": 260
+        }
+      },
+      "answer_key": {
+        "key_points": [
+          "Median is better because one huge outlier pulls the mean up, but the median stays near the middle of the typical weeks."
+        ]
+      },
+      "evidence": [
+        {
+          "outcome_type": "logical"
+        },
+        {
+          "outcome_type": "transfer"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.BALANCE_OPS.016",
+      "atom_id": "CBSE7.CH04.EQ.01",
+      "template_id": "BALANCE_OPS",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Solve for x: 2x + 6 = 20",
+        "latex": "2x + 6 = 20"
+      },
+      "instruction": "Use the operation tiles to do the same operation to both sides.",
+      "interaction": {
+        "type": "balance_ops",
+        "config": {
+          "equation_latex": "2x + 6 = 20",
+          "variable": "x",
+          "operations_allowed": [
+            "add",
+            "subtract",
+            "multiply",
+            "divide"
+          ]
+        }
+      },
+      "answer_key": {
+        "variable": "x",
+        "value": 7
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "conceptual"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "R1",
+            "when": {
+              "equals": 14
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_9E8B6236AA",
+              "confidence": 0.9
+            }
+          },
+          {
+            "id": "R2",
+            "when": {
+              "equals": 8
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_127F51E42E",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.BALANCE_OPS.017",
+      "atom_id": "CBSE7.CH04.EQ.03",
+      "template_id": "BALANCE_OPS",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Solve for x: x/4 - 3 = 5",
+        "latex": "x/4 - 3 = 5"
+      },
+      "instruction": "Use the operation tiles to do the same operation to both sides.",
+      "interaction": {
+        "type": "balance_ops",
+        "config": {
+          "equation_latex": "x/4 - 3 = 5",
+          "variable": "x",
+          "operations_allowed": [
+            "add",
+            "subtract",
+            "multiply",
+            "divide"
+          ]
+        }
+      },
+      "answer_key": {
+        "variable": "x",
+        "value": 32
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "conceptual"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "R1",
+            "when": {
+              "equals": 2
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_127F51E42E",
+              "confidence": 0.9
+            }
+          },
+          {
+            "id": "R2",
+            "when": {
+              "equals": 8
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_9E8B6236AA",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.BALANCE_OPS.018",
+      "atom_id": "CBSE7.CH04.EQ.04",
+      "template_id": "BALANCE_OPS",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Solve for x: 3(x - 2) = 18",
+        "latex": "3(x - 2) = 18"
+      },
+      "instruction": "Use the operation tiles to do the same operation to both sides.",
+      "interaction": {
+        "type": "balance_ops",
+        "config": {
+          "equation_latex": "3(x - 2) = 18",
+          "variable": "x",
+          "operations_allowed": [
+            "add",
+            "subtract",
+            "multiply",
+            "divide"
+          ]
+        }
+      },
+      "answer_key": {
+        "variable": "x",
+        "value": 8
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "conceptual"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "R1",
+            "when": {
+              "equals": 4
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_06A3653607",
+              "confidence": 0.9
+            }
+          },
+          {
+            "id": "R2",
+            "when": {
+              "equals": 12
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_127F51E42E",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.WORKED_EXAMPLE_COMPLETE.019",
+      "atom_id": "CBSE7.CH02.FRD.02",
+      "template_id": "WORKED_EXAMPLE_COMPLETE",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "WIFTY lunch sharing: Solve 3/5 + 1/10.",
+        "latex": null
+      },
+      "instruction": "Fill in the missing step(s).",
+      "interaction": {
+        "type": "worked_example_complete",
+        "config": {
+          "steps": [
+            "LCM of 5 and 10 is 10.",
+            "3/5 = __/10",
+            "So 3/5 + 1/10 = __/10"
+          ],
+          "blank_token": "__"
+        }
+      },
+      "answer_key": {
+        "blanks": {
+          "1": "6",
+          "2": "7"
+        }
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "logical"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.WORKED_EXAMPLE_COMPLETE.020",
+      "atom_id": "CBSE7.CH03.DATA.06",
+      "template_id": "WORKED_EXAMPLE_COMPLETE",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Streaming stats: Find the range of plays (in thousands): 12, 18, 9, 20, 15.",
+        "latex": null
+      },
+      "instruction": "Fill in the missing step(s).",
+      "interaction": {
+        "type": "worked_example_complete",
+        "config": {
+          "steps": [
+            "Smallest value = __",
+            "Largest value = __",
+            "Range = largest − smallest = __"
+          ],
+          "blank_token": "__"
+        }
+      },
+      "answer_key": {
+        "blanks": {
+          "1": "9",
+          "2": "20",
+          "3": "11"
+        }
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "logical"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.WORKED_EXAMPLE_COMPLETE.021",
+      "atom_id": "CBSE7.CH11.MENS.03",
+      "template_id": "WORKED_EXAMPLE_COMPLETE",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Stage floor: A square tile has side 7 cm. Find perimeter.",
+        "latex": null
+      },
+      "instruction": "Fill in the missing step(s).",
+      "interaction": {
+        "type": "worked_example_complete",
+        "config": {
+          "steps": [
+            "Perimeter of a square = 4 × side",
+            "Perimeter = 4 × 7 = __ cm"
+          ],
+          "blank_token": "__"
+        }
+      },
+      "answer_key": {
+        "blanks": {
+          "1": "28"
+        }
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "logical"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.ERROR_ANALYSIS.022",
+      "atom_id": "CBSE7.CH01.INT.04",
+      "template_id": "ERROR_ANALYSIS",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Fan count change: Evaluate 7 − (−3). A student wrote:",
+        "latex": null
+      },
+      "instruction": "Tap the first wrong step, then type the corrected step.",
+      "interaction": {
+        "type": "error_analysis",
+        "config": {
+          "student_steps": [
+            "7 − (−3) = 7 − 3",
+            "= 4"
+          ],
+          "input_mode": "text"
+        }
+      },
+      "answer_key": {
+        "first_error_step": 1,
+        "corrected_steps": [
+          "7 − (−3) = 7 + 3",
+          "= 10"
+        ]
+      },
+      "evidence": [
+        {
+          "outcome_type": "logical"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "E1",
+            "when": {
+              "equals": 1
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_1B55BC1E23",
+              "confidence": 0.9
+            },
+            "hint_override": null
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.ERROR_ANALYSIS.023",
+      "atom_id": "CBSE7.CH02.FRD.01",
+      "template_id": "ERROR_ANALYSIS",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Snack sharing: Compute 1/2 + 1/3. A student wrote:",
+        "latex": null
+      },
+      "instruction": "Tap the first wrong step, then type the corrected step.",
+      "interaction": {
+        "type": "error_analysis",
+        "config": {
+          "student_steps": [
+            "1/2 + 1/3 = 2/5"
+          ],
+          "input_mode": "text"
+        }
+      },
+      "answer_key": {
+        "first_error_step": 0,
+        "corrected_steps": [
+          "LCM is 6, so 1/2=3/6 and 1/3=2/6",
+          "Sum = 5/6"
+        ]
+      },
+      "evidence": [
+        {
+          "outcome_type": "logical"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "E1",
+            "when": {
+              "equals": 0
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_085AC8551F",
+              "confidence": 0.9
+            },
+            "hint_override": null
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.ERROR_ANALYSIS.024",
+      "atom_id": "CBSE7.CH04.EQ.03",
+      "template_id": "ERROR_ANALYSIS",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Solve x + 5 = 12. A student wrote:",
+        "latex": null
+      },
+      "instruction": "Tap the first wrong step, then type the corrected step.",
+      "interaction": {
+        "type": "error_analysis",
+        "config": {
+          "student_steps": [
+            "x = 12 + 5",
+            "= 17"
+          ],
+          "input_mode": "text"
+        }
+      },
+      "answer_key": {
+        "first_error_step": 0,
+        "corrected_steps": [
+          "x = 12 − 5",
+          "= 7"
+        ]
+      },
+      "evidence": [
+        {
+          "outcome_type": "logical"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "E1",
+            "when": {
+              "equals": 0
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_9E8B6236AA",
+              "confidence": 0.9
+            },
+            "hint_override": null
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.STEP_ORDER.025",
+      "atom_id": "CBSE7.CH03.DATA.01",
+      "template_id": "STEP_ORDER",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Order the steps to find the median of 9, 2, 7, 10, 6.",
+        "latex": null
+      },
+      "instruction": "Drag steps into the correct order.",
+      "interaction": {
+        "type": "step_order",
+        "config": {
+          "tiles": [
+            {
+              "id": "S1",
+              "text": "Arrange the data in ascending order."
+            },
+            {
+              "id": "S2",
+              "text": "Count how many values there are."
+            },
+            {
+              "id": "S3",
+              "text": "Pick the middle value."
+            },
+            {
+              "id": "S4",
+              "text": "Write the median."
+            }
+          ]
+        }
+      },
+      "answer_key": {
+        "correct_order": [
+          "S2",
+          "S1",
+          "S3",
+          "S4"
+        ]
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "logical"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.STEP_ORDER.026",
+      "atom_id": "CBSE7.CH11.MENS.01",
+      "template_id": "STEP_ORDER",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Order the steps to find the perimeter of a rectangle (length 9 cm, breadth 4 cm).",
+        "latex": null
+      },
+      "instruction": "Drag steps into the correct order.",
+      "interaction": {
+        "type": "step_order",
+        "config": {
+          "tiles": [
+            {
+              "id": "S1",
+              "text": "Add length and breadth: 9 + 4."
+            },
+            {
+              "id": "S2",
+              "text": "Multiply the sum by 2."
+            },
+            {
+              "id": "S3",
+              "text": "Write the perimeter in cm."
+            },
+            {
+              "id": "S4",
+              "text": "Compute 9 + 4 = 13."
+            }
+          ]
+        }
+      },
+      "answer_key": {
+        "correct_order": [
+          "S1",
+          "S4",
+          "S2",
+          "S3"
+        ]
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "logical"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.STEP_ORDER.027",
+      "atom_id": "CBSE7.CH08.CQ.04",
+      "template_id": "STEP_ORDER",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Order the steps to find 25% of ₹320.",
+        "latex": null
+      },
+      "instruction": "Drag steps into the correct order.",
+      "interaction": {
+        "type": "step_order",
+        "config": {
+          "tiles": [
+            {
+              "id": "S1",
+              "text": "Convert percent to a fraction: 25% = 25/100."
+            },
+            {
+              "id": "S2",
+              "text": "Simplify 25/100 to 1/4."
+            },
+            {
+              "id": "S3",
+              "text": "Compute 1/4 of 320."
+            },
+            {
+              "id": "S4",
+              "text": "Write the answer in rupees."
+            }
+          ]
+        }
+      },
+      "answer_key": {
+        "correct_order": [
+          "S1",
+          "S2",
+          "S3",
+          "S4"
+        ]
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "logical"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.CLASSIFY_SORT.028",
+      "atom_id": "CBSE7.CH01.INT.01",
+      "template_id": "CLASSIFY_SORT",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Sort these numbers into Positive, Negative, or Zero (fan mood meter).",
+        "latex": null
+      },
+      "instruction": "Drag each card into the correct box.",
+      "interaction": {
+        "type": "classify_sort",
+        "config": {
+          "bins": [
+            {
+              "id": "B1",
+              "label": "Positive"
+            },
+            {
+              "id": "B2",
+              "label": "Negative"
+            },
+            {
+              "id": "B3",
+              "label": "Zero"
+            }
+          ],
+          "cards": [
+            {
+              "id": "C1",
+              "text": "-7"
+            },
+            {
+              "id": "C2",
+              "text": "0"
+            },
+            {
+              "id": "C3",
+              "text": "12"
+            },
+            {
+              "id": "C4",
+              "text": "-1"
+            }
+          ]
+        }
+      },
+      "answer_key": {
+        "card_to_bin": {
+          "C1": "B2",
+          "C2": "B3",
+          "C3": "B1",
+          "C4": "B2"
+        }
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.CLASSIFY_SORT.029",
+      "atom_id": "CBSE7.CH02.FRD.06",
+      "template_id": "CLASSIFY_SORT",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Sort each into Fraction, Decimal, or Integer (episode timing).",
+        "latex": null
+      },
+      "instruction": "Drag each card into the correct box.",
+      "interaction": {
+        "type": "classify_sort",
+        "config": {
+          "bins": [
+            {
+              "id": "B1",
+              "label": "Fraction"
+            },
+            {
+              "id": "B2",
+              "label": "Decimal"
+            },
+            {
+              "id": "B3",
+              "label": "Integer"
+            }
+          ],
+          "cards": [
+            {
+              "id": "C1",
+              "text": "3/4"
+            },
+            {
+              "id": "C2",
+              "text": "0.25"
+            },
+            {
+              "id": "C3",
+              "text": "5"
+            },
+            {
+              "id": "C4",
+              "text": "1.5"
+            }
+          ]
+        }
+      },
+      "answer_key": {
+        "card_to_bin": {
+          "C1": "B1",
+          "C2": "B2",
+          "C3": "B3",
+          "C4": "B2"
+        }
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.CLASSIFY_SORT.030",
+      "atom_id": "CBSE7.CH09.RATIO.01",
+      "template_id": "CLASSIFY_SORT",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Sort ratios into Equivalent or Not Equivalent (dance counts). Compare each to 2:3.",
+        "latex": null
+      },
+      "instruction": "Drag each card into the correct box.",
+      "interaction": {
+        "type": "classify_sort",
+        "config": {
+          "bins": [
+            {
+              "id": "B1",
+              "label": "Equivalent to 2:3"
+            },
+            {
+              "id": "B2",
+              "label": "Not equivalent"
+            }
+          ],
+          "cards": [
+            {
+              "id": "C1",
+              "text": "4:6"
+            },
+            {
+              "id": "C2",
+              "text": "6:9"
+            },
+            {
+              "id": "C3",
+              "text": "3:4"
+            },
+            {
+              "id": "C4",
+              "text": "10:15"
+            }
+          ]
+        }
+      },
+      "answer_key": {
+        "card_to_bin": {
+          "C1": "B1",
+          "C2": "B1",
+          "C3": "B2",
+          "C4": "B1"
+        }
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "logical"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.MATCHING.031",
+      "atom_id": "CBSE7.CH08.CQ.01",
+      "template_id": "MATCHING",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Match the percent with its fraction (coupon codes).",
+        "latex": null
+      },
+      "instruction": "Match each item on the left with the correct one on the right.",
+      "interaction": {
+        "type": "matching",
+        "config": {
+          "left": [
+            {
+              "id": "L1",
+              "text": "25%"
+            },
+            {
+              "id": "L2",
+              "text": "10%"
+            },
+            {
+              "id": "L3",
+              "text": "50%"
+            }
+          ],
+          "right": [
+            {
+              "id": "R1",
+              "text": "1/2"
+            },
+            {
+              "id": "R2",
+              "text": "1/10"
+            },
+            {
+              "id": "R3",
+              "text": "1/4"
+            }
+          ]
+        }
+      },
+      "answer_key": {
+        "pairs": [
+          {
+            "left_id": "L1",
+            "right_id": "R3"
+          },
+          {
+            "left_id": "L2",
+            "right_id": "R2"
+          },
+          {
+            "left_id": "L3",
+            "right_id": "R1"
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.MATCHING.032",
+      "atom_id": "CBSE7.CH03.DATA.05",
+      "template_id": "MATCHING",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Match the term with its meaning (streaming analytics).",
+        "latex": null
+      },
+      "instruction": "Match each item on the left with the correct one on the right.",
+      "interaction": {
+        "type": "matching",
+        "config": {
+          "left": [
+            {
+              "id": "L1",
+              "text": "Mean"
+            },
+            {
+              "id": "L2",
+              "text": "Median"
+            },
+            {
+              "id": "L3",
+              "text": "Range"
+            }
+          ],
+          "right": [
+            {
+              "id": "R1",
+              "text": "Largest − smallest"
+            },
+            {
+              "id": "R2",
+              "text": "Middle value after sorting"
+            },
+            {
+              "id": "R3",
+              "text": "Total ÷ number of values"
+            }
+          ]
+        }
+      },
+      "answer_key": {
+        "pairs": [
+          {
+            "left_id": "L1",
+            "right_id": "R3"
+          },
+          {
+            "left_id": "L2",
+            "right_id": "R2"
+          },
+          {
+            "left_id": "L3",
+            "right_id": "R1"
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.MATCHING.033",
+      "atom_id": "CBSE7.CH05.ANG.01",
+      "template_id": "MATCHING",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Match the angle type (camera angles).",
+        "latex": null
+      },
+      "instruction": "Match each item on the left with the correct one on the right.",
+      "interaction": {
+        "type": "matching",
+        "config": {
+          "left": [
+            {
+              "id": "L1",
+              "text": "Acute"
+            },
+            {
+              "id": "L2",
+              "text": "Right"
+            },
+            {
+              "id": "L3",
+              "text": "Obtuse"
+            }
+          ],
+          "right": [
+            {
+              "id": "R1",
+              "text": "Less than 90°"
+            },
+            {
+              "id": "R2",
+              "text": "Exactly 90°"
+            },
+            {
+              "id": "R3",
+              "text": "Between 90° and 180°"
+            }
+          ]
+        }
+      },
+      "answer_key": {
+        "pairs": [
+          {
+            "left_id": "L1",
+            "right_id": "R1"
+          },
+          {
+            "left_id": "L2",
+            "right_id": "R2"
+          },
+          {
+            "left_id": "L3",
+            "right_id": "R3"
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.GEOMETRY_TAP.034",
+      "atom_id": "CBSE7.CH05.ANG.03",
+      "template_id": "GEOMETRY_TAP",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Concert lasers cross. Tap the vertical angle to the given 45° angle.",
+        "latex": null
+      },
+      "instruction": "Tap the correct region on the diagram.",
+      "interaction": {
+        "type": "geometry_tap",
+        "config": {
+          "diagram": {
+            "kind": "intersecting_lines",
+            "given_angle_deg": 45,
+            "regions": [
+              {
+                "id": "R1",
+                "label": "45° (given)",
+                "role": "given"
+              },
+              {
+                "id": "R2",
+                "label": "vertical angle",
+                "role": "target_vertical"
+              },
+              {
+                "id": "R3",
+                "label": "adjacent",
+                "role": "adjacent1"
+              },
+              {
+                "id": "R4",
+                "label": "adjacent",
+                "role": "adjacent2"
+              }
+            ]
+          }
+        }
+      },
+      "answer_key": {
+        "region_id": "R2"
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.GEOMETRY_TAP.035",
+      "atom_id": "CBSE7.CH05.ANG.02",
+      "template_id": "GEOMETRY_TAP",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "On a straight line, one angle is 120°. Tap the angle that makes a linear pair with it.",
+        "latex": null
+      },
+      "instruction": "Tap the correct region on the diagram.",
+      "interaction": {
+        "type": "geometry_tap",
+        "config": {
+          "diagram": {
+            "kind": "straight_line_with_ray",
+            "given_angle_deg": 120,
+            "regions": [
+              {
+                "id": "A",
+                "label": "120° (given)",
+                "role": "given"
+              },
+              {
+                "id": "B",
+                "label": "adjacent on straight line",
+                "role": "supplement"
+              }
+            ]
+          }
+        }
+      },
+      "answer_key": {
+        "region_id": "B"
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.GEOMETRY_TAP.036",
+      "atom_id": "CBSE7.CH06.TRI.02",
+      "template_id": "GEOMETRY_TAP",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Stage triangle truss has angles 50° and 60°. Tap the vertex where the third angle is located (the unknown X).",
+        "latex": null
+      },
+      "instruction": "Tap the correct region on the diagram.",
+      "interaction": {
+        "type": "geometry_tap",
+        "config": {
+          "diagram": {
+            "kind": "triangle_angles",
+            "given_angles_deg": [
+              50,
+              60
+            ],
+            "regions": [
+              {
+                "id": "X",
+                "label": "unknown angle",
+                "role": "unknown_vertex"
+              },
+              {
+                "id": "G1",
+                "label": "50°",
+                "role": "given"
+              },
+              {
+                "id": "G2",
+                "label": "60°",
+                "role": "given"
+              }
+            ]
+          }
+        }
+      },
+      "answer_key": {
+        "region_id": "X"
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "logical"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.MULTI_STEP_WORD.037",
+      "atom_id": "CBSE7.CH08.CQ.05",
+      "template_id": "MULTI_STEP_WORD",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "logical"
+        },
+        {
+          "outcome_type": "transfer"
+        }
+      ],
+      "prompt": {
+        "text": "Merch checkout: A jacket costs ₹800. There is a 15% discount, then 5% GST is added on the discounted price.",
+        "latex": null
+      },
+      "stages": [
+        {
+          "stage_id": "S1",
+          "prompt": {
+            "text": "Find the discounted price after 15% off (₹).",
+            "latex": null
+          },
+          "instruction": null,
+          "interaction": {
+            "type": "numeric_input",
+            "config": {
+              "mode": "integer"
+            }
+          },
+          "answer_key": {
+            "value": 680,
+            "tolerance": 0
+          },
+          "evidence": [
+            {
+              "outcome_type": "procedural"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "always",
+            "depends_on_stage_id": null,
+            "max_attempts": null
+          }
+        },
+        {
+          "stage_id": "S2",
+          "prompt": {
+            "text": "Compute 5% GST on ₹680 (₹).",
+            "latex": null
+          },
+          "instruction": null,
+          "interaction": {
+            "type": "numeric_input",
+            "config": {
+              "mode": "integer"
+            }
+          },
+          "answer_key": {
+            "value": 34,
+            "tolerance": 0
+          },
+          "evidence": [
+            {
+              "outcome_type": "procedural"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "after_stage_correct",
+            "depends_on_stage_id": "S1",
+            "max_attempts": 2
+          }
+        },
+        {
+          "stage_id": "S3",
+          "prompt": {
+            "text": "Final price = discounted price + GST (₹).",
+            "latex": null
+          },
+          "instruction": null,
+          "interaction": {
+            "type": "numeric_input",
+            "config": {
+              "mode": "integer"
+            }
+          },
+          "answer_key": {
+            "value": 714,
+            "tolerance": 0
+          },
+          "evidence": [
+            {
+              "outcome_type": "procedural"
+            },
+            {
+              "outcome_type": "logical"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "after_stage_correct",
+            "depends_on_stage_id": "S2",
+            "max_attempts": 2
+          }
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.MULTI_STEP_WORD.038",
+      "atom_id": "CBSE7.CH09.RATIO.02",
+      "template_id": "MULTI_STEP_WORD",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "logical"
+        },
+        {
+          "outcome_type": "transfer"
+        }
+      ],
+      "prompt": {
+        "text": "C‑drama project: Two friends split 96 stickers in the ratio 5:3.",
+        "latex": null
+      },
+      "stages": [
+        {
+          "stage_id": "S1",
+          "prompt": {
+            "text": "Total parts = 5 + 3 = ?",
+            "latex": null
+          },
+          "instruction": null,
+          "interaction": {
+            "type": "numeric_input",
+            "config": {
+              "mode": "integer"
+            }
+          },
+          "answer_key": {
+            "value": 8,
+            "tolerance": 0
+          },
+          "evidence": [
+            {
+              "outcome_type": "procedural"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "always",
+            "depends_on_stage_id": null,
+            "max_attempts": null
+          }
+        },
+        {
+          "stage_id": "S2",
+          "prompt": {
+            "text": "One part = 96 ÷ 8 = ?",
+            "latex": null
+          },
+          "instruction": null,
+          "interaction": {
+            "type": "numeric_input",
+            "config": {
+              "mode": "integer"
+            }
+          },
+          "answer_key": {
+            "value": 12,
+            "tolerance": 0
+          },
+          "evidence": [
+            {
+              "outcome_type": "procedural"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "after_stage_correct",
+            "depends_on_stage_id": "S1",
+            "max_attempts": 2
+          }
+        },
+        {
+          "stage_id": "S3",
+          "prompt": {
+            "text": "Friend A gets 5 parts = ? stickers",
+            "latex": null
+          },
+          "instruction": null,
+          "interaction": {
+            "type": "numeric_input",
+            "config": {
+              "mode": "integer"
+            }
+          },
+          "answer_key": {
+            "value": 60,
+            "tolerance": 0
+          },
+          "evidence": [
+            {
+              "outcome_type": "procedural"
+            },
+            {
+              "outcome_type": "logical"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "after_stage_correct",
+            "depends_on_stage_id": "S2",
+            "max_attempts": 2
+          }
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.MULTI_STEP_WORD.039",
+      "atom_id": "CBSE7.CH11.MENS.04",
+      "template_id": "MULTI_STEP_WORD",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "logical"
+        },
+        {
+          "outcome_type": "transfer"
+        }
+      ],
+      "prompt": {
+        "text": "Stage border: A rectangular stage is 14 m by 9 m. LED strip costs ₹25 per meter. Find the total cost to border the stage.",
+        "latex": null
+      },
+      "stages": [
+        {
+          "stage_id": "S1",
+          "prompt": {
+            "text": "Perimeter = 2(l+b) = ? meters",
+            "latex": null
+          },
+          "instruction": null,
+          "interaction": {
+            "type": "numeric_input",
+            "config": {
+              "mode": "integer"
+            }
+          },
+          "answer_key": {
+            "value": 46,
+            "tolerance": 0
+          },
+          "evidence": [
+            {
+              "outcome_type": "procedural"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "always",
+            "depends_on_stage_id": null,
+            "max_attempts": null
+          }
+        },
+        {
+          "stage_id": "S2",
+          "prompt": {
+            "text": "Cost = 46 × 25 = ? rupees",
+            "latex": null
+          },
+          "instruction": null,
+          "interaction": {
+            "type": "numeric_input",
+            "config": {
+              "mode": "integer"
+            }
+          },
+          "answer_key": {
+            "value": 1150,
+            "tolerance": 0
+          },
+          "evidence": [
+            {
+              "outcome_type": "procedural"
+            },
+            {
+              "outcome_type": "transfer"
+            }
+          ],
+          "unlock_logic": {
+            "show_when": "after_stage_correct",
+            "depends_on_stage_id": "S1",
+            "max_attempts": 2
+          }
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.SIMULATION.040",
+      "atom_id": "CBSE7.CH15.PROB.01",
+      "template_id": "SIMULATION",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Photocard packs: A pack has 8 equally likely cards, and 1 is ‘Ultra Rare’. What is the probability of getting Ultra Rare in one pack?",
+        "latex": null
+      },
+      "instruction": "Run the simulation (or reason from the setup) and give the probability.",
+      "interaction": {
+        "type": "simulation",
+        "config": {
+          "kind": "equally_likely_draw",
+          "total_outcomes": 8,
+          "favorable_outcomes": 1,
+          "show_trials": true,
+          "default_trials": 20
+        }
+      },
+      "answer_key": {
+        "probability_fraction": "1/8",
+        "probability_decimal": 0.125
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.SIMULATION.041",
+      "atom_id": "CBSE7.CH15.PROB.02",
+      "template_id": "SIMULATION",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Episode shuffle: A playlist has 12 episodes, and 3 are ‘exam‑prep’ episodes. If you randomly pick one, what is the probability it is exam‑prep?",
+        "latex": null
+      },
+      "instruction": "Run the simulation (or reason from the setup) and give the probability.",
+      "interaction": {
+        "type": "simulation",
+        "config": {
+          "kind": "equally_likely_draw",
+          "total_outcomes": 12,
+          "favorable_outcomes": 3,
+          "show_trials": true,
+          "default_trials": 24
+        }
+      },
+      "answer_key": {
+        "probability_fraction": "1/4",
+        "probability_decimal": 0.25
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.SIMULATION.042",
+      "atom_id": "CBSE7.CH15.PROB.03",
+      "template_id": "SIMULATION",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Dance roulette: A wheel has 6 equal sections: 2 ‘freestyle’, 3 ‘group’, 1 ‘solo’. What is the probability of landing on ‘group’?",
+        "latex": null
+      },
+      "instruction": "Run the simulation (or reason from the setup) and give the probability.",
+      "interaction": {
+        "type": "simulation",
+        "config": {
+          "kind": "spinner",
+          "sectors": [
+            {
+              "label": "freestyle",
+              "count": 2
+            },
+            {
+              "label": "group",
+              "count": 3
+            },
+            {
+              "label": "solo",
+              "count": 1
+            }
+          ],
+          "show_trials": true,
+          "default_trials": 30
+        }
+      },
+      "answer_key": {
+        "probability_fraction": "1/2",
+        "probability_decimal": 0.5
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.NUMBER_LINE_PLACE.043",
+      "atom_id": "CBSE7.CH01.INT.03",
+      "template_id": "NUMBER_LINE_PLACE",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "Place −3 on the number line.",
+        "latex": null
+      },
+      "instruction": "Drag the marker to the correct point.",
+      "interaction": {
+        "type": "number_line_place",
+        "config": {
+          "number_line": {
+            "min": -10,
+            "max": 10,
+            "tick": 1,
+            "snap": 1
+          },
+          "start_marker": 0
+        }
+      },
+      "answer_key": {
+        "value": -3
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "R1",
+            "when": {
+              "numeric_range": {
+                "min": -4,
+                "max": -3.5
+              }
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_1B55BC1E23",
+              "confidence": 0.9
+            },
+            "hint_override": "Check direction: left is smaller, right is larger."
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.NUMBER_LINE_PLACE.044",
+      "atom_id": "CBSE7.CH02.FRD.05",
+      "template_id": "NUMBER_LINE_PLACE",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Place 1.5 on the number line.",
+        "latex": null
+      },
+      "instruction": "Drag the marker to the correct point.",
+      "interaction": {
+        "type": "number_line_place",
+        "config": {
+          "number_line": {
+            "min": 0,
+            "max": 3,
+            "tick": 0.5,
+            "snap": 0.5
+          },
+          "start_marker": 0
+        }
+      },
+      "answer_key": {
+        "value": 1.5
+      },
+      "evidence": [
+        {
+          "outcome_type": "conceptual"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "R1",
+            "when": {
+              "numeric_range": {
+                "min": 0.5,
+                "max": 1.0
+              }
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_1B55BC1E23",
+              "confidence": 0.9
+            },
+            "hint_override": "Check direction: left is smaller, right is larger."
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.NUMBER_LINE_PLACE.045",
+      "atom_id": "CBSE7.CH01.INT.06",
+      "template_id": "NUMBER_LINE_PLACE",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Start at −2 and move +5. Place the result on the number line.",
+        "latex": null
+      },
+      "instruction": "Drag the marker to the correct point.",
+      "interaction": {
+        "type": "number_line_place",
+        "config": {
+          "number_line": {
+            "min": -10,
+            "max": 10,
+            "tick": 1,
+            "snap": 1
+          },
+          "start_marker": -2
+        }
+      },
+      "answer_key": {
+        "value": 3
+      },
+      "evidence": [
+        {
+          "outcome_type": "procedural"
+        },
+        {
+          "outcome_type": "conceptual"
+        }
+      ],
+      "diagnostics": {
+        "error_model": [
+          {
+            "id": "R1",
+            "when": {
+              "numeric_range": {
+                "min": 2,
+                "max": 2.5
+              }
+            },
+            "diagnostic": {
+              "misconception_id": "MIS_1B55BC1E23",
+              "confidence": 0.9
+            },
+            "hint_override": "Check direction: left is smaller, right is larger."
+          }
+        ]
+      }
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.TRANSFER_MINI.046",
+      "atom_id": "CBSE7.CH08.CQ.01",
+      "template_id": "TRANSFER_MINI",
+      "difficulty": 2,
+      "context_tags": [
+        "cdrama",
+        "when_i_fly_towards_you"
+      ],
+      "prompt": {
+        "text": "If 12% of a playlist is ads, how many ads are there in 200 clips?",
+        "latex": null
+      },
+      "instruction": "Quick transfer: same idea, new context.",
+      "interaction": {
+        "type": "transfer_mini",
+        "config": {
+          "mode": "integer"
+        }
+      },
+      "answer_key": {
+        "value": 24
+      },
+      "evidence": [
+        {
+          "outcome_type": "transfer"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.TRANSFER_MINI.047",
+      "atom_id": "CBSE7.CH02.FRD.02",
+      "template_id": "TRANSFER_MINI",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "A dance clip is 3/4 minute and an intro is 1/8 minute. Total time = ? minutes (simplest fraction).",
+        "latex": null
+      },
+      "instruction": "Quick transfer: same idea, new context.",
+      "interaction": {
+        "type": "transfer_mini",
+        "config": {
+          "mode": "fraction"
+        }
+      },
+      "answer_key": {
+        "value": "7/8"
+      },
+      "evidence": [
+        {
+          "outcome_type": "transfer"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ]
+    },
+    {
+      "item_id": "V3MED.KPOP.SET1.TRANSFER_MINI.048",
+      "atom_id": "CBSE7.CH03.DATA.06",
+      "template_id": "TRANSFER_MINI",
+      "difficulty": 2,
+      "context_tags": [
+        "kpop",
+        "demon_hunters"
+      ],
+      "prompt": {
+        "text": "Views (in thousands): 8, 14, 11, 9. What is the range?",
+        "latex": null
+      },
+      "instruction": "Quick transfer: same idea, new context.",
+      "interaction": {
+        "type": "transfer_mini",
+        "config": {
+          "mode": "integer"
+        }
+      },
+      "answer_key": {
+        "value": 6
+      },
+      "evidence": [
+        {
+          "outcome_type": "transfer"
+        },
+        {
+          "outcome_type": "procedural"
+        }
+      ]
+    }
+  ]
+}

@@ -20,7 +20,7 @@ import TeacherAnalyticsDashboard from './components/admin/TeacherAnalyticsDashbo
 import ParentDashboard from './components/parent/ParentDashboard';
 import AnalyticsLogViewer from './components/admin/AnalyticsLogViewer';
 import AdminQuestionsPanel from './components/admin/AdminQuestionsPanel';
-import CurriculumBrowser from './components/curriculum/CurriculumBrowser';
+import CurriculumViewer from './components/curriculum/CurriculumViewer';
 
 
 /**
@@ -380,7 +380,7 @@ export default function App() {
             }
           />
           <Route path="/admin/questions" element={<AdminQuestionsPanel />} />
-          <Route path="/curriculum" element={<CurriculumBrowser />} />
+          <Route path="/curriculum" element={<CurriculumViewer />} />
 
           {/* Catch-all: redirect unknown routes to home */}
           <Route path="*" element={<Navigate to="/" replace />} />

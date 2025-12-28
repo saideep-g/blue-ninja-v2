@@ -1,0 +1,17 @@
+{
+  "schema_version": "3.0",
+  "document_type": "curriculum_manifest",
+  "curriculum_id": "cbse7-olympiad-eapcet-foundation",
+  "title": "CBSE Grade 7 Core Curriculum (CBSE + Olympiad + EAPCET foundation) — Unified Architecture v3",
+  "generated_at": "2025-12-27T12:00:00+00:00",
+  "documents": {
+    "core_curriculum": "cbse7_core_curriculum_v3.json",
+    "template_library": "template_library_v3.json",
+    "assessment_guide": "cbse7_assessment_guide_v3.json"
+  },
+  "compatibility": {
+    "question_item_contract": "Items validate in layers: Assessment Guide base schema + Template Library data contract per template_id.",
+    "logic_bridge": "atom_id -> Core atom.mastery_profile_id -> Assessment mastery profile; template_id -> Template Library UI+telemetry+data contract.",
+    "id_stability": "atom_id, template_id, misconception_id, strategy_id are stable."
+  }
+}
