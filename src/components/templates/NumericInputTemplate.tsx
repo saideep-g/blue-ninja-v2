@@ -27,16 +27,40 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
 
     // Safe Access
     const content = question.content || {};
-    const prompt = content.prompt?.text || 'Calculate the answer:';
-    const instruction = content.instruction || 'Enter your answer below.';
+    const prompt = (question as any).prompt?.text || content.prompt?.text || 'Calculate the answer:';
+    const instruction = (question as any).instruction || content.instruction || 'Enter your answer below.';
 
     const interactionConfig = content.interaction?.config || (question as any).interaction?.config || {};
     const placeholder = interactionConfig.placeholder || 'Enter a number...';
     const unit = interactionConfig.unit || '';
 
-    const answerKey = question.answerKey || {};
-    const correctValue = answerKey.correctValue ?? 0; // Fallback to 0 if missing (shouldn't happen)
-    const tolerance = answerKey.tolerance || 0;
+    const parseValue = (val: string | number | undefined): number | null => {
+        if (typeof val === 'number') return val;
+        if (!val) return null;
+        val = val.toString().trim();
+
+        // Handle Fractions (e.g. "5/12", " 5 / 12 ")
+        if (val.includes('/')) {
+            const parts = val.split('/');
+            if (parts.length === 2) {
+                const num = parseFloat(parts[0]);
+                const den = parseFloat(parts[1]);
+                if (!isNaN(num) && !isNaN(den) && den !== 0) {
+                    return num / den;
+                }
+            }
+        }
+
+        // Handle standard numbers
+        const num = parseFloat(val);
+        return isNaN(num) ? null : num;
+    };
+
+    const answerKey = question.answerKey || (question as any).answer_key || {};
+    // Support both 'correctValue' (number) and 'value' (string fraction)
+    const rawCorrectValue = answerKey.correctValue ?? answerKey.value;
+    const correctValue = parseValue(rawCorrectValue) ?? 0;
+    const tolerance = answerKey.tolerance || 0.001; // Default tolerance for float math
 
     const feedbackMap = (question as any).feedbackMap || {};
 
@@ -46,20 +70,67 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
             : feedbackMap.onIncorrectAttempt1 || '✗ Not quite. Double check your calculation.';
     };
 
+    const gcd = (a: number, b: number): number => {
+        return b === 0 ? a : gcd(b, a % b);
+    };
+
     const handleSubmit = (e?: React.FormEvent) => {
         e?.preventDefault();
         if (!inputValue.trim() || submittable === false) return;
 
-        const userNum = parseFloat(inputValue);
+        const userNum = parseValue(inputValue);
+
         // Basic number validation
-        if (isNaN(userNum)) {
-            alert("Please enter a valid number.");
+        if (userNum === null) {
+            alert("Please enter a valid number or fraction (e.g. 5/12).");
             return;
+        }
+
+        const config = content.interaction?.config || (question as any).interaction?.config || {};
+        const isFractionMode = config.mode === 'fraction';
+        const requireSimplest = config.require_simplest_form === true;
+
+        if (isFractionMode && requireSimplest) {
+            // 1. Must be a fraction (contain '/')
+            if (!inputValue.includes('/')) {
+                alert("Please enter your answer as a fraction (e.g. 1/2).");
+                return;
+            }
+
+            // 2. Must be simplified
+            const parts = inputValue.split('/');
+            if (parts.length === 2) {
+                const num = Math.abs(parseInt(parts[0]));
+                const den = Math.abs(parseInt(parts[1]));
+                // gcd includes sign check usually but Math.abs safer for logical simplification check
+                const divisor = gcd(num, den);
+                if (divisor > 1) {
+                    const result = {
+                        isCorrect: false,
+                        value: inputValue,
+                        feedback: `Your answer is correct roughly, but not in simplest form. Please simplify ${inputValue}.`
+                    };
+                    setFeedback(result);
+                    setSubmitted(true);
+                    onAnswer(result);
+                    return;
+                }
+            }
         }
 
         // Check Answer with Tolerance
         const diff = Math.abs(userNum - correctValue);
         const isCorrect = diff <= tolerance;
+
+        console.log('[NumericInput] Submission:', {
+            input: inputValue,
+            parsedUser: userNum,
+            rawCorrect: rawCorrectValue,
+            parsedCorrect: correctValue,
+            diff,
+            tolerance,
+            isCorrect
+        });
 
         const result = {
             isCorrect,
@@ -121,9 +192,9 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
                             placeholder={placeholder}
                             value={inputValue}
                             onChange={(e) => {
-                                // Only allow numbers, dots, and negative sign
+                                // Allow numbers, dots, negative sign, and slashes for fractions
                                 const val = e.target.value;
-                                if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                                if (val === '' || /^[0-9./\s-]*$/.test(val)) {
                                     setInputValue(val);
                                 }
                             }}

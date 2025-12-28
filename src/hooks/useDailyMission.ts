@@ -8,7 +8,7 @@ import { diagnosticQuestionsCollection, getStudentRef, questionBundlesCollection
 
 /**
  * useDailyMission Hook
- * Implements the Phase 2.0 "3-4-3" Selection Algorithm.
+ * Implements the "3-4-3" Selection Algorithm.
  */
 export function useDailyMission(devQuestions: Question[] | null = null) {
     const { ninjaStats, setNinjaStats, logQuestionResultLocal, updatePower, updateStreak, syncToCloud, refreshSessionLogs } = useNinja();
@@ -55,7 +55,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                     id: `${item.item_id || item.id}-${index}`,
                     atom: item.atom_id || item.atom, // Normalize for logic
                     type: item.template_id || item.type
-                })).filter((q: any) => q.type === 'TWO_TIER');
+                })).filter((q: any) => q.type === 'NUMERIC_INPUT');
                 console.log(`[useDailyMission] Loaded ${allQuestions.length} items from V3 Bundle (Filtered: TWO_TIER).`);
             } else {
                 console.warn("[useDailyMission] No V3 Bundles found. Falling back to legacy collection.");

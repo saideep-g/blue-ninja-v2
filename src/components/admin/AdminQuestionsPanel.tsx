@@ -16,7 +16,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Save, Edit3, Trash2, Database, Play, Loader, FileJson, ArrowRight, X, Eye, RefreshCw,
-  CheckCircle, AlertTriangle, XCircle, Search, Upload, FileUp
+  CheckCircle, AlertTriangle, AlertCircle, XCircle, Search, Upload, FileUp, Download
 } from 'lucide-react';
 
 import { getDocs } from 'firebase/firestore';
@@ -250,8 +250,9 @@ export default function AdminQuestionsPanel() {
   const [previewItem, setPreviewItem] = useState<any | null>(null);
 
   // IndexedDB State
-  const { getAllPendingQuestions, isInitialized, cacheBrowserItems, getBrowserItems, clearBrowserCache } = useIndexedDB();
+  const { getAllPendingQuestions, deletePendingQuestion, isInitialized, cacheBrowserItems, getBrowserItems, clearBrowserCache } = useIndexedDB();
   const [existingIds, setExistingIds] = useState<Set<string>>(new Set());
+  const [pendingDraftCount, setPendingDraftCount] = useState(0);
 
   // Initialization
   useEffect(() => {
@@ -260,14 +261,82 @@ export default function AdminQuestionsPanel() {
     }
   }, [isInitialized]);
 
+  // Auto-load Browser Data
+  useEffect(() => {
+    if (isInitialized && step === 'BROWSE' && browserStep === 'IDLE') {
+      loadAllQuestions(false);
+    }
+  }, [isInitialized, step, browserStep]);
+
   const loadExistingIds = async () => {
     try {
       const pending = await getAllPendingQuestions(null);
-      const ids = new Set(pending.map((p: any) => p.qId));
+      const ids = new Set<string>(pending.map((p: any) => String(p.qId)));
       setExistingIds(ids);
+      setPendingDraftCount(pending.length); // Track count for UI
       console.log(`[UploadPortal] Loaded ${ids.size} existing IDs from local DB for duplicate checking.`);
     } catch (e) {
       console.warn("Failed to load existing IDs:", e);
+    }
+  };
+
+  // Draft Management Actions
+  const handleResumeDrafts = async () => {
+    try {
+      const pending = await getAllPendingQuestions(null);
+      // Prefer edited data if available, else original
+      const rawItems = pending.map((p: any) => p.editedData || p.originalData);
+      if (rawItems.length === 0) {
+        alert("No drafts found.");
+        return;
+      }
+
+      // Re-run validation to ensure state is fresh
+      await parseAndValidateItems(rawItems, '3.0'); // Assume 3.0 or detect from metadata if stored
+      console.log(`[Drafts] Resumed session with ${rawItems.length} items`);
+    } catch (e) {
+      console.error("Failed to resume drafts:", e);
+      alert("Failed to resume session.");
+    }
+  };
+
+  const handleDownloadDrafts = async () => {
+    try {
+      const pending = await getAllPendingQuestions(null);
+      const rawItems = pending.map((p: any) => p.editedData || p.originalData);
+
+      const exportData = {
+        schema_version: "3.0",
+        exported_at: new Date().toISOString(),
+        items: rawItems
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `draft_recovery_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Failed to download drafts:", e);
+      alert("Failed to download drafts.");
+    }
+  };
+
+  const handleClearDrafts = async () => {
+    if (!window.confirm("Are you sure you want to permanently delete these drafts?")) return;
+    try {
+      const pending = await getAllPendingQuestions(null);
+      await Promise.all(pending.map((p: any) => deletePendingQuestion(p.qId)));
+      setExistingIds(new Set());
+      setPendingDraftCount(0);
+      alert("Drafts cleared.");
+    } catch (e) {
+      console.error("Failed to clear drafts:", e);
+      alert("Failed to clear drafts.");
     }
   };
 
@@ -600,6 +669,45 @@ export default function AdminQuestionsPanel() {
                 Load V3 Demo Bundle
               </button>
             </div>
+
+            {/* Draft Recovery Section */}
+            {pendingDraftCount > 0 && (
+              <div className="mt-8 pt-8 border-t border-slate-200 w-full animate-in fade-in slide-in-from-bottom-4">
+                <div className="bg-amber-50 rounded-2xl p-6 border border-amber-200 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="text-left">
+                    <h3 className="text-amber-900 font-bold flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5" />
+                      Unsaved Drafts Found
+                    </h3>
+                    <p className="text-amber-700 text-sm mt-1">
+                      We found <strong>{pendingDraftCount}</strong> items from a previous session.
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleClearDrafts}
+                      className="p-3 text-red-600 hover:bg-red-50 rounded-xl transition border border-transparent hover:border-red-200 flex items-center gap-2 text-sm font-bold"
+                      title="Delete Drafts"
+                    >
+                      <Trash2 className="w-4 h-4" /> Clear
+                    </button>
+                    <button
+                      onClick={handleDownloadDrafts}
+                      className="p-3 text-slate-600 hover:bg-slate-100 rounded-xl transition border border-transparent hover:border-slate-200 flex items-center gap-2 text-sm font-bold"
+                      title="Download JSON"
+                    >
+                      <Download className="w-4 h-4" /> Export
+                    </button>
+                    <button
+                      onClick={handleResumeDrafts}
+                      className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold shadow-lg shadow-amber-500/20 transition flex items-center gap-2"
+                    >
+                      <Play className="w-4 h-4 fill-current" /> Resume Session
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
