@@ -53,17 +53,26 @@ export interface ValidationCacheEntry {
   expiresAt: number;
 }
 
+export interface BrowserCacheItem {
+  id: string; // Question ID or Item ID
+  bundleId: string;
+  data: any;
+  cachedAt: number;
+}
+
 export class AdminPanelDB extends Dexie {
   pendingQuestions!: Table<PendingQuestion, string>;
   uploadSessions!: Table<UploadSession, string>;
   validationCache!: Table<ValidationCacheEntry, string>;
+  browserCache!: Table<BrowserCacheItem, string>;
 
   constructor() {
     super('AdminPanelDB');
     this.version(1).stores({
       pendingQuestions: 'qId, sessionId, status, lastModified',
       uploadSessions: 'sessionId, uploadedAt, status',
-      validationCache: 'qId, expiresAt'
+      validationCache: 'qId, expiresAt',
+      browserCache: 'id, bundleId'
     });
   }
 }
@@ -505,6 +514,52 @@ export class IndexedDBService {
       console.log(`[IndexedDB] Imported session with ${data.questionCount} questions`);
     } catch (error) {
       console.error('[IndexedDB] Error importing session:', error);
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // BROWSER CACHE OPERATIONS
+  // ============================================================================
+
+  async cacheBrowserItems(items: any[]) {
+    await this._ensureInitialized();
+    try {
+      const now = Date.now();
+      const cacheItems: BrowserCacheItem[] = items.map(item => ({
+        id: item.id || item.item_id || `unknown_${Math.random()}`,
+        bundleId: item._bundleId || 'manual',
+        data: item,
+        cachedAt: now
+      }));
+
+      // Bulk put is faster - use clear/bulkAdd or bulkPut
+      await this.db.browserCache.bulkPut(cacheItems);
+      console.log(`[IndexedDB] Cached ${items.length} browser items`);
+    } catch (error) {
+      console.error('[IndexedDB] Error caching browser items:', error);
+      throw error;
+    }
+  }
+
+  async getBrowserItems() {
+    await this._ensureInitialized();
+    try {
+      const items = await this.db.browserCache.toArray();
+      return items.map(i => i.data);
+    } catch (error) {
+      console.error('[IndexedDB] Error getting browser items:', error);
+      throw error;
+    }
+  }
+
+  async clearBrowserCache() {
+    await this._ensureInitialized();
+    try {
+      await this.db.browserCache.clear();
+      console.log('[IndexedDB] Browser cache cleared');
+    } catch (error) {
+      console.error('[IndexedDB] Error clearing browser cache:', error);
       throw error;
     }
   }

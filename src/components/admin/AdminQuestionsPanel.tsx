@@ -15,19 +15,111 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Upload, FileUp, CheckCircle, AlertTriangle, XCircle, Search,
-  Save, Edit3, Trash2, Database, Play, Loader, FileJson, ArrowRight
+  Save, Edit3, Trash2, Database, Play, Loader, FileJson, ArrowRight, X, Eye, RefreshCw,
+  CheckCircle, AlertTriangle, XCircle, Search, Upload, FileUp
 } from 'lucide-react';
+
+import { getDocs } from 'firebase/firestore';
+import { questionBundlesCollection } from '../../services/db';
+import MissionCard from '../diagnostic/MissionCard';
 
 import { useIndexedDB } from '../../hooks/useIndexedDB';
 import { runFullValidationSuite, ValidatedItem, ValidationIssue, ValidationSummary } from '../../services/uploadValidationEngine';
 import { publishBundleToFirestore } from '../../services/firestoreQuestionService';
 
+// ... (existing code types & sub-components) ...
+
+// Restore PreviewModal here before main component
+const PreviewModal = ({
+  item,
+  onClose,
+  onNext,
+  onPrev,
+  hasNext,
+  hasPrev
+}: {
+  item: any,
+  onClose: () => void,
+  onNext?: () => void,
+  onPrev?: () => void,
+  hasNext?: boolean,
+  hasPrev?: boolean
+}) => {
+  const [mode, setMode] = useState<'PREVIEW' | 'JSON'>('PREVIEW');
+
+  // Keyboard Navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight' && onNext) onNext();
+      if (e.key === 'ArrowLeft' && onPrev) onPrev();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, onNext, onPrev]);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <div className="bg-slate-100 rounded-3xl w-full max-w-7xl h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="bg-blue-600 text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wider">
+                {mode === 'PREVIEW' ? 'User View' : 'Raw Inspector'}
+              </span>
+              <span className="font-mono text-sm opacity-80">{item.item_id || item.id}</span>
+            </div>
+
+            <div className="flex bg-slate-800 rounded-lg p-1 gap-1">
+              <button
+                onClick={() => setMode('PREVIEW')}
+                className={`px-3 py-1 text-xs font-bold rounded-md transition ${mode === 'PREVIEW' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                👁️ Preview
+              </button>
+              <button
+                onClick={() => setMode('JSON')}
+                className={`px-3 py-1 text-xs font-bold rounded-md transition ${mode === 'JSON' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                🛠️ JSON
+              </button>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full transition"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center bg-[var(--color-surface)] relative">
+          {mode === 'PREVIEW' ? (
+            <div className="w-full max-w-5xl">
+              {/* Use MissionCard exactly as Student sees it, but with Dummy Callbacks */}
+              <MissionCard
+                key={item.id} // Force re-mount on change
+                question={item}
+                onAnswer={(...args) => console.log("Preview Answer:", args)}
+                onStartRecovery={() => console.log("Preview Recovery")}
+              />
+            </div>
+          ) : (
+            <div className="w-full max-w-5xl bg-white rounded-xl shadow-sm border border-slate-300 overflow-hidden">
+              <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 text-xs font-mono text-slate-500 uppercase tracking-wider">
+                Raw Object Inspector
+              </div>
+              <pre className="p-4 text-xs font-mono text-slate-800 overflow-auto max-h-[70vh]">
+                {JSON.stringify(item, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ============================================================================
 // TYPES & CONSTANTS
 // ============================================================================
 
-type UploadStep = 'UPLOAD' | 'REVIEW' | 'PUBLISHING' | 'SUCCESS';
+type UploadStep = 'UPLOAD' | 'REVIEW' | 'PUBLISHING' | 'SUCCESS' | 'BROWSE';
 
 // ============================================================================
 // SUB-COMPONENTS
@@ -145,14 +237,20 @@ const EditorModal = ({
 
 export default function AdminQuestionsPanel() {
   // State
-  const [step, setStep] = useState<UploadStep>('UPLOAD');
+  const [step, setStep] = useState<UploadStep>('BROWSE');
   const [items, setItems] = useState<ValidatedItem[]>([]);
   const [summary, setSummary] = useState<ValidationSummary>({ total: 0, valid: 0, invalid: 0, warnings: 0, duplicates: 0 });
   const [rawBundleMetadata, setRawBundleMetadata] = useState<any>(null);
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
 
+  // Browser State
+  const [browserStep, setBrowserStep] = useState<'IDLE' | 'LOADING' | 'READY'>('IDLE');
+  const [browserQuestions, setBrowserQuestions] = useState<any[]>([]);
+  const [browserSearch, setBrowserSearch] = useState('');
+  const [previewItem, setPreviewItem] = useState<any | null>(null);
+
   // IndexedDB State
-  const { getAllPendingQuestions, isInitialized } = useIndexedDB();
+  const { getAllPendingQuestions, isInitialized, cacheBrowserItems, getBrowserItems, clearBrowserCache } = useIndexedDB();
   const [existingIds, setExistingIds] = useState<Set<string>>(new Set());
 
   // Initialization
@@ -268,57 +366,240 @@ export default function AdminQuestionsPanel() {
       });
 
       setStep('SUCCESS');
+
+      // Clear cache so next browser load fetches fresh data
+      clearBrowserCache().catch(err => console.error("Failed to clear browser cache:", err));
+
     } catch (e: any) {
       alert(`Publish Failed: ${e.message}`);
       setStep('REVIEW');
     }
   };
 
+  // Browser Actions
+  const loadAllQuestions = async (forceRefresh = false) => {
+    setBrowserStep('LOADING');
+    try {
+      // 1. Try Cache First (if not forced)
+      if (!forceRefresh) {
+        const cached = await getBrowserItems();
+        if (cached && cached.length > 0) {
+          console.log(`[Browser] Loaded ${cached.length} questions from IndexedDB cache.`);
+          setBrowserQuestions(cached);
+          setBrowserStep('READY');
+          return;
+        }
+      }
+
+      // 2. Fetch from Firestore if needed
+      console.log('[Browser] Fetching from Firestore...');
+      const snap = await getDocs(questionBundlesCollection);
+      let allItems: any[] = [];
+      snap.forEach(doc => {
+        const data = doc.data();
+        if (data.items && Array.isArray(data.items)) {
+          // Flatten and inject Bundle ID for reference
+          const items = data.items.map((it: any) => ({
+            ...it,
+            _bundleId: doc.id,
+            // Ensure ID exists for search
+            id: it.item_id || it.id
+          }));
+          allItems = [...allItems, ...items];
+        }
+      });
+
+      console.log(`[Browser] Loaded ${allItems.length} questions from ${snap.size} bundles.`);
+      setBrowserQuestions(allItems);
+
+      // 3. Update Cache
+      await cacheBrowserItems(allItems);
+      setBrowserStep('READY');
+    } catch (e) {
+      console.error("Failed to load bundles:", e);
+      alert("Failed to load questions from Firestore.");
+      setBrowserStep('IDLE');
+    }
+  };
+
+  const filteredBrowserItems = useMemo(() => {
+    if (!browserSearch.trim()) return browserQuestions.slice(0, 50); // Limit initial view
+    const q = browserSearch.toLowerCase();
+    return browserQuestions.filter(item =>
+      (item.item_id || '').toLowerCase().includes(q) ||
+      (item.id || '').toLowerCase().includes(q) ||
+      (item.template_id || '').toLowerCase().includes(q) ||
+      JSON.stringify(item).toLowerCase().includes(q)
+    ).slice(0, 100); // hard limit render
+  }, [browserQuestions, browserSearch]);
+
+  // Preview Navigation Logic
+  const currentPreviewIndex = useMemo(() => {
+    if (!previewItem) return -1;
+    // Match by item_id or id
+    return filteredBrowserItems.findIndex(i => (i.item_id || i.id) === (previewItem.item_id || previewItem.id));
+  }, [previewItem, filteredBrowserItems]);
+
+  const handleNextPreview = useCallback(() => {
+    if (currentPreviewIndex !== -1 && currentPreviewIndex < filteredBrowserItems.length - 1) {
+      setPreviewItem(filteredBrowserItems[currentPreviewIndex + 1]);
+    }
+  }, [currentPreviewIndex, filteredBrowserItems]);
+
+  const handlePrevPreview = useCallback(() => {
+    if (currentPreviewIndex > 0) {
+      setPreviewItem(filteredBrowserItems[currentPreviewIndex - 1]);
+    }
+  }, [currentPreviewIndex, filteredBrowserItems]);
+
+  const hasNextPreview = currentPreviewIndex !== -1 && currentPreviewIndex < filteredBrowserItems.length - 1;
+  const hasPrevPreview = currentPreviewIndex > 0;
+
   // Renderers
+  if (step === 'BROWSE') {
+    return (
+      <div className="h-full flex flex-col bg-slate-50">
+        {/* Tab Bar */}
+        <div className="bg-white border-b px-8 pt-6 pb-0 flex items-center justify-between sticky top-0 z-10">
+          <div className="flex gap-8">
+            <button onClick={() => setStep('BROWSE')} className="pb-4 px-2 border-b-2 border-slate-900 font-bold text-slate-900">Browse Database</button>
+            <button onClick={() => setStep('UPLOAD')} className="pb-4 px-2 border-b-2 border-transparent font-medium text-slate-500 hover:text-slate-800">Upload Portal</button>
+          </div>
+          <div className="pb-4">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{browserQuestions.length} Items cached</span>
+          </div>
+        </div>
+
+        {/* Browser Content */}
+        <div className="flex-1 overflow-hidden flex flex-col p-8 max-w-7xl mx-auto w-full">
+
+          {/* Search & Actions */}
+          <div className="flex gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search by ID, Template, Content..."
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium"
+                value={browserSearch}
+                onChange={(e) => setBrowserSearch(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={() => loadAllQuestions(true)}
+              disabled={browserStep === 'LOADING'}
+              className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg hover:bg-slate-800 transition flex items-center gap-2"
+            >
+              {browserStep === 'LOADING' ? <Loader className="animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              {browserStep === 'IDLE' ? 'Load Data' : 'Refresh'}
+            </button>
+          </div>
+
+          {/* Results List */}
+          <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+            {browserStep === 'IDLE' && (
+              <div className="text-center py-20 opacity-50">
+                <Database className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+                <p>Click "Load Data" to fetch questions from Firestore.</p>
+              </div>
+            )}
+
+            {browserStep === 'READY' && filteredBrowserItems.length === 0 && (
+              <div className="text-center py-20 opacity-50">
+                <p>No matches found.</p>
+              </div>
+            )}
+
+            {filteredBrowserItems.map((item, idx) => (
+              <div key={idx} onClick={() => setPreviewItem(item)} className="bg-white p-4 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer transition lg:flex items-center gap-6 group">
+                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-blue-50 group-hover:text-blue-600 transition">
+                  <Eye className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="font-bold text-slate-800 truncate">{item.item_id}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{item.template_id || 'UNKNOWN'}</span>
+                    <span className="text-[10px] font-mono text-slate-300">{item._bundleId}</span>
+                  </div>
+                  <p className="text-sm text-slate-500 truncate font-medium">
+                    {item.prompt?.text || item.content?.prompt?.text || "No prompt text found..."}
+                  </p>
+                </div>
+                <ArrowRight className="w-5 h-5 text-slate-200 group-hover:text-blue-500 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Modal */}
+        {previewItem && (
+          <PreviewModal
+            item={previewItem}
+            onClose={() => setPreviewItem(null)}
+            onNext={hasNextPreview ? handleNextPreview : undefined}
+            onPrev={hasPrevPreview ? handlePrevPreview : undefined}
+            hasNext={hasNextPreview}
+            hasPrev={hasPrevPreview}
+          />
+        )}
+      </div>
+    );
+  }
+
   if (step === 'UPLOAD') {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-8 bg-slate-50 min-h-[600px]">
-        <div className="max-w-2xl w-full text-center space-y-8">
-          <div className="space-y-4">
-            <div className="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-100">
-              <Upload className="w-10 h-10 text-blue-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Question Upload Portal</h1>
-            <p className="text-lg text-slate-600">Drag and drop your V2/V3 JSON bundle here to begin.</p>
+      <div className="h-full flex flex-col bg-slate-50">
+        {/* Tab Bar */}
+        <div className="bg-white border-b px-8 pt-6 pb-0 flex items-center justify-between sticky top-0 z-10 shrink-0">
+          <div className="flex gap-8">
+            <button onClick={() => setStep('BROWSE')} className="pb-4 px-2 border-b-2 border-transparent font-medium text-slate-500 hover:text-slate-800">Browse Database</button>
+            <button onClick={() => setStep('UPLOAD')} className="pb-4 px-2 border-b-2 border-slate-900 font-bold text-slate-900">Upload Portal</button>
           </div>
+        </div>
 
-          <div
-            className="border-3 border-dashed border-slate-300 rounded-3xl p-12 bg-white hover:bg-blue-50 hover:border-blue-400 transition-all cursor-pointer group"
-            onDragOver={e => e.preventDefault()}
-            onDrop={e => {
-              e.preventDefault();
-              if (e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]);
-            }}
-          >
+        <div className="flex-1 overflow-auto flex flex-col items-center justify-center p-8 min-h-[600px]">
+          <div className="max-w-2xl w-full text-center space-y-8">
             <div className="space-y-4">
-              <FileUp className="w-12 h-12 text-slate-400 mx-auto group-hover:text-blue-500 transition-colors" />
-              <div className="text-slate-500 font-medium">Drop JSON file or click to browse</div>
-              <input
-                type="file"
-                accept=".json"
-                className="hidden"
-                id="file-upload"
-                onChange={e => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0]); }}
-              />
-              <label htmlFor="file-upload" className="inline-block px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition cursor-pointer shadow-lg hover:shadow-xl translate-y-0 hover:-translate-y-0.5 transform">
-                Browse Files
-              </label>
+              <div className="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-100">
+                <Upload className="w-10 h-10 text-blue-600" />
+              </div>
+              <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Question Upload Portal</h1>
+              <p className="text-lg text-slate-600">Drag and drop your V2/V3 JSON bundle here to begin.</p>
             </div>
-          </div>
 
-          <div className="pt-8 flex justify-center">
-            <button
-              onClick={loadDemoBundle}
-              className="flex items-center gap-2 px-6 py-3 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 rounded-xl font-semibold transition border border-yellow-200"
+            <div
+              className="border-3 border-dashed border-slate-300 rounded-3xl p-12 bg-white hover:bg-blue-50 hover:border-blue-400 transition-all cursor-pointer group"
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => {
+                e.preventDefault();
+                if (e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]);
+              }}
             >
-              <FileJson className="w-5 h-5" />
-              Load V3 Demo Bundle
-            </button>
+              <div className="space-y-4">
+                <FileUp className="w-12 h-12 text-slate-400 mx-auto group-hover:text-blue-500 transition-colors" />
+                <div className="text-slate-500 font-medium">Drop JSON file or click to browse</div>
+                <input
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  id="file-upload"
+                  onChange={e => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0]); }}
+                />
+                <label htmlFor="file-upload" className="inline-block px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition cursor-pointer shadow-lg hover:shadow-xl translate-y-0 hover:-translate-y-0.5 transform">
+                  Browse Files
+                </label>
+              </div>
+            </div>
+
+            <div className="pt-8 flex justify-center">
+              <button
+                onClick={loadDemoBundle}
+                className="flex items-center gap-2 px-6 py-3 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 rounded-xl font-semibold transition border border-yellow-200"
+              >
+                <FileJson className="w-5 h-5" />
+                Load V3 Demo Bundle
+              </button>
+            </div>
           </div>
         </div>
       </div>

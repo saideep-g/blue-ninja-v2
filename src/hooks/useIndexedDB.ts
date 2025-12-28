@@ -157,6 +157,19 @@ export function useIndexedDB() {
     return executeOperation(() => dbRef.current!.clearAll());
   }, [executeOperation]);
 
+  // Browser Cache Operations
+  const cacheBrowserItems = useCallback((items: any[]) => {
+    return executeOperation(() => dbRef.current!.cacheBrowserItems(items));
+  }, [executeOperation]);
+
+  const getBrowserItems = useCallback(() => {
+    return executeOperation(() => dbRef.current!.getBrowserItems());
+  }, [executeOperation]);
+
+  const clearBrowserCache = useCallback(() => {
+    return executeOperation(() => dbRef.current!.clearBrowserCache());
+  }, [executeOperation]);
+
   return {
     // State
     isInitialized,
@@ -191,7 +204,12 @@ export function useIndexedDB() {
     // Export/Import
     exportSession,
     importSession,
-    clearAll
+    clearAll,
+
+    // Browser Cache
+    cacheBrowserItems,
+    getBrowserItems,
+    clearBrowserCache
   };
 }
 
