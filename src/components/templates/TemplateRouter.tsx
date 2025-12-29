@@ -8,6 +8,7 @@ import { MCQTemplate } from './MCQTemplate';
 import { TwoTierTemplate } from './TwoTierTemplate';
 import { NumericInputTemplate } from './NumericInputTemplate';
 import { MatchingTemplate } from './MatchingTemplate';
+import { ClassifySortTemplate } from './ClassifySortTemplate';
 
 interface TemplateRouterProps {
   question: Question;
@@ -132,6 +133,8 @@ const TEMPLATE_REGISTRY: Record<string, React.ComponentType<any>> = {
   'TWO_TIER': TwoTierAdapter,
   'NUMERIC_INPUT': NumericInputTemplate,
   'MATCHING': MatchingTemplate,
+  'CLASSIFY_SORT': ClassifySortTemplate,
+  'DRAG_DROP_MATCH': ClassifySortTemplate,
 };
 
 export function TemplateRouter({ question, onSubmit, isSubmitting = false, readOnly = false }: TemplateRouterProps) {

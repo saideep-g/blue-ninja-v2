@@ -85,10 +85,21 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                         if (iType !== sType) return false;
 
                         // VALIDATION
+                        const cfg = i.interaction?.config || i.content?.interaction?.config || {};
+
                         if (iType === 'MATCHING') {
-                            const cfg = i.interaction?.config || i.content?.interaction?.config || {};
                             const hasPairs = (cfg.left && cfg.right) || (cfg.pairs && cfg.pairs.length > 0);
                             if (!hasPairs) return false;
+                        }
+
+                        if (iType === 'CLASSIFY_SORT' || iType === 'DRAG_DROP_MATCH') {
+                            const hasBuckets = (cfg.buckets && cfg.buckets.length > 0) || (cfg.bins && cfg.bins.length > 0);
+                            const hasItems = (cfg.items && cfg.items.length > 0) || (cfg.cards && cfg.cards.length > 0);
+
+                            if (!hasBuckets || !hasItems) {
+                                console.log(`[Hydrator] Rejected CLASSIFY_SORT candidate ${i.item_id || i.id}. Keys: ${Object.keys(cfg)}. HasBuckets: ${hasBuckets}, HasItems: ${hasItems}`);
+                                return false;
+                            }
                         }
 
                         return true;
