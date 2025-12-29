@@ -4,7 +4,7 @@ import { db, auth } from '../services/firebase'; // db still needed for some dir
 import { getDocs, doc, updateDoc, collection, query, limit, orderBy, where, documentId } from 'firebase/firestore';
 import { useNinja } from '../context/NinjaContext';
 import { Question } from '../types';
-import { diagnosticQuestionsCollection, getStudentRef, questionBundlesCollection } from '../services/db';
+import { getStudentRef, questionBundlesCollection } from '../services/db';
 
 /**
  * useDailyMission Hook
@@ -74,15 +74,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
 
                 console.log(`[useDailyMission] Loaded ${allQuestions.length} items from ${bundleSnapshots.length} Bundles.`);
             } else {
-                console.warn("[useDailyMission] No V3 Bundles found. Falling back to legacy collection.");
-                // Legacy Fallback
-                const qSnap = await getDocs(diagnosticQuestionsCollection);
-                if (qSnap.empty) {
-                    setMissionQuestions([]);
-                    setIsLoading(false);
-                    return;
-                }
-                allQuestions = qSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Question));
+                console.warn("[useDailyMission] No V3 Bundles found assigned or available.");
             }
 
             const mastery = ninjaStats.mastery || {};
