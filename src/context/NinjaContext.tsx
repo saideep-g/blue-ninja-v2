@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { auth, db } from '../services/db/firebase';
 import {

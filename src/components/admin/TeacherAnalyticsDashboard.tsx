@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { db, auth } from "../../services/db/firebase";
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';

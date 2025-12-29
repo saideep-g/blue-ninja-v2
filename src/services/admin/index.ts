@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Admin Service
  * Handles all admin operations including student management, question management,

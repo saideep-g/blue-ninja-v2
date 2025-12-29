@@ -21,7 +21,15 @@ function AnalyticsLogViewer() {
     const [loading, setLoading] = useState(true);
     const [expandedLogId, setExpandedLogId] = useState(null);
     const [viewMode, setViewMode] = useState('insights'); // 'insights' or 'raw'
-    const [stats, setStats] = useState({
+    const [stats, setStats] = useState<{
+        totalLogs: number;
+        completeLogsCount: number;
+        incompleteLogsCount: number;
+        completenessPercentage: number;
+        studentCount: number;
+        avgLogsPerStudent: number;
+        missingFieldsFrequency: Record<string, number>;
+    }>({
         totalLogs: 0,
         completeLogsCount: 0,
         incompleteLogsCount: 0,
@@ -131,7 +139,7 @@ function AnalyticsLogViewer() {
             incompleteLogsCount: total - complete,
             completenessPercentage: total > 0 ? Math.round((complete / total) * 100) : 0,
             studentCount: students.length,
-            avgLogsPerStudent: total > 0 ? (total / students.length).toFixed(1) : 0,
+            avgLogsPerStudent: total > 0 ? Number((total / students.length).toFixed(1)) : 0,
             missingFieldsFrequency: missingFields
         });
     };
@@ -306,7 +314,7 @@ function AnalyticsLogViewer() {
         }
 
         // Identify struggling concepts
-        const conceptCounts = {};
+        const conceptCounts: Record<string, number> = {};
         logs.filter(l => !l.isCorrect).forEach(l => {
             if (l.diagnosticTag) {
                 conceptCounts[l.diagnosticTag] = (conceptCounts[l.diagnosticTag] || 0) + 1;

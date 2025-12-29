@@ -24,7 +24,7 @@ interface ProfileState {
   setNotifications: (enabled: boolean) => void;
 }
 
-export const useProfileStore = create<ProfileState>(
+export const useProfileStore = create<ProfileState>()(
   persist(
     (set) => ({
       preferredLanguage: 'en',
