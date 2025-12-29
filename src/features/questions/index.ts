@@ -1,10 +1,10 @@
 import { registry } from './registry';
 import { MCQManifestV1 } from './types/multiple-choice/v1/manifest';
+import { MCQBranchingManifestV1 } from './types/mcq-branching/v1/manifest';
 
 export function initializeQuestionRegistry() {
     registry.register(MCQManifestV1);
-    // register(DragDropManifestV1);
-    // ... future types
+    registry.register(MCQBranchingManifestV1);
 }
 
 export { registry };
