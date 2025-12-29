@@ -20,12 +20,12 @@ import {
 } from 'lucide-react';
 
 import { getDocs } from 'firebase/firestore';
-import { questionBundlesCollection } from '../../services/db';
+import { questionBundlesCollection } from '../../services/db/firestore';
 import MissionCard from '../diagnostic/MissionCard';
 
 import { useIndexedDB } from '../../hooks/useIndexedDB';
-import { runFullValidationSuite, ValidatedItem, ValidationIssue, ValidationSummary } from '../../services/uploadValidationEngine';
-import { publishBundleToFirestore } from '../../services/firestoreQuestionService';
+import { runFullValidationSuite, ValidatedItem, ValidationIssue, ValidationSummary } from "../../services/validation/upload";
+import { publishBundleToFirestore } from "../../services/questions/firestore";
 import { AdminIntelligenceReport } from './AdminIntelligenceReport';
 
 // Restore PreviewModal here before main component

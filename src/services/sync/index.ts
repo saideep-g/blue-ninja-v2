@@ -5,10 +5,10 @@
  * Stores the entire question bank locally to allow for instant, offline auditing.
  */
 
-import { db } from './firebase';
+import { db } from "../db/firebase";
 import { collection, getDocs, writeBatch, doc } from 'firebase/firestore';
 import Dexie, { Table } from 'dexie';
-import { Question } from '../types';
+import { Question } from '../../types';
 
 // Define the schema for IndexedDB
 interface LocalQuestion extends Question {

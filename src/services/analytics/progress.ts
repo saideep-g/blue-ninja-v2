@@ -1,4 +1,4 @@
-import coreCurriculum from '../data/cbse7_core_curriculum_v3.json';
+import coreCurriculum from '../../data/cbse7_core_curriculum_v3.json';
 import { doc, getFirestore, getDoc, setDoc } from 'firebase/firestore';
 
 const db = getFirestore();

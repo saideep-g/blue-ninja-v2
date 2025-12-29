@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { auth, db } from '../services/firebase';
+import { auth, db } from '../services/db/firebase';
 import {
     doc,
     getDoc,
@@ -12,11 +12,11 @@ import {
     limit,
     getDocs
 } from 'firebase/firestore';
-import { nexusDB } from '../services/nexusSync';
+// import { syncOfflineData } from '../services/sync'; // Unused and not exported
 import { User as FirebaseUser } from 'firebase/auth';
 import { NinjaStats, QuestionLog } from '../types';
-import { getStudentRef, getSessionLogsCollection } from '../services/db';
-import { initializeV3Mastery } from '../services/masteryService';
+import { getStudentRef, getSessionLogsCollection } from '../services/db/firestore';
+import { initializeV3Mastery } from '../services/analytics/progress';
 
 interface NinjaContextType {
     user: FirebaseUser | null;

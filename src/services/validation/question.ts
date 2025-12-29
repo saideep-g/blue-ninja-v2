@@ -10,10 +10,10 @@
  * 4. Schema compliance (Doc3/Schema file).
  */
 
-import coreCurriculum from '../data/cbse7_core_curriculum_v3.json';
-import templateLibrary from '../data/template_library_v3.json';
+import coreCurriculum from '../../data/cbse7_core_curriculum_v3.json';
+import templateLibrary from '../../data/template_library_v3.json';
 // Assessment guide (Doc3) if needed, mostly for scaffolding rules not item validation
-// import assessmentGuide from '../data/cbse7_assessment_guide_v3.json';
+// import assessmentGuide from '../../data/cbse7_assessment_guide_v3.json';
 
 interface ValidationResultV3 {
     itemId: string;

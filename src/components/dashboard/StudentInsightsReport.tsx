@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNinja } from '../../context/NinjaContext';
-import { generateStudentInsights } from '../../services/insightGenerator';
+import { generateStudentInsights } from "../../services/analytics/generator";
 
 /**
  * STUDENT INSIGHTS REPORT (FIXED)

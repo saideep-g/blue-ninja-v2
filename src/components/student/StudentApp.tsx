@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useNinja } from '../../context/NinjaContext';
 import { useDiagnostic } from '../../hooks/useDiagnostic';
 import { useDailyMission } from '../../hooks/useDailyMission';
-import { auth } from '../../services/firebase';
+import { auth } from "../../services/db/firebase";
 import { BlueNinjaTheme } from '../../theme/themeConfig';
 
 import MissionCard from '../diagnostic/MissionCard';

@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { IndexedDBService, PendingQuestion, UploadSession } from '../services/indexedDBService';
+import { IndexedDBService, PendingQuestion, UploadSession } from '../services/admin/cacheDb';
 
 /**
  * Custom React hook for IndexedDB operations

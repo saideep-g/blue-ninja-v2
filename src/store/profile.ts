@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import * as profileService from '../services/profile';
+import * as profileService from '../services/user';
 import { logger } from '../services/logging';
 
 interface ProfileState {

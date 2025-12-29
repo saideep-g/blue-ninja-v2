@@ -7,9 +7,9 @@ import {
     setPersistence,
     browserLocalPersistence,
 } from 'firebase/auth';
-import { auth } from './firebase';
-import * as idb from './idb';
-import { logger } from './logging';
+import { auth } from '../db/firebase';
+import * as idb from '../db/idb';
+import { logger } from '../logging';
 
 // Enable persistence
 setPersistence(auth, browserLocalPersistence).catch((error) => {

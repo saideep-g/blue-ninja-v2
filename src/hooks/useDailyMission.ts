@@ -1,10 +1,10 @@
 // @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
-import { db, auth } from '../services/firebase'; // db still needed for some direct ops? Maybe not if we use service completely.
+import { db, auth } from '../services/db/firebase'; // db still needed for some direct ops? Maybe not if we use service completely.
 import { getDocs, doc, updateDoc, collection, query, limit, orderBy, where, documentId } from 'firebase/firestore';
 import { useNinja } from '../context/NinjaContext';
 import { Question } from '../types';
-import { getStudentRef, questionBundlesCollection } from '../services/db';
+import { getStudentRef, questionBundlesCollection } from '../services/db/firestore';
 
 /**
  * useDailyMission Hook

@@ -6,7 +6,7 @@
  */
 
 import { doc, setDoc } from 'firebase/firestore';
-import { questionBundlesCollection } from './db';
+import { questionBundlesCollection } from "../db/firestore";
 
 interface PublishOptions {
   userId?: string;

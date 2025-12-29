@@ -4,10 +4,10 @@
  * Unified curriculum v2 service that loads and orchestrates all 4 curriculum files.
  */
 
-import manifest from '../data/cbse7_mathquest_manifest_v2.json';
-import coreCurriculum from '../data/cbse7_mathquest_core_curriculum_v2.json';
-import templateLibrary from '../data/mathquest_template_library_v2.json';
-import assessmentGuide from '../data/cbse7_mathquest_assessment_guide_v2.json';
+import manifest from '../../data/cbse7_mathquest_manifest_v2.json';
+import coreCurriculum from '../../data/cbse7_mathquest_core_curriculum_v2.json';
+import templateLibrary from '../../data/mathquest_template_library_v2.json';
+import assessmentGuide from '../../data/cbse7_mathquest_assessment_guide_v2.json';
 
 // Type definitions for JSON artifacts
 interface Manifest {

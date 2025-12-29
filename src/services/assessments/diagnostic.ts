@@ -26,7 +26,7 @@ import type {
 import { AssessmentStatus as Status, SkillLevel } from '../../types/assessment';
 import type { Question } from '../../types/questions';
 import { getRandomQuestions } from '../questions';
-import { idbService } from '../idb';
+import { idbService } from '../db/idb';
 import { logger } from '../logging';
 
 /**

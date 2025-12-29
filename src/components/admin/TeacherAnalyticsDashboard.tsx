@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, auth } from '../../services/firebase';
+import { db, auth } from "../../services/db/firebase";
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 
 export default function TeacherAnalyticsDashboard() {

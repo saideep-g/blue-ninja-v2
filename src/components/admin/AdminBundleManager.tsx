@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getDocs, updateDoc, doc } from 'firebase/firestore';
-import { studentsCollection, questionBundlesCollection, getStudentRef } from '../../services/db';
+import { studentsCollection, questionBundlesCollection, getStudentRef } from '../../services/db/firestore';
 import { User, Package, Plus, Trash2, Loader, Search, CheckCircle, Box } from 'lucide-react';
 
 interface Student {

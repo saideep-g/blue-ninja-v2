@@ -12,7 +12,7 @@ import {
   Layers,
   BarChart3,
 } from 'lucide-react';
-import curriculumV2Service from '../../services/curriculumV2Service';
+import curriculumV2Service from '../../services/curriculum';
 
 /**
  * CurriculumBrowser v2.0

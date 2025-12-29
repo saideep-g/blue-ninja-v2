@@ -6,7 +6,7 @@
  * (beyond just type/range correctness)
  */
 
-import { QuestionLog } from '../types';
+import { QuestionLog } from '../../types';
 
 interface ValidationIssue {
     code: string;

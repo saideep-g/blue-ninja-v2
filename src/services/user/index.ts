@@ -1,5 +1,5 @@
-import * as idb from './idb';
-import { logger } from './logging';
+import * as idb from "../db/idb";
+import { logger } from "../logging";
 
 export interface UserSettings {
   grade?: string;

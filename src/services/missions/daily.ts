@@ -5,8 +5,8 @@
  * Integrates curriculum v2 with template library and spaced review rules.
  */
 
-import curriculumV2Service, { getAllAtomsEnriched, loadCurriculumV2 } from './curriculumV2Service';
-import { db } from './firebase';
+import curriculumV2Service, { getAllAtomsEnriched, loadCurriculumV2 } from '../curriculum';
+import { db } from '../db/firebase';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 
 interface MissionPhase {

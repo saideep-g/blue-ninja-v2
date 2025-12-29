@@ -1,10 +1,10 @@
 // @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
-import { db, auth } from '../services/firebase';
+import { db, auth } from '../services/db/firebase';
 import { getDocs, updateDoc } from 'firebase/firestore'; // Removed raw doc/collection
 import { useNinja } from '../context/NinjaContext';
 import { Question } from '../types';
-import { diagnosticQuestionsCollection, getStudentRef } from '../services/db';
+import { diagnosticQuestionsCollection, getStudentRef } from '../services/db/firestore';
 
 /**
  * useDiagnostic Hook

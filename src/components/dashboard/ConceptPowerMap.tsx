@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../../services/firebase';
+import { db } from "../../services/db/firebase";
 import { collection, getDocs } from 'firebase/firestore';
 import { useNinja } from '../../context/NinjaContext';
 

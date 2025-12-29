@@ -4,7 +4,7 @@
  * Tier 3: Converts validated data into actionable insights
  */
 
-import { QuestionLog } from '../types';
+import { QuestionLog } from '../../types';
 
 interface InsightReport {
     status: string;

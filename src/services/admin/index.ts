@@ -5,7 +5,7 @@
  */
 
 import { logger } from '../logging';
-import { db, getAllQuestions } from '../idb';
+import { db, getAllQuestions } from '../db/idb';
 import type {
   AdminAnalytics,
   StudentInfo,
@@ -194,7 +194,7 @@ export const adminService = {
       // 2. If empty, try AdminPanelDB (Browser Cache)
       if (questions.length === 0) {
         logger.debug('[AdminService] BlueNinjaDB empty, trying AdminPanelDB Browser Cache');
-        const { getIndexedDBService } = await import('../indexedDBService');
+        const { getIndexedDBService } = await import('./cacheDb');
         const adminDb = getIndexedDBService();
         const cachedItems = await adminDb.getBrowserItems();
 

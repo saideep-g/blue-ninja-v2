@@ -6,7 +6,7 @@
  * Orchestrates V3 validation, duplicate detection, and internal consistency checks.
  */
 
-import { validateQuestionV3 } from './questionValidatorV3';
+import { validateQuestionV3 } from "./question";
 
 export interface ValidationIssue {
     severity: 'CRITICAL' | 'WARNING' | 'INFO';

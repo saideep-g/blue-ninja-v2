@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { db, auth } from '../../services/firebase';
+import { db, auth } from "../../services/db/firebase";
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 /**
@@ -162,21 +163,21 @@ function AnalyticsLogViewer() {
                 type: 'success',
                 icon: '✨',
                 title: 'Correct Answer',
-                message: `Student got it right! Mastery improved from ${(log.masteryBefore || 0).toFixed(2)} → ${(log.masteryAfter || 0).toFixed(2)}`
+                message: `Student got it right! Mastery improved from ${(log.masteryBefore || 0).toFixed(2)} → ${(log.masteryAfter || 0).toFixed(2)} `
             });
         } else if (log.isRecovered) {
             insights.push({
                 type: 'recovery',
                 icon: '🔄',
                 title: 'Recovery Success!',
-                message: `After getting it wrong, they recovered! Recovery velocity: ${(log.recoveryVelocity || 0).toFixed(2)} (0.0-1.0 scale)`
+                message: `After getting it wrong, they recovered! Recovery velocity: ${(log.recoveryVelocity || 0).toFixed(2)} (0.0 - 1.0 scale)`
             });
         } else {
             insights.push({
                 type: 'struggle',
                 icon: '❌',
                 title: 'Wrong Answer',
-                message: `Student selected incorrect answer. Mastery changed from ${(log.masteryBefore || 0).toFixed(2)} → ${(log.masteryAfter || 0).toFixed(2)}`
+                message: `Student selected incorrect answer.Mastery changed from ${(log.masteryBefore || 0).toFixed(2)} → ${(log.masteryAfter || 0).toFixed(2)} `
             });
         }
 
@@ -186,7 +187,7 @@ function AnalyticsLogViewer() {
                 type: 'speed',
                 icon: '⚡',
                 title: 'Sprint Mode',
-                message: `Answered in ${log.timeSpent || 0}s - showing confidence and flow! 🚀`
+                message: `Answered in ${log.timeSpent || 0} s - showing confidence and flow! 🚀`
             });
         } else if (log.speedRating === 'NORMAL') {
             insights.push({
@@ -200,7 +201,7 @@ function AnalyticsLogViewer() {
                 type: 'speed',
                 icon: '🤔',
                 title: 'Deep Thinking',
-                message: `Spent ${log.timeSpent || 0}s thinking - student is being thoughtful (might indicate struggle)`
+                message: `Spent ${log.timeSpent || 0}s thinking - student is being thoughtful(might indicate struggle)`
             });
         }
 

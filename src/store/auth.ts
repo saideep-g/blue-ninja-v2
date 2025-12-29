@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User as FirebaseUser } from 'firebase/auth';
-import * as authService from '../services/authService';
+import * as authService from '../services/auth';
 import { logger } from '../services/logging';
 
 export interface AuthState {

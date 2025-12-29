@@ -9,9 +9,9 @@ import {
     Timestamp
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { NinjaStats, Question, QuestionLog } from '../types';
+import { NinjaStats, Question, QuestionLog } from '../../types';
 import { ZodType } from 'zod';
-import { questionSchema as QuestionSchema } from './questions/schema';
+import { questionSchema as QuestionSchema } from '../questions/schema';
 
 /**
  * Generic Converter Generator
