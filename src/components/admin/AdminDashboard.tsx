@@ -15,7 +15,9 @@ import type {
 } from '../../types/admin';
 import '../../styles/admin/AdminDashboard.css';
 
-type TabType = 'OVERVIEW' | 'STUDENTS' | 'QUESTIONS' | 'REPORTS';
+import { AdminBundleManager } from './AdminBundleManager';
+
+type TabType = 'OVERVIEW' | 'STUDENTS' | 'QUESTIONS' | 'REPORTS' | 'BUNDLES';
 
 interface AdminDashboardState {
   loading: boolean;
@@ -230,6 +232,12 @@ export const AdminDashboard: React.FC = () => {
           onClick={() => setActiveTab('REPORTS')}
         >
           📈 Reports
+        </button>
+        <button
+          className={`admin-nav-button ${activeTab === 'BUNDLES' ? 'active' : ''}`}
+          onClick={() => setActiveTab('BUNDLES')}
+        >
+          📦 Bundles
         </button>
       </nav>
 
@@ -509,6 +517,13 @@ export const AdminDashboard: React.FC = () => {
                 <button className="admin-btn-primary">Generate</button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Bundles Tab */}
+        {activeTab === 'BUNDLES' && (
+          <div className="admin-bundles" style={{ height: 'calc(100vh - 200px)', overflow: 'hidden', background: '#fff', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+            <AdminBundleManager />
           </div>
         )}
       </main>
