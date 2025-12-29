@@ -30,12 +30,25 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
     });
 
     // --- CONTENT FETCHER ---
-    const hydrateQuestions = async (skeletons: any[]): Promise<any[]> => {
+    const hydrateQuestions = async (skeletons: any[], isSimulation: boolean): Promise<any[]> => {
         if (skeletons.length === 0) return [];
 
         // If the skeletons already have content (Simulation Bundle Mode), pass them through.
         const needsHydration = skeletons.some(q => !q.content && !q.question_text);
         if (!needsHydration) return skeletons;
+
+        // ALLOWED TEMPLATES (Daily Diagnostic Filter)
+        // User requested restricting to specific stable templates.
+        const ALLOWED_TEMPLATES = [
+            'MATCHING',
+            'MCQ_CONCEPT',
+            'MCQ_SKILL',
+            'NUMERIC_INPUT',
+            'CLASSIFY_SORT',
+            'DRAG_DROP_MATCH',
+            'NUMBER_LINE_PLACE',
+            'NUMBER_LINE' // Handle alias
+        ];
 
         console.log('[useDailyMission] Hydrating content from Firestore...');
 
@@ -57,6 +70,13 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
             const usedContentIds = new Set<string>();
 
             const hydratedQuestions = skeletons.map((skel, idx) => {
+                // FILTER: Remove experimental templates unless in Simulation Mode
+                const sType = (skel.type || skel.templateId || '').toUpperCase();
+                if (!isSimulation && !ALLOWED_TEMPLATES.includes(sType)) {
+                    // console.log(`[Hydrator] Skipped experimental template: ${sType}`);
+                    return null;
+                }
+
                 if (skel.content || skel.question_text) return skel;
 
                 // 1. Try Strict Atom Match (Must also match requested Template Type)
@@ -68,8 +88,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                     if (!saneAtom) return false;
 
                     const iType = (i.type || i.template_id || '').toUpperCase();
-                    const sType = (skel.type || skel.templateId || '').toUpperCase();
-
+                    // Match type
                     return iType === sType;
                 });
 
@@ -79,7 +98,6 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                         if (usedContentIds.has(i.item_id || i.id)) return false;
 
                         const iType = (i.type || i.template_id || '').toUpperCase();
-                        const sType = (skel.type || skel.templateId || '').toUpperCase();
 
                         // Check Type
                         if (iType !== sType) return false;
@@ -97,7 +115,6 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                             const hasItems = (cfg.items && cfg.items.length > 0) || (cfg.cards && cfg.cards.length > 0);
 
                             if (!hasBuckets || !hasItems) {
-                                console.log(`[Hydrator] Rejected CLASSIFY_SORT candidate ${i.item_id || i.id}. Keys: ${Object.keys(cfg)}. HasBuckets: ${hasBuckets}, HasItems: ${hasItems}`);
                                 return false;
                             }
                         }
@@ -127,7 +144,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                 return null;
             }).filter(Boolean); // Remove nulls (Truncate mission)
 
-            console.log(`[useDailyMission] Final Ready Questions: ${hydratedQuestions.length} (Truncated duplicates)`);
+            console.log(`[useDailyMission] Final Ready Questions: ${hydratedQuestions.length} (Truncated duplicates/experimental)`);
             return hydratedQuestions;
 
         } catch (e) {
@@ -153,6 +170,8 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
 
             const storedSimConfig = localStorage.getItem('BLUE_NINJA_SIM_CONFIG');
             const simConfig = storedSimConfig ? JSON.parse(storedSimConfig) : undefined;
+            const isSimulation = !!simConfig;
+
             if (simConfig) console.log('🧪 Simulation Active', simConfig);
 
             // 1. Generate Plan (Skeleton or Bundle)
@@ -187,7 +206,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
             }
 
             // 2. Hydrate Content
-            const fullyLoadedQuestions = await hydrateQuestions(extractedQuestions);
+            const fullyLoadedQuestions = await hydrateQuestions(extractedQuestions, isSimulation);
 
             console.log(`[useDailyMission] Final Ready Questions: ${fullyLoadedQuestions.length}`);
             setMissionQuestions(fullyLoadedQuestions);

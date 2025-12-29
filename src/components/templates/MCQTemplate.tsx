@@ -29,13 +29,20 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   // Safe typed access
-  const interactionConfig = question.interaction?.config || {};
+  const interactionConfig = (question as any).interaction?.config || (question.content as any)?.interaction?.config || {};
   const options = (interactionConfig.options || []) as { text: string }[];
   const correctIndex = question.answerKey?.correctOptionIndex as number;
 
-  const content = question.content || {};
-  const prompt = content.prompt?.text || 'What is your answer?';
-  const instruction = content.instruction;
+  // Robust Prompt Extraction
+  const getPromptText = (q: any) => {
+    if (q.prompt?.text) return q.prompt.text;
+    if (typeof q.prompt === 'string') return q.prompt;
+    if (q.content?.prompt?.text) return q.content.prompt.text;
+    if (q.question_text) return q.question_text;
+    return 'What is your answer?';
+  };
+  const prompt = getPromptText(question);
+  const instruction = (question as any).instruction || (question.content as any)?.instruction;
 
   const feedbackMap = (question as any).feedbackMap || {};
 
@@ -107,14 +114,14 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
                 {/* Radio button indicator */}
                 <div
                   className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${!submitted
-                      ? isSelected
-                        ? 'border-blue-500 bg-blue-500'
-                        : 'border-gray-300 bg-white'
-                      : isCorrectSelected
-                        ? 'border-green-500 bg-green-500'
-                        : isWrongSelected
-                          ? 'border-red-500 bg-red-500'
-                          : 'border-gray-300 bg-gray-100'
+                    ? isSelected
+                      ? 'border-blue-500 bg-blue-500'
+                      : 'border-gray-300 bg-white'
+                    : isCorrectSelected
+                      ? 'border-green-500 bg-green-500'
+                      : isWrongSelected
+                        ? 'border-red-500 bg-red-500'
+                        : 'border-gray-300 bg-gray-100'
                     }`}
                 >
                   {isSelected && !submitted && (
@@ -151,8 +158,8 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
       {submitted && feedback && (
         <div
           className={`p-5 md:p-6 rounded-xl flex gap-4 items-start ${feedback.isCorrect
-              ? 'bg-green-50 border-2 border-green-200'
-              : 'bg-blue-50 border-2 border-blue-200'
+            ? 'bg-green-50 border-2 border-green-200'
+            : 'bg-blue-50 border-2 border-blue-200'
             }`}
         >
           {feedback.isCorrect ? (
