@@ -15,22 +15,344 @@ const MOCK_V3_DB = [
     {
         "item_id": "V3.MCQ.GOLD.BRANCH.SET1.001",
         "atom_id": "CBSE7.CH03.DATA.02",
+        "template_id": "MCQ_CONCEPT",
+        "difficulty": 2,
+        "context_tags": [
+            "crafts",
+            "origami"
+        ],
+        "prompt": null,
+        "instruction": null,
+        "stimulus": null,
+        "interaction": null,
+        "answer_key": null,
+        "evidence": [
+            {
+                "outcome_type": "conceptual",
+                "outcome_ref": null
+            }
+        ],
+        "grading_overrides": {},
+        "diagnostics": {
+            "error_model": []
+        },
+        "recovery_override": null,
         "stages": [
             {
                 "stage_id": "ST1",
-                "unlock_logic": { "show_when": "always" },
-                "prompt": { "text": "Root Question: 2+2=?" },
-                "answer_key": { "correct_option_id": "B" },
-                "interaction": { "config": { "options": [{ "id": "A", "text": "3" }, { "id": "B", "text": "4" }] } }
+                "atom_id_override": null,
+                "prompt": {
+                    "text": "Double-bar chart (table): Club votes\nDance: Girls 18, Boys 12\nMusic: Girls 14, Boys 16\nArt: Girls 10, Boys 8\nQuestion: Which statement is true?",
+                    "latex": null,
+                    "media_ref": null
+                },
+                "instruction": "Read totals carefully (Girls + Boys).",
+                "interaction": {
+                    "type": "mcq_concept",
+                    "config": {
+                        "options": [
+                            {
+                                "id": "A",
+                                "text": "More girls than boys voted for Music.",
+                                "latex": null,
+                                "diagnostic": {
+                                    "misconception_id": "MIS_40394F1D2C",
+                                    "confidence": 0.85,
+                                    "note": null
+                                }
+                            },
+                            {
+                                "id": "B",
+                                "text": "Total votes for Dance is 30.",
+                                "latex": null,
+                                "diagnostic": null
+                            },
+                            {
+                                "id": "C",
+                                "text": "Art has the highest total votes.",
+                                "latex": null,
+                                "diagnostic": {
+                                    "misconception_id": "MIS_8DDC5FC2FF",
+                                    "confidence": 0.85,
+                                    "note": null
+                                }
+                            },
+                            {
+                                "id": "D",
+                                "text": "Boys voted more than girls for Dance.",
+                                "latex": null,
+                                "diagnostic": {
+                                    "misconception_id": "MIS_6D0456042E",
+                                    "confidence": 0.85,
+                                    "note": null
+                                }
+                            }
+                        ],
+                        "shuffle": true,
+                        "single_select": true
+                    }
+                },
+                "answer_key": {
+                    "correct_option_id": "B"
+                },
+                "evidence": [
+                    {
+                        "outcome_type": "logical",
+                        "outcome_ref": null
+                    },
+                    {
+                        "outcome_type": "conceptual",
+                        "outcome_ref": null
+                    }
+                ],
+                "grading_overrides": {},
+                "diagnostics": {
+                    "error_model": []
+                },
+                "recovery_override": null,
+                "unlock_logic": {
+                    "show_when": "always",
+                    "depends_on_stage_id": null,
+                    "max_attempts": null
+                }
             },
             {
-                "stage_id": "ST2",
-                "unlock_logic": { "show_when": "after_stage_correct", "depends_on_stage_id": "ST1" },
-                "prompt": { "text": "Follow Up: 4+4=?" },
-                "answer_key": { "correct_option_id": "A" },
-                "interaction": { "config": { "options": [{ "id": "A", "text": "8" }, { "id": "B", "text": "10" }] } }
+                "stage_id": "STC",
+                "atom_id_override": null,
+                "prompt": {
+                    "text": "Transfer: If Girls for Art increase by 5, what is the new total votes for Art?",
+                    "latex": null,
+                    "media_ref": null
+                },
+                "instruction": "Update only the specified bar, then add.",
+                "interaction": {
+                    "type": "mcq_concept",
+                    "config": {
+                        "options": [
+                            {
+                                "id": "A",
+                                "text": "18",
+                                "latex": null,
+                                "diagnostic": {
+                                    "misconception_id": "MIS_40394F1D2C",
+                                    "confidence": 0.85,
+                                    "note": null
+                                }
+                            },
+                            {
+                                "id": "B",
+                                "text": "23",
+                                "latex": null,
+                                "diagnostic": null
+                            },
+                            {
+                                "id": "C",
+                                "text": "13",
+                                "latex": null,
+                                "diagnostic": {
+                                    "misconception_id": "MIS_8DDC5FC2FF",
+                                    "confidence": 0.85,
+                                    "note": null
+                                }
+                            },
+                            {
+                                "id": "D",
+                                "text": "28",
+                                "latex": null,
+                                "diagnostic": {
+                                    "misconception_id": "MIS_6D0456042E",
+                                    "confidence": 0.85,
+                                    "note": null
+                                }
+                            }
+                        ],
+                        "shuffle": true,
+                        "single_select": true
+                    }
+                },
+                "answer_key": {
+                    "correct_option_id": "B"
+                },
+                "evidence": [
+                    {
+                        "outcome_type": "procedural",
+                        "outcome_ref": null
+                    },
+                    {
+                        "outcome_type": "logical",
+                        "outcome_ref": null
+                    }
+                ],
+                "grading_overrides": {},
+                "diagnostics": {
+                    "error_model": []
+                },
+                "recovery_override": null,
+                "unlock_logic": {
+                    "show_when": "after_stage_correct",
+                    "depends_on_stage_id": "ST1",
+                    "max_attempts": null
+                }
+            },
+            {
+                "stage_id": "STR",
+                "atom_id_override": "CBSE7.CH03.DATA.02",
+                "prompt": {
+                    "text": "Repair: In a bar chart, what does the height of a bar represent?",
+                    "latex": null,
+                    "media_ref": null
+                },
+                "instruction": "Think: bars encode numbers using the axis scale.",
+                "interaction": {
+                    "type": "mcq_concept",
+                    "config": {
+                        "options": [
+                            {
+                                "id": "A",
+                                "text": "The category name",
+                                "latex": null,
+                                "diagnostic": {
+                                    "misconception_id": "MIS_40394F1D2C",
+                                    "confidence": 0.85,
+                                    "note": null
+                                }
+                            },
+                            {
+                                "id": "B",
+                                "text": "The frequency/value on the y-axis",
+                                "latex": null,
+                                "diagnostic": null
+                            },
+                            {
+                                "id": "C",
+                                "text": "The width of the bar",
+                                "latex": null,
+                                "diagnostic": {
+                                    "misconception_id": "MIS_8DDC5FC2FF",
+                                    "confidence": 0.85,
+                                    "note": null
+                                }
+                            },
+                            {
+                                "id": "D",
+                                "text": "The colour of the bar",
+                                "latex": null,
+                                "diagnostic": {
+                                    "misconception_id": "MIS_6D0456042E",
+                                    "confidence": 0.85,
+                                    "note": null
+                                }
+                            }
+                        ],
+                        "shuffle": true,
+                        "single_select": true
+                    }
+                },
+                "answer_key": {
+                    "correct_option_id": "B"
+                },
+                "evidence": [
+                    {
+                        "outcome_type": "conceptual",
+                        "outcome_ref": null
+                    }
+                ],
+                "grading_overrides": {},
+                "diagnostics": {
+                    "error_model": []
+                },
+                "recovery_override": null,
+                "unlock_logic": {
+                    "show_when": "after_stage_attempts_exceeded",
+                    "depends_on_stage_id": "ST1",
+                    "max_attempts": 1
+                }
+            },
+            {
+                "stage_id": "STR2",
+                "atom_id_override": null,
+                "prompt": {
+                    "text": "Retry: What is the total number of votes for Music (Girls + Boys)?",
+                    "latex": null,
+                    "media_ref": null
+                },
+                "instruction": "Add the two bars for Music: 14 + 16.",
+                "interaction": {
+                    "type": "mcq_concept",
+                    "config": {
+                        "options": [
+                            {
+                                "id": "A",
+                                "text": "28",
+                                "latex": null,
+                                "diagnostic": {
+                                    "misconception_id": "MIS_40394F1D2C",
+                                    "confidence": 0.85,
+                                    "note": null
+                                }
+                            },
+                            {
+                                "id": "B",
+                                "text": "30",
+                                "latex": null,
+                                "diagnostic": {
+                                    "misconception_id": "MIS_8DDC5FC2FF",
+                                    "confidence": 0.85,
+                                    "note": null
+                                }
+                            },
+                            {
+                                "id": "C",
+                                "text": "32",
+                                "latex": null,
+                                "diagnostic": null
+                            },
+                            {
+                                "id": "D",
+                                "text": "16",
+                                "latex": null,
+                                "diagnostic": {
+                                    "misconception_id": "MIS_6D0456042E",
+                                    "confidence": 0.85,
+                                    "note": null
+                                }
+                            }
+                        ],
+                        "shuffle": true,
+                        "single_select": true
+                    }
+                },
+                "answer_key": {
+                    "correct_option_id": "C"
+                },
+                "evidence": [
+                    {
+                        "outcome_type": "procedural",
+                        "outcome_ref": null
+                    },
+                    {
+                        "outcome_type": "logical",
+                        "outcome_ref": null
+                    }
+                ],
+                "grading_overrides": {},
+                "diagnostics": {
+                    "error_model": []
+                },
+                "recovery_override": null,
+                "unlock_logic": {
+                    "show_when": "after_stage_correct",
+                    "depends_on_stage_id": "STR",
+                    "max_attempts": null
+                }
             }
-        ]
+        ],
+        "transfer": null,
+        "metadata": {
+            "version": "v3",
+            "author": "generated",
+            "created_at": "2025-12-29T17:46:48Z"
+        }
     }
 ];
 

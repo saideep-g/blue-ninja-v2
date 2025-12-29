@@ -128,12 +128,17 @@ export const V3ToBranchingTransformer: QuestionTransformer = {
             const result: MCQBranchingDataV1 = {
                 item_id: source.item_id,
                 atom_id: source.atom_id,
+                difficulty: source.difficulty,        // <--- ADDED
+                context_tags: source.context_tags,    // <--- ADDED
+                evidence: source.evidence,            // <--- ADDED
+
                 flow: {
                     mode: 'branching',
                     entry_stage_id: entryStage.stage_id,
                     return_behavior: 'reload_with_new_vars'
                 },
-                stages: compiledStages
+                stages: compiledStages,
+                metadata: source.metadata // Preserve original meta
             };
 
             return { success: true, data: result };

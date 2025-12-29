@@ -49,6 +49,8 @@ export const StageSchema = z.object({
 export const MCQBranchingSchemaV1 = z.object({
     item_id: z.string().optional(),
     atom_id: z.string().optional(),
+    difficulty: z.number().optional(),
+    context_tags: z.array(z.string()).optional(),
 
     flow: z.object({
         mode: z.literal('branching'),
@@ -56,7 +58,15 @@ export const MCQBranchingSchemaV1 = z.object({
         return_behavior: z.enum(['reload_with_new_vars', 'static']).optional()
     }),
 
-    stages: z.array(StageSchema)
+    stages: z.array(StageSchema),
+
+    // Preserve analysis data
+    evidence: z.array(z.object({
+        outcome_type: z.string(),
+        outcome_ref: z.string().nullable().optional()
+    })).optional(),
+
+    metadata: z.record(z.string(), z.unknown()).optional()
 });
 
 export type MCQBranchingDataV1 = z.infer<typeof MCQBranchingSchemaV1>;
