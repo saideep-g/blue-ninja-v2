@@ -132,14 +132,33 @@ export function NinjaProvider({ children }: { children: ReactNode }) {
         return unsubscribe;
     }, []);
 
+    const syncingRef = useRef(false);
+
     const syncToCloud = async (isFinal = false, overrideLogs: QuestionLog[] | null = null) => {
-        const logsToSync = overrideLogs || [...bufferRef.current.logs];
+        if (syncingRef.current && !overrideLogs) {
+            console.log('⏳ Sync already in progress. Skipping.');
+            return;
+        }
+
+        syncingRef.current = true;
+        let logsToSync: QuestionLog[] = [];
+
+        if (overrideLogs) {
+            logsToSync = overrideLogs;
+        } else {
+            // SNAPSHOT STRATEGY: Capture and clear immediately to prevent double-processing
+            logsToSync = [...bufferRef.current.logs];
+            bufferRef.current.logs = [];
+            bufferRef.current.pointsGained = 0; // Reset pending points if we handle them here
+            setLocalBuffer({ logs: [], pointsGained: 0 });
+        }
 
         console.group('🚀 [syncToCloud] Firestore Transaction Start');
         console.log('Target Logs Count:', logsToSync.length);
 
         if (!auth.currentUser || logsToSync.length === 0) {
             console.log('🛑 Aborting Sync: No authenticated user or empty log buffer');
+            syncingRef.current = false;
             console.groupEnd();
             return;
         }
@@ -171,30 +190,30 @@ export function NinjaProvider({ children }: { children: ReactNode }) {
             });
 
             const currentStats = statsRef.current;
-            const pointsToAdd = overrideLogs ? 0 : bufferRef.current.pointsGained;
-
-            if (pointsToAdd > 0 || isFinal) {
-                // We need to update user stats.
-                // Since we are using typed converters, we must pass a Partial<NinjaStats> or full object.
-                // updateDoc supports flattening.
+            // Only update stats if we're syncing the main buffer or force final
+            if (!overrideLogs || isFinal) {
                 batch.update(userRef, {
-                    ...currentStats // This writes the whole object which is safer for sync.
+                    ...currentStats
                 });
             }
 
             await batch.commit();
 
-            if (!overrideLogs) {
-                bufferRef.current = { logs: [], pointsGained: 0 };
-                setLocalBuffer({ logs: [], pointsGained: 0 });
-                if (isFinal) {
-                    localStorage.removeItem(`ninja_session_${auth.currentUser.uid}`);
-                }
+            if (isFinal) {
+                localStorage.removeItem(`ninja_session_${auth.currentUser.uid}`);
             }
 
             console.log('✅ Batch Commit Successful');
         } catch (error) {
             console.error('❌ Sync Failed:', error);
+            // RESTORE STRATEGY: If not override, put them back in buffer
+            if (!overrideLogs) {
+                console.warn('⚠️ Restoring unsynced logs to buffer...');
+                bufferRef.current.logs = [...logsToSync, ...bufferRef.current.logs]; // Prepend
+                setLocalBuffer(prev => ({ ...prev, logs: bufferRef.current.logs }));
+            }
+        } finally {
+            syncingRef.current = false;
         }
         console.groupEnd();
     };
@@ -224,6 +243,13 @@ export function NinjaProvider({ children }: { children: ReactNode }) {
     };
 
     const logQuestionResultLocal = (logData: QuestionLog, currentQuestionIndex: number) => {
+        // DEDUPLICATION: Check if identical to last log (simple debounce)
+        const lastLog = bufferRef.current.logs[bufferRef.current.logs.length - 1];
+        if (lastLog && lastLog.questionId === logData.questionId && Math.abs((logData.timeSpent || 0) - (lastLog.timeSpent || 0)) < 0.1) {
+            console.warn(`[LocalLog] Duplicate detected for ${logData.questionId}. Ignoring.`);
+            return;
+        }
+
         console.log(`[LocalLog] Buffer updated: Q${currentQuestionIndex}`);
 
         // Add to buffer
