@@ -14,6 +14,7 @@ import AchievementUnlock from '../dashboard/AchievementUnlock';
 import ConceptPowerMap from '../dashboard/ConceptPowerMap';
 import MissionHistory from '../dashboard/MissionHistory';
 import StudentInsightsReport from '../dashboard/StudentInsightsReport';
+import { FlaskConical } from 'lucide-react';
 
 /**
  * StudentApp - Contains all Student Logic (Quest, Dashboard, Missions)
@@ -22,6 +23,12 @@ import StudentInsightsReport from '../dashboard/StudentInsightsReport';
 export default function StudentApp() {
     const { user, ninjaStats, sessionHistory, updatePower, activeAchievement } = useNinja();
     const [currentView, setCurrentView] = useState('QUEST');
+    const [isSimulated, setIsSimulated] = useState(false);
+
+    useEffect(() => {
+        const simConfig = localStorage.getItem('BLUE_NINJA_SIM_CONFIG');
+        if (simConfig) setIsSimulated(true);
+    }, []);
 
     const {
         currentQuestion: diagQ,
@@ -40,7 +47,8 @@ export default function StudentApp() {
         totalQuestions: dailyTotal,
         submitDailyAnswer,
         isComplete: dailyComplete,
-        sessionResults
+        sessionResults,
+        isLoading: dailyLoading // Destructure isLoading
     } = useDailyMission(null);
 
     const handleDiagAnswer = (isCorrect: boolean, choice: string | number, isRecovered: boolean, tag: string, timeSpentSeconds: number) => {
@@ -78,7 +86,12 @@ export default function StudentApp() {
     const effectiveView = currentView;
 
     return (
-        <div className="min-h-screen bg-[var(--color-surface)]">
+        <div className={`min-h-screen ${isSimulated ? 'border-[6px] border-green-500' : 'bg-[var(--color-surface)]'}`}>
+            {isSimulated && (
+                <div className="bg-green-500 text-white font-bold text-center py-2 uppercase tracking-widest text-xs flex justify-center items-center gap-2">
+                    <FlaskConical size={14} /> SIMULATION MODE ACTIVE
+                </div>
+            )}
             {dailyComplete && (
                 <div className="min-h-screen flex items-center justify-center p-6">
                     <div className="ninja-card max-w-md w-full text-center space-y-8 animate-in zoom-in duration-500">
@@ -120,10 +133,19 @@ export default function StudentApp() {
                     <main className="max-w-7xl mx-auto mt-8 px-4">
                         {dailyQ ? (
                             <MissionCard key={dailyQ.id} question={dailyQ} onAnswer={handleDailyAnswer} onStartRecovery={null} />
-                        ) : (
+                        ) : dailyLoading ? (
                             <div className="ninja-card flex flex-col items-center justify-center py-20">
                                 <div className="animate-spin text-4xl mb-4">🌊</div>
                                 <p className="font-bold text-blue-800">Preparing your flight path...</p>
+                            </div>
+                        ) : (
+                            <div className="ninja-card flex flex-col items-center justify-center py-20 border-red-200 bg-red-50">
+                                <div className="text-4xl mb-4">⚠️</div>
+                                <p className="font-bold text-red-800">No mission data available.</p>
+                                <p className="text-xs text-red-600 mt-2">Check console for details or clear simulation.</p>
+                                <button onClick={() => { localStorage.removeItem('BLUE_NINJA_SIM_CONFIG'); window.location.reload(); }} className="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-lg text-xs font-bold uppercase">
+                                    Exit Simulation
+                                </button>
                             </div>
                         )}
                     </main>

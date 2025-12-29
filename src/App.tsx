@@ -31,6 +31,15 @@ function RootRedirector() {
 
   if (!user) return <Login />;
 
+  // --- SIMULATION OVERRIDE ---
+  // If Test Lab Config exists, bypass Role Check and force Student View
+  const simConfig = localStorage.getItem('BLUE_NINJA_SIM_CONFIG');
+  if (simConfig) {
+    console.log('🧪 Simulation Mode Detect - Forcing Student View');
+    return <StudentApp />;
+  }
+  // ---------------------------
+
   if (userRole === 'ADMIN') return <Navigate to="/admin" replace />;
   // Redirect Teacher/Parent to their specific views within the Admin/Analytics module
   if (userRole === 'TEACHER') return <Navigate to="/admin/analytics" replace />;

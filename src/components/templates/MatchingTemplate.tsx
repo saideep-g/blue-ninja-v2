@@ -58,7 +58,18 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
 
         let lItems: MatchItem[] = [];
         let rItems: MatchItem[] = [];
-        const config = question.interaction?.config || {};
+
+        // ROBUST CONFIG LOOKUP
+        const interaction = question.content?.interaction || question.interaction || {};
+        const config = interaction.config || {};
+
+        // Debugging Metadata (Visible in UI for troubleshooting)
+        const debugData = {
+            hasContent: !!question.content,
+            hasInteraction: !!interaction,
+            keys: Object.keys(config)
+        };
+        console.log('[MatchingTemplate] Init', question, config);
 
         if (config.left && config.right) {
             lItems = config.left.map((item: any) => ({

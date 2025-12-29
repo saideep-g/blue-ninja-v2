@@ -36,8 +36,9 @@ import {
 import * as idbService from "../db/idb";
 import { logger } from '../logging';
 import { loadCurriculumV2 } from '../curriculum';
-import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../db/firebase';
+import { questionBundlesCollection } from '../db/firestore';
+import { getDoc, doc } from 'firebase/firestore';
 
 // Helper Interfaces for V2 Logic
 interface MissionPhase {
@@ -144,6 +145,8 @@ class DailyMissionsService {
       forceDifficulty?: number;
       questionCount?: number;
       bypassHistory?: boolean;
+      mode?: string;
+      targetId?: string;
     }
   ): Promise<DailyMissionBatch> {
     try {
@@ -180,6 +183,15 @@ class DailyMissionsService {
             earnedPoints: 0,
           };
         }
+      }
+
+      // --- SIMULATION: BUNDLE MODE ---
+      if (overrideOptions?.mode === 'BUNDLE' && overrideOptions.targetId) {
+        return await this.generateFromBundle(
+          overrideOptions.targetId,
+          config,
+          overrideOptions.questionCount || 10
+        );
       }
 
       // --- V2 LOGIC INTEGRATION START ---
@@ -222,6 +234,8 @@ class DailyMissionsService {
         // Apply Overrides to Phase Config
         const effectivePhase = { ...phase };
         if (overrideOptions?.forceTemplate) effectivePhase.templates = [overrideOptions.forceTemplate];
+
+        console.log(`[Service] Generating Phase: ${phase.name}. Templates: ${effectivePhase.templates.join(',')}`);
 
         const phaseQuestions = await this.generatePhaseQuestions(
           curriculum,
@@ -294,6 +308,80 @@ class DailyMissionsService {
     } catch (error) {
       logger.error('Failed to generate daily missions', error);
       throw new Error('Unable to generate missions. Please try again.');
+    }
+  }
+
+  // --- SIMULATION HELPER ---
+  private async generateFromBundle(bundleId: string, config: any, limit: number): Promise<DailyMissionBatch> {
+    try {
+      const bundleRef = doc(questionBundlesCollection, bundleId);
+      const snap = await getDoc(bundleRef);
+
+      if (!snap.exists()) {
+        throw new Error(`Bundle ${bundleId} not found`);
+      }
+
+      const bundleData = snap.data();
+      const items = bundleData.items || [];
+
+      // Slice to limit
+      const selectedItems = items.slice(0, limit);
+
+      // Wrap in a single "Mission" for simplicity, or split.
+      // V3 expects Missions to have questions.
+      // We will create ONE big mission for the simulation.
+
+      const missionId = generateUUID();
+
+      // Map Bundle Items to MissionQuestions (Minimal adaptation)
+      // We need to ensure the UI can read them.
+      // The UI expects 'questions' array in the Mission object.
+
+      const mappedQuestions = selectedItems.map((item: any, idx: number) => ({
+        questionId: item.item_id || item.id || `q_${idx}`,
+        atomId: item.atom_id || item.atom || 'bundle_atom',
+        templateId: item.template_id || item.type || 'MCQ_CONCEPT',
+        // Pass through all content properties ensuring they exist
+        ...item,
+        // Ensure we have metadata the Hook expects
+        analytics: {
+          source: 'BUNDLE_SIMULATION',
+          bundleId: bundleId
+        }
+      }));
+
+      const mission: Mission = {
+        id: missionId,
+        userId: config.userId,
+        date: config.date,
+        type: 'PRACTICE', // Override type to valid MissionType
+        status: MissionStatus.AVAILABLE,
+        difficulty: MissionDifficulty.MEDIUM,
+        title: bundleData.name || 'Simulated Mission',
+        description: `Test Run: ${bundleData.description || bundleId}`,
+        instruction: "Complete this simulated mission set.",
+        questionCount: mappedQuestions.length,
+        targetScore: 0,
+        pointsReward: 0,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 86400000,
+        questions: mappedQuestions
+      };
+
+      return {
+        id: 'sim_' + generateUUID(),
+        userId: config.userId,
+        date: config.date,
+        missions: [mission],
+        generatedAt: Date.now(),
+        completedCount: 0,
+        totalPoints: 0,
+        earnedPoints: 0
+      };
+
+    } catch (e) {
+      logger.error('Failed to generate from bundle', e);
+      throw e; // Let the hook handle it
     }
   }
 
