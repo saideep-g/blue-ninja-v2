@@ -36,9 +36,11 @@ We have defined a rigorous analytics standard to capture student behavior beyond
     *   `src/features/questions/domain.ts`: PlatinumAnalytics & Manifest interfaces defined.
     *   `src/features/questions/types/multiple-choice/v1`: First plugin implemented.
     *   `src/main.tsx`: Registry initialized at startup.
-*   [ ] **Phase 2: The Renderer**: Replace the current giant switch-case with the `QuestionRenderer`.
+*   [x] **Phase 2: The Renderer**: 
+    *   `src/features/questions/components/QuestionRenderer.tsx`: Smart component that dynamically loads plugins and computes analytics.
+    *   `src/features/questions/hooks/useInteractionLogger.ts`: Captures raw user behavior (focus, blur, clicks) for the analytics engine.
 *   [ ] **Phase 3: Migration V2**: Design a "V2" MCQ with a new feature.
 *   [ ] **Phase 4: Admin Tool**: Build the UI to execute the transformation dry-run.
 
 ## 5. Next Steps
-Move to Phase 2: Create `QuestionRenderer` component to dynamically load these plugins.
+Move to Phase 3: Design V2 Schema or Integrate Renderer into Main App.

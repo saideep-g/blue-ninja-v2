@@ -9,3 +9,4 @@ export function initializeQuestionRegistry() {
 
 export { registry };
 export type { QuestionManifest } from './domain';
+export { QuestionRenderer } from './components/QuestionRenderer';
