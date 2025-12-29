@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { db, auth } from '../services/firebase'; // db still needed for some direct ops? Maybe not if we use service completely.
-import { getDocs, doc, updateDoc, collection, query, limit, orderBy } from 'firebase/firestore';
+import { getDocs, doc, updateDoc, collection, query, limit, orderBy, where, documentId } from 'firebase/firestore';
 import { useNinja } from '../context/NinjaContext';
 import { Question } from '../types';
 import { diagnosticQuestionsCollection, getStudentRef, questionBundlesCollection } from '../services/db';
@@ -40,23 +40,39 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
             // V3: Fetch Bundle
             let allQuestions: Question[] = [];
             const bundlesRef = questionBundlesCollection;
-            // Fetch any available bundle (optimized for 0 reads if cached, but here we query once)
-            // Ideally we'd cache this in IDB, but for now we fetch fresh.
-            const bundleQuery = query(bundlesRef, limit(1));
-            const bundleSnap = await getDocs(bundleQuery);
 
-            if (!bundleSnap.empty) {
-                const bundleData = bundleSnap.docs[0].data();
-                const rawItems = bundleData.items || [];
+            // CHECK ASSIGNED BUNDLES
+            const assignedIds = ninjaStats.assignedBundles || [];
+            let bundleSnapshots: any[] = [];
+
+            if (assignedIds.length > 0) {
+                // Fetch specific bundles (up to 10 supported by 'in')
+                const q = query(bundlesRef, where(documentId(), 'in', assignedIds.slice(0, 10)));
+                const snap = await getDocs(q);
+                bundleSnapshots = snap.docs;
+                console.log(`[useDailyMission] Loaded ${snap.size} assigned bundles.`);
+            } else {
+                // Fallback to default fetch (limit 5)
+                const q = query(bundlesRef, limit(5));
+                const snap = await getDocs(q);
+                bundleSnapshots = snap.docs;
+                console.log(`[useDailyMission] No assignments found. Loaded ${snap.size} default bundles.`);
+            }
+
+            if (bundleSnapshots.length > 0) {
+                const allRawItems = bundleSnapshots.flatMap(doc => doc.data().items || []);
+
                 // Map V3 items to internal Question interface
-                allQuestions = rawItems.map((item: any, index: number) => ({
+                allQuestions = allRawItems.map((item: any, index: number) => ({
                     ...item,
                     // Ensure unique ID for React Keys, even if bundle has duplicates
                     id: `${item.item_id || item.id}-${index}`,
                     atom: item.atom_id || item.atom, // Normalize for logic
                     type: item.template_id || item.type
-                })).filter((q: any) => q.type === 'NUMERIC_INPUT');
-                console.log(`[useDailyMission] Loaded ${allQuestions.length} items from V3 Bundle (Filtered: TWO_TIER).`);
+                }));
+                // .filter((q: any) => q.type === 'NUMERIC_INPUT'); // Disabled filter to allow all types
+
+                console.log(`[useDailyMission] Loaded ${allQuestions.length} items from ${bundleSnapshots.length} Bundles.`);
             } else {
                 console.warn("[useDailyMission] No V3 Bundles found. Falling back to legacy collection.");
                 // Legacy Fallback

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { db, auth } from '../../services/firebase';
 import { collection, query, where, getDocs, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
-import { LayoutDashboard, Users, FileText, Database } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Database, Package } from 'lucide-react';
 import AdminQuestionsPanel from './AdminQuestionsPanel';
+import { AdminBundleManager } from './AdminBundleManager';
 
 function AdminAnalyticsDashboard() {
     const [activeTab, setActiveTab] = useState('browser');
@@ -172,6 +173,7 @@ function AdminAnalyticsDashboard() {
                 <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
                     {[
                         { id: 'browser', label: 'Questions', icon: Database },
+                        { id: 'bundles', label: 'Bundles', icon: Package },
                         { id: 'overview', label: 'Diagnostics', icon: LayoutDashboard },
                         { id: 'users', label: 'Users', icon: Users },
                         { id: 'logs', label: 'Logs', icon: FileText }
