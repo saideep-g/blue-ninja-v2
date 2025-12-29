@@ -9,6 +9,7 @@ import { TwoTierTemplate } from './TwoTierTemplate';
 import { NumericInputTemplate } from './NumericInputTemplate';
 import { MatchingTemplate } from './MatchingTemplate';
 import { ClassifySortTemplate } from './ClassifySortTemplate';
+import { NumberLineTemplate } from './NumberLineTemplate';
 
 interface TemplateRouterProps {
   question: Question;
@@ -135,6 +136,7 @@ const TEMPLATE_REGISTRY: Record<string, React.ComponentType<any>> = {
   'MATCHING': MatchingTemplate,
   'CLASSIFY_SORT': ClassifySortTemplate,
   'DRAG_DROP_MATCH': ClassifySortTemplate,
+  'NUMBER_LINE_PLACE': NumberLineTemplate,
 };
 
 export function TemplateRouter({ question, onSubmit, isSubmitting = false, readOnly = false }: TemplateRouterProps) {
