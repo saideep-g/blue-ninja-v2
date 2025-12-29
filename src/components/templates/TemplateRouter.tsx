@@ -11,6 +11,7 @@ import { MatchingTemplate } from './MatchingTemplate';
 import { ClassifySortTemplate } from './ClassifySortTemplate';
 import { NumberLineTemplate } from './NumberLineTemplate';
 import { SortOrderTemplate } from './SortOrderTemplate';
+import { ErrorAnalysisTemplate } from './ErrorAnalysisTemplate';
 
 interface TemplateRouterProps {
   question: Question;
@@ -140,6 +141,7 @@ const TEMPLATE_REGISTRY: Record<string, React.ComponentType<any>> = {
   'NUMBER_LINE_PLACE': NumberLineTemplate,
   'STEP_ORDER': SortOrderTemplate,
   'SORT_ORDER': SortOrderTemplate,
+  'ERROR_ANALYSIS': ErrorAnalysisTemplate,
 };
 
 export function TemplateRouter({ question, onSubmit, isSubmitting = false, readOnly = false }: TemplateRouterProps) {
