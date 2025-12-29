@@ -9,7 +9,6 @@ import StudentApp from './components/student/StudentApp';
 import CurriculumViewer from './components/curriculum/CurriculumViewer';
 import TemplateWorkbench from './components/templates/TemplateWorkbench';
 import UserProfile from './components/profile/UserProfile';
-
 // Routes
 import AdminRoutes from './routes/AdminRoutes';
 
@@ -57,12 +56,14 @@ export default function App() {
   return (
     <Router>
       <NinjaProvider>
+
         <Routes>
           {/* Main Entry Point - Handles Role Check */}
           <Route path="/" element={<RootRedirector />} />
 
           {/* Admin Module - Delegated Routing */}
           <Route path="/admin/*" element={<AdminRoutes />} />
+
 
           <Route
             path="/curriculum"
