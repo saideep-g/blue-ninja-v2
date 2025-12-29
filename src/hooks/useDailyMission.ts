@@ -69,8 +69,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                     id: `${item.item_id || item.id}-${index}`,
                     atom: item.atom_id || item.atom, // Normalize for logic
                     type: item.template_id || item.type
-                }));
-                // .filter((q: any) => q.type === 'NUMERIC_INPUT'); // Disabled filter to allow all types
+                })).filter((q: any) => q.type === 'MATCHING'); // Disabled filter to allow all types
 
                 console.log(`[useDailyMission] Loaded ${allQuestions.length} items from ${bundleSnapshots.length} Bundles.`);
             } else {

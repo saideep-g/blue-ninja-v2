@@ -69,6 +69,10 @@ export interface QuestionStats {
   difficulty: string;
   subject: string;
   topic: string;
+  atom?: string; // Smallest unit of concept
+  misconceptions?: string[]; // Tagged misconceptions
+  distractors?: string[]; // Wrong answer choices
+  conceptualGap?: string; // Identified gap (if any)
   timesUsed: number;
   correctAttempts: number;
   totalAttempts: number;
@@ -76,6 +80,17 @@ export interface QuestionStats {
   averageTime: number; // Seconds
   createdAt: Date;
   lastUsed: Date;
+}
+
+export interface IntelligenceAction {
+  id: string;
+  type: 'GAP_FILL' | 'REMEDIAL' | 'EXTENSION';
+  title: string;
+  description: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  targetAtom?: string;
+  suggestedTemplate?: string;
+  reasoning: string;
 }
 
 /**

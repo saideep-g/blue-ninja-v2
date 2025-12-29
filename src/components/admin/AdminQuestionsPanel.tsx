@@ -26,8 +26,7 @@ import MissionCard from '../diagnostic/MissionCard';
 import { useIndexedDB } from '../../hooks/useIndexedDB';
 import { runFullValidationSuite, ValidatedItem, ValidationIssue, ValidationSummary } from '../../services/uploadValidationEngine';
 import { publishBundleToFirestore } from '../../services/firestoreQuestionService';
-
-// ... (existing code types & sub-components) ...
+import { AdminIntelligenceReport } from './AdminIntelligenceReport';
 
 // Restore PreviewModal here before main component
 const PreviewModal = ({
@@ -119,7 +118,7 @@ const PreviewModal = ({
 // TYPES & CONSTANTS
 // ============================================================================
 
-type UploadStep = 'UPLOAD' | 'REVIEW' | 'PUBLISHING' | 'SUCCESS' | 'BROWSE';
+type UploadStep = 'UPLOAD' | 'REVIEW' | 'PUBLISHING' | 'SUCCESS' | 'BROWSE' | 'INTELLIGENCE';
 
 // ============================================================================
 // SUB-COMPONENTS
@@ -525,6 +524,24 @@ export default function AdminQuestionsPanel() {
   const hasPrevPreview = currentPreviewIndex > 0;
 
   // Renderers
+  if (step === 'INTELLIGENCE') {
+    return (
+      <div className="h-full flex flex-col bg-slate-50">
+        {/* Tab Bar */}
+        <div className="bg-white border-b px-8 pt-6 pb-0 flex items-center justify-between sticky top-0 z-10">
+          <div className="flex gap-8">
+            <button onClick={() => setStep('BROWSE')} className="pb-4 px-2 border-b-2 border-transparent font-medium text-slate-500 hover:text-slate-800">Browse Database</button>
+            <button onClick={() => setStep('UPLOAD')} className="pb-4 px-2 border-b-2 border-transparent font-medium text-slate-500 hover:text-slate-800">Upload Portal</button>
+            <button onClick={() => setStep('INTELLIGENCE')} className="pb-4 px-2 border-b-2 border-slate-900 font-bold text-slate-900">Intelligence</button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full">
+          <AdminIntelligenceReport />
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'BROWSE') {
     return (
       <div className="h-full flex flex-col bg-slate-50">
@@ -533,6 +550,7 @@ export default function AdminQuestionsPanel() {
           <div className="flex gap-8">
             <button onClick={() => setStep('BROWSE')} className="pb-4 px-2 border-b-2 border-slate-900 font-bold text-slate-900">Browse Database</button>
             <button onClick={() => setStep('UPLOAD')} className="pb-4 px-2 border-b-2 border-transparent font-medium text-slate-500 hover:text-slate-800">Upload Portal</button>
+            <button onClick={() => setStep('INTELLIGENCE')} className="pb-4 px-2 border-b-2 border-transparent font-medium text-slate-500 hover:text-slate-800">Intelligence</button>
           </div>
           <div className="pb-4">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{browserQuestions.length} Items cached</span>
@@ -623,6 +641,7 @@ export default function AdminQuestionsPanel() {
           <div className="flex gap-8">
             <button onClick={() => setStep('BROWSE')} className="pb-4 px-2 border-b-2 border-transparent font-medium text-slate-500 hover:text-slate-800">Browse Database</button>
             <button onClick={() => setStep('UPLOAD')} className="pb-4 px-2 border-b-2 border-slate-900 font-bold text-slate-900">Upload Portal</button>
+            <button onClick={() => setStep('INTELLIGENCE')} className="pb-4 px-2 border-b-2 border-transparent font-medium text-slate-500 hover:text-slate-800">Intelligence</button>
           </div>
         </div>
 
