@@ -134,7 +134,9 @@ const TEMPLATE_REGISTRY: Record<string, React.ComponentType<any>> = {
 
 export function TemplateRouter({ question, onSubmit, isSubmitting = false, readOnly = false }: TemplateRouterProps) {
   const TemplateComponent = useMemo(() => {
-    const templateId = question.type || (question as any).templateId;
+    // Check all possible ID locations (V2 camelCase, V3 snake_case, legacy type)
+    const templateId = question.type || (question as any).templateId || (question as any).template_id;
+
     // Default to MCQTemplate if ID is missing or not in registry (e.g. "KPOP_THEME")
     if (!templateId) return MCQTemplate;
     return TEMPLATE_REGISTRY[templateId] || MCQTemplate;
