@@ -819,24 +819,64 @@ export default function AdminQuestionsPanel() {
               </div>
 
               {/* Actions */}
-              <button
-                onClick={() => setEditingItemIndex(idx)}
-                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                title="Edit Item JSON"
-              >
-                <Edit3 className="w-5 h-5" />
-              </button>
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => setPreviewItem(item.data)}
+                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                  title="Preview Item"
+                >
+                  <Eye className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setEditingItemIndex(idx)}
+                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                  title="Edit Item JSON"
+                >
+                  <Edit3 className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Item Editor Modal */}
       {editingItemIndex !== null && items[editingItemIndex] && (
         <EditorModal
           item={items[editingItemIndex]}
           onSave={handleUpdateItem}
           onCancel={() => setEditingItemIndex(null)}
+        />
+      )}
+
+      {/* Shared Preview Modal (works for both Browser and Review modes) */}
+      {previewItem && (
+        <PreviewModal
+          item={previewItem}
+          onClose={() => setPreviewItem(null)}
+          // Determine if we are in REVIEW or BROWSE mode to calculate Next/Prev
+          onNext={() => {
+            // Logic to find current index and move next
+            // This needs access to the current list context. 
+            // Since this is inside the render block for Step === 'REVIEW' (or Browse), 
+            // I'll rely on a smarter 'handleNext' defined in the main body or inline check.
+            if (step === 'REVIEW') {
+              const idx = items.findIndex(i => i.data.item_id === previewItem.item_id);
+              if (idx !== -1 && idx < items.length - 1) setPreviewItem(items[idx + 1].data);
+            } else {
+              if (hasNextPreview) handleNextPreview();
+            }
+          }}
+          onPrev={() => {
+            if (step === 'REVIEW') {
+              const idx = items.findIndex(i => i.data.item_id === previewItem.item_id);
+              if (idx > 0) setPreviewItem(items[idx - 1].data);
+            } else {
+              if (hasPrevPreview) handlePrevPreview();
+            }
+          }}
+          hasNext={step === 'REVIEW' ? (items.findIndex(i => i.data.item_id === previewItem.item_id) < items.length - 1) : hasNextPreview}
+          hasPrev={step === 'REVIEW' ? (items.findIndex(i => i.data.item_id === previewItem.item_id) > 0) : hasPrevPreview}
         />
       )}
     </div>

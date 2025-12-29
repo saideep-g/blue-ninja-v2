@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Check, X, Link as LinkIcon, RefreshCw, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
+import { Check, Sparkles, GripVertical } from 'lucide-react';
 
 interface MatchingTemplateProps {
     question: any;
     onAnswer: (result: any) => void;
-    isSubmitting?: boolean;
     readOnly?: boolean;
 }
 
@@ -12,66 +11,74 @@ interface MatchItem {
     id: string;
     content: string | React.ReactNode;
     type: 'text' | 'image' | 'latex';
-    latex?: string;
-    originalIndex?: number; // Used to verifying matching
+    originalIndex?: number;
 }
+
+const THEMES = [
+    { name: 'Indigo', bg: 'bg-indigo-50', border: 'border-indigo-500', text: 'text-indigo-700', stroke: '#6366f1' },
+    { name: 'Magenta', bg: 'bg-fuchsia-50', border: 'border-fuchsia-500', text: 'text-fuchsia-700', stroke: '#d946ef' },
+    { name: 'Teal', bg: 'bg-teal-50', border: 'border-teal-500', text: 'text-teal-700', stroke: '#14b8a6' },
+    { name: 'Amber', bg: 'bg-amber-50', border: 'border-amber-500', text: 'text-amber-700', stroke: '#f59e0b' },
+    { name: 'Rose', bg: 'bg-rose-50', border: 'border-rose-500', text: 'text-rose-700', stroke: '#f43f5e' },
+    { name: 'Sky', bg: 'bg-sky-50', border: 'border-sky-500', text: 'text-sky-700', stroke: '#0ea5e9' },
+];
 
 interface Connection {
     leftId: string;
     rightId: string;
-    status: 'correct' | 'incorrect' | 'pending';
+    status: 'correct' | 'incorrect';
+    themeIndex: number;
 }
 
 export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
     question,
     onAnswer,
-    isSubmitting = false,
     readOnly = false
 }) => {
+    // --- State ---
     const [leftItems, setLeftItems] = useState<MatchItem[]>([]);
     const [rightItems, setRightItems] = useState<MatchItem[]>([]);
 
     const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
     const [connections, setConnections] = useState<Connection[]>([]);
     const [isComplete, setIsComplete] = useState(false);
+    const [mistakes, setMistakes] = useState(0);
 
-    const [containerHeight, setContainerHeight] = useState(600);
+    // Layout Refs
     const containerRef = useRef<HTMLDivElement>(null);
+    const leftRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const rightRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-    // -- Initialization --
+    // SVG Lines
+    const [lines, setLines] = useState<{ id: string, d: string, color: string }[]>([]);
+
+    // --- 1. Data Parsing ---
     useEffect(() => {
         if (!question) return;
 
-        // Normalizing Data: Support 'pairs' array or 'left/right' arrays
-        // Defaulting to a robust "Pairs" structure if available, or splitting logic
         let lItems: MatchItem[] = [];
         let rItems: MatchItem[] = [];
+        const config = question.interaction?.config || {};
 
-        const rawParis = question.content?.pairs || question.pairs || [];
-
-        if (rawParis.length > 0) {
-            // Structure: [{ left: "...", right: "..." }, ...]
-            lItems = rawParis.map((p: any, idx: number) => ({
-                id: `left-${idx}`,
-                content: p.left,
-                type: 'text', // Simple detection could go here (contains $ -> latex)
-                originalIndex: idx
+        if (config.left && config.right) {
+            lItems = config.left.map((item: any) => ({
+                id: item.id, content: item.text, type: 'text', originalIndex: -1
             }));
-
-            rItems = rawParis.map((p: any, idx: number) => ({
-                id: `right-${idx}`,
-                content: p.right,
-                type: 'text',
-                originalIndex: idx
+            rItems = config.right.map((item: any) => ({
+                id: item.id, content: item.text, type: 'text', originalIndex: -1
             }));
-        }
-        // Handle V3 explicit lists if configured that way
-        else if (question.content?.left_items && question.content?.right_items) {
-            // ... existing logic would go here
+        } else {
+            const rawPairs = config.pairs || question.content?.pairs || question.pairs || [];
+            if (rawPairs.length > 0) {
+                lItems = rawPairs.map((p: any, idx: number) => ({
+                    id: `left-${idx}`, content: p.left, type: 'text', originalIndex: idx
+                }));
+                rItems = rawPairs.map((p: any, idx: number) => ({
+                    id: `right-${idx}`, content: p.right, type: 'text', originalIndex: idx
+                }));
+            }
         }
 
-        // Shuffle Right Items
-        // Fisher-Yates shuffle
         const shuffledRight = [...rItems];
         for (let i = shuffledRight.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -81,154 +88,234 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
         setLeftItems(lItems);
         setRightItems(shuffledRight);
         setConnections([]);
+        setMistakes(0);
         setIsComplete(false);
+    }, [question.id, question.item_id]);
 
-    }, [question]);
+    // --- 2. Line Calculation ---
+    const updateLines = useCallback(() => {
+        if (!containerRef.current) return;
+        const containerRect = containerRef.current.getBoundingClientRect();
 
-    // -- Interaction Handlers --
+        const newLines = connections.map(conn => {
+            const leftEl = leftRefs.current[conn.leftId];
+            const rightEl = rightRefs.current[conn.rightId];
 
-    const handleLeftClick = (id: string) => {
+            if (!leftEl || !rightEl) return null;
+
+            const leftRect = leftEl.getBoundingClientRect();
+            const rightRect = rightEl.getBoundingClientRect();
+
+            const startX = (leftRect.right - containerRect.left);
+            const startY = (leftRect.top + leftRect.height / 2) - containerRect.top;
+
+            const endX = (rightRect.left - containerRect.left);
+            const endY = (rightRect.top + rightRect.height / 2) - containerRect.top;
+
+            // Updated Curve Logic: Standard S-Curve (Horizontal Bias)
+            const distanceX = Math.abs(endX - startX);
+            const controlDist = distanceX * 0.5;
+
+            const cp1X = startX + controlDist;
+            const cp1Y = startY;
+            const cp2X = endX - controlDist;
+            const cp2Y = endY;
+
+            const d = `M ${startX} ${startY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`;
+
+            return {
+                id: `${conn.leftId}-${conn.rightId}`,
+                d,
+                color: THEMES[conn.themeIndex % THEMES.length].stroke
+            };
+        }).filter(Boolean) as any[];
+
+        setLines(newLines);
+    }, [connections, selectedLeft, leftItems, rightItems]);
+
+    // Sync Loop
+    useLayoutEffect(() => {
+        updateLines();
+
+        const handleResize = () => requestAnimationFrame(updateLines);
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('scroll', handleResize, true);
+
+        const resizeObserver = new ResizeObserver(handleResize);
+        if (containerRef.current) resizeObserver.observe(containerRef.current);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            window.removeEventListener('scroll', handleResize, true);
+            resizeObserver.disconnect();
+        };
+    }, [updateLines]);
+
+
+    // --- 3. Handlers ---
+    const handleItemClick = (side: 'left' | 'right', id: string) => {
         if (readOnly || isComplete) return;
-        // If already matched, ignore
-        if (connections.some(c => c.leftId === id)) return;
 
-        setSelectedLeft(id === selectedLeft ? null : id);
-    };
+        const existingInfo = connections.find(c => side === 'left' ? c.leftId === id : c.rightId === id);
+        if (existingInfo) return;
 
-    const handleRightClick = (rightId: string) => {
-        if (readOnly || isComplete) return;
-        if (!selectedLeft) return; // Must select left first (or we could allow right-first, but left-first is simpler teaching)
+        if (side === 'left') {
+            setSelectedLeft(prev => prev === id ? null : id);
+        }
+        else {
+            if (!selectedLeft) return;
 
-        // If right already matched, ignore
-        if (connections.some(c => c.rightId === rightId)) return;
+            const leftId = selectedLeft;
+            const rightId = id;
 
-        // Attempt Match
-        const leftItem = leftItems.find(i => i.id === selectedLeft);
-        const rightItem = rightItems.find(i => i.id === rightId);
+            const leftItem = leftItems.find(i => i.id === leftId);
+            const rightItem = rightItems.find(i => i.id === rightId);
 
-        if (leftItem && rightItem) {
-            const isCorrect = leftItem.originalIndex === rightItem.originalIndex;
+            if (!leftItem || !rightItem) return;
 
-            const newConnection: Connection = {
-                leftId: selectedLeft,
-                rightId: rightId,
-                status: isCorrect ? 'correct' : 'incorrect'
+            // Validate matches
+            let isCorrect = false;
+            // Config-based validation priority
+            if (question.answer_key?.pairs) {
+                isCorrect = question.answer_key.pairs.some((p: any) => p.left_id === leftItem.id && p.right_id === rightItem.id);
+            } else if (leftItem.originalIndex !== -1) {
+                isCorrect = leftItem.originalIndex === rightItem.originalIndex;
+            }
+
+            const newConn: Connection = {
+                leftId,
+                rightId,
+                status: isCorrect ? 'correct' : 'incorrect',
+                themeIndex: connections.length
             };
 
-            const newConnections = [...connections, newConnection];
-            setConnections(newConnections);
+            const nextConns = [...connections, newConn];
+            setConnections(nextConns);
             setSelectedLeft(null);
 
-            // Auto-Check logic:
-            // If wrong, remove after delay? Or keep red?
-            // Blue Ninja philosophy: "Short feedback loops". 
-            // We'll keep it red for a moment then clear it so they can retry.
             if (!isCorrect) {
+                // METRIC: Incorrect attempt
+                setMistakes(prev => prev + 1);
+
                 setTimeout(() => {
-                    setConnections(prev => prev.filter(c => c.leftId !== newConnection.leftId));
+                    setConnections(prev => prev.filter(c => c.leftId !== leftId));
                 }, 1000);
             } else {
-                // Check Completion
-                const correctCount = newConnections.filter(c => c.status === 'correct').length;
+                const correctCount = nextConns.filter(c => c.status === 'correct').length;
                 if (correctCount === leftItems.length) {
                     setIsComplete(true);
+
+                    // METRIC: Submit results with recovery stats
                     onAnswer({
                         isCorrect: true,
-                        matches: newConnections,
-                        // Telemetry
-                        metrics: {
-                            attempts: newConnections.length // rough proxy
-                        }
+                        matches: nextConns,
+                        attempts: mistakes + 1,        // Total logical attempts
+                        mistakes: mistakes,            // Explicit error count
+                        isRecovered: mistakes > 0      // "Recovered" if they failed at least once
                     });
                 }
             }
         }
     };
 
-    // Helper to get connection status for a specific item
-    const getItemStatus = (id: string, side: 'left' | 'right') => {
+
+    const getItemState = (side: 'left' | 'right', id: string) => {
         const conn = connections.find(c => side === 'left' ? c.leftId === id : c.rightId === id);
-        if (conn) return conn.status;
-        if (side === 'left' && selectedLeft === id) return 'selected';
-        return 'default';
+        if (conn) {
+            return { mode: 'connected', status: conn.status, theme: THEMES[conn.themeIndex % THEMES.length] };
+        }
+        if (side === 'left' && selectedLeft === id) {
+            return { mode: 'selected' };
+        }
+        return { mode: 'default' };
     };
 
     return (
-        <div className="w-full max-w-5xl mx-auto p-4 md:p-8" ref={containerRef}>
-            {/* Title / Prompt */}
-            <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-6 text-center">
-                {question.content?.prompt?.text || question.prompt || "Match the pairs"}
-            </h2>
+        <div className="w-full max-w-5xl mx-auto p-6 md:p-12">
+            <div className="text-center mb-10">
+                <h2 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
+                    {question.content?.prompt?.text || (typeof question.prompt === 'string' ? question.prompt : question.prompt?.text) || "Match the pairs"}
+                </h2>
+                <p className="text-slate-500 mt-2 font-medium">Select a term on the left, then connect it to the right.</p>
+            </div>
 
-            <div className="flex flex-row justify-between relative gap-8 md:gap-16">
+            <div className="flex justify-between gap-16 md:gap-32 relative isolate min-h-[400px]" ref={containerRef}>
+                {/* SVG Layer */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none -z-10 overflow-visible">
+                    {lines.map(line => (
+                        <path
+                            key={line.id}
+                            d={line.d}
+                            fill="none"
+                            stroke={line.color}
+                            strokeWidth="4"
+                            strokeLinecap="round"
+                        />
+                    ))}
+                </svg>
 
-                {/* Left Column */}
-                <div className="flex-1 space-y-4 md:space-y-6">
+                <div className="flex-1 flex flex-col justify-center space-y-6">
                     {leftItems.map(item => {
-                        const status = getItemStatus(item.id, 'left');
+                        const { mode, status, theme } = getItemState('left', item.id);
                         return (
                             <div
                                 key={item.id}
-                                onClick={() => handleLeftClick(item.id)}
+                                ref={el => { if (el) leftRefs.current[item.id] = el; }}
+                                onClick={() => handleItemClick('left', item.id)}
                                 className={`
-                            relative min-h-[80px] md:min-h-[100px] p-4 md:p-6 rounded-2xl border-2 cursor-pointer transition-all duration-200 flex items-center justify-center text-center shadow-sm select-none
-                            ${status === 'default' ? 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-md' : ''}
-                            ${status === 'selected' ? 'bg-blue-50 border-blue-500 shadow-blue-200 shadow-lg scale-105 z-10' : ''}
-                            ${status === 'correct' ? 'bg-emerald-50 border-emerald-500 opacity-80' : ''}
-                            ${status === 'incorrect' ? 'bg-red-50 border-red-500 animate-shake' : ''}
-                        `}
+                                    group relative p-5 bg-white rounded-xl border-2 shadow-sm cursor-pointer select-none transition-all duration-200
+                                    flex items-center justify-center text-center
+                                    ${mode === 'default' ? 'border-slate-200 hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5' : ''}
+                                    ${mode === 'selected' ? 'border-blue-500 ring-4 ring-blue-100 shadow-xl z-20 scale-105' : ''}
+                                    ${mode === 'connected' && status === 'correct' ? `${theme?.bg} ${theme?.border} ${theme?.text} shadow-none` : ''}
+                                    ${mode === 'connected' && status === 'incorrect' ? 'bg-red-50 border-red-500 text-red-700 animate-shake' : ''}
+                                `}
                             >
-                                {/* Connection Dot (Right side of left card) */}
-                                <div className={`absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center z-20 bg-white
-                             ${status === 'selected' ? 'border-blue-500 bg-blue-500 text-white' : 'border-slate-300'}
-                             ${status === 'correct' ? 'border-emerald-500 bg-emerald-500 text-white' : ''}
-                        `}>
-                                    {status === 'correct' && <Check size={14} strokeWidth={4} />}
-                                    {status === 'selected' && <ArrowRight size={14} strokeWidth={3} />}
+                                <span className="font-bold text-lg md:text-xl">{item.content}</span>
+                                <div className={`
+                                    absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 bg-white flex items-center justify-center transition-colors
+                                    ${mode === 'default' ? 'border-slate-300 group-hover:border-blue-400 text-slate-300' : ''}
+                                    ${mode === 'selected' ? 'border-blue-500 bg-blue-500 text-white scale-110' : ''}
+                                    ${mode === 'connected' ? `${theme?.border} bg-white` : ''}
+                                `}>
+                                    <div className={`w-2 h-2 rounded-full ${mode === 'connected' ? `bg-${theme?.stroke}` : 'bg-current'}`} style={{ backgroundColor: mode === 'connected' ? theme?.stroke : undefined }} />
                                 </div>
-
-                                <span className="text-lg md:text-xl font-medium text-slate-700 pointer-events-none">
-                                    {item.content}
-                                </span>
                             </div>
                         );
                     })}
                 </div>
 
-                {/* SVG Connector Layer (Optional V2, for now we rely on the Dots aligning visually in the center gap) */}
-                {/* A simple central line dashed could be cute */}
-                <div className="w-0 border-l-2 border-dashed border-slate-200 hidden md:block opacity-50 absolute left-1/2 top-0 bottom-0 -translate-x-1/2 -z-10"></div>
-
-
-                {/* Right Column */}
-                <div className="flex-1 space-y-4 md:space-y-6">
+                <div className="flex-1 flex flex-col justify-center space-y-6">
                     {rightItems.map(item => {
-                        const status = getItemStatus(item.id, 'right');
-                        const isMatchable = selectedLeft !== null && !connections.some(c => c.rightId === item.id);
+                        const { mode, status, theme } = getItemState('right', item.id);
+                        const isMatchable = selectedLeft !== null && mode === 'default';
 
                         return (
                             <div
                                 key={item.id}
-                                onClick={() => handleRightClick(item.id)}
+                                ref={el => { if (el) rightRefs.current[item.id] = el; }}
+                                onClick={() => handleItemClick('right', item.id)}
                                 className={`
-                            relative min-h-[80px] md:min-h-[100px] p-4 md:p-6 rounded-xl border-2 transition-all duration-200 flex items-center justify-center text-center shadow-sm select-none
-                            ${status === 'default' ? 'bg-white border-slate-200' : ''}
-                            ${isMatchable && status === 'default' ? 'cursor-pointer hover:border-blue-400 hover:bg-blue-50 hover:scale-[1.02]' : ''}
-                            ${status === 'correct' ? 'bg-emerald-50 border-emerald-500 opacity-80' : ''}
-                            ${status === 'incorrect' ? 'bg-red-50 border-red-500 animate-shake' : ''}
-                        `}
+                                    group relative p-5 bg-white rounded-xl border-2 shadow-sm cursor-pointer select-none transition-all duration-200
+                                    flex items-center justify-center text-center
+                                    ${mode === 'default' && isMatchable ? 'border-slate-200 hover:border-blue-400 hover:bg-blue-50' : ''}
+                                    ${mode === 'default' && !isMatchable ? 'border-slate-200' : ''}
+                                    ${mode === 'connected' && status === 'correct' ? `${theme?.bg} ${theme?.border} ${theme?.text}` : ''}
+                                    ${mode === 'connected' && status === 'incorrect' ? 'bg-red-50 border-red-500 animate-shake' : ''}
+                                `}
                             >
-                                {/* Connection Dot (Left side of right card) */}
-                                <div className={`absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center z-20 bg-white
-                             ${isMatchable ? 'border-blue-300' : 'border-slate-300'}
-                             ${status === 'correct' ? 'border-emerald-500 bg-emerald-500 text-white' : ''}
-                        `}>
-                                    {status === 'correct' && <Check size={14} strokeWidth={4} />}
+                                <div className={`
+                                    absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 bg-white flex items-center justify-center transition-colors
+                                    ${mode === 'default' ? 'border-slate-300 group-hover:border-blue-400' : ''}
+                                    ${mode === 'connected' ? `${theme?.border}` : ''}
+                                `}>
+                                    {mode === 'connected' && status === 'correct' ? (
+                                        <Check size={14} className={theme?.text} strokeWidth={4} />
+                                    ) : (
+                                        <div className={`w-2 h-2 rounded-full ${mode === 'connected' ? '' : 'bg-slate-300'}`} style={{ backgroundColor: mode === 'connected' ? theme?.stroke : undefined }} />
+                                    )}
                                 </div>
-
-                                <span className="text-lg md:text-xl font-medium text-slate-700 pointer-events-none">
-                                    {item.content}
-                                </span>
+                                <span className="font-bold text-lg md:text-xl">{item.content}</span>
                             </div>
                         );
                     })}
@@ -236,16 +323,14 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
 
             </div>
 
-            {/* Footer / Status */}
-            <div className="mt-8 text-center">
-                {isComplete ? (
-                    <div className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-100 text-emerald-700 rounded-full font-bold animate-bounce">
-                        <Check size={20} /> All Matched! Well done!
+            {isComplete && (
+                <div className="mt-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div className="inline-flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-full shadow-2xl hover:scale-105 transition-transform cursor-default">
+                        <Sparkles className="text-yellow-400 w-6 h-6 animate-pulse" />
+                        <span className="font-bold text-lg tracking-wide">All Pairs Matched!</span>
                     </div>
-                ) : (
-                    <p className="text-slate-400 text-sm">Tap a left item, then tap its match.</p>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 };
