@@ -207,6 +207,7 @@ export default function TestLab() {
                                         <option value="CLASSIFY_SORT">Classify / Sort</option>
                                         <option value="MATCHING">Matching Pairs</option>
                                         <option value="ERROR_ANALYSIS">Error Analysis</option>
+                                        <option value="STEP_ORDER">Step Order</option>
                                         <option value="TWO_TIER">Two Tier (Reasoning)</option>
                                     </select>
                                 </div>
