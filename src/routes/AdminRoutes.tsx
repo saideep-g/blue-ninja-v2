@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import ProtectedRoute from '../components/ProtectedRoute';
+import ProtectedRoute from './ProtectedRoute';
 import AdminLayout from '../components/admin/layout/AdminLayout';
 import AdminHome from '../components/admin/dashboard/AdminHome';
 import AdminQuestionsPanel from '../components/admin/AdminQuestionsPanel';
