@@ -15,7 +15,7 @@ Instead of hardcoding question templates, we treat every Question Type as a "Plu
 *   [x] **Phase 3: Branching**: `mcq-branching` plugin with conditional logic, loops, and remediation paths.
 *   [x] **Phase 4: Admin Migration**: 
     *   `src/features/questions/admin/MigrationDashboard.tsx`: UI to scan and dry-run migrations.
-    *   `transformers.ts`: Logic to auto-convert Legacy JSON -> Strict V1 Zod Schema.
+    *   `transformers.ts` (Legacy -> V1) & `v3-to-branching.ts` (V3 Declarative -> FSM Compiler).
     *   Route: `/admin/migration` is now live.
 
 ## 4. How to Add a New Question Type
