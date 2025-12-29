@@ -63,12 +63,24 @@ export interface DailyMission {
   id: string;
   userId: string;
   date: string;
-  mission: string;
+  type: 'SOLVE_QUESTIONS' | 'LEARN' | 'PRACTICE' | 'CHALLENGE';
+  status: 'AVAILABLE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'EXPIRED';
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  title: string;
   description: string;
-  completed: boolean;
+  instruction: string;
+  questionCount?: number;
+  targetScore?: number;
+  questions?: any[];
+  pointsReward: number;
+  questionsCompleted?: number;
+  currentScore?: number;
+  startedAt?: number;
   completedAt?: number;
-  reward?: number;
+  timeSpentMs?: number;
   synced: boolean;
+  createdAt?: number;
+  expiresAt?: number;
 }
 
 export interface AdminData {
@@ -88,4 +100,38 @@ export interface SyncLog {
   status: 'pending' | 'success' | 'failed';
   error?: string;
   recordCount: number;
+}
+
+export interface Streak {
+  id: string; // userId
+  userId: string;
+  current: number;
+  longest: number;
+  startDate: string;
+  lastMissionDate: string;
+  totalMissionsCompleted: number;
+  totalPoints: number;
+  badges: string[]; // Badge Types
+  updatedAt: number;
+}
+
+export interface Badge {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  description: string;
+  icon: string;
+  earnedAt: number;
+}
+
+export interface MissionCompletion {
+  id: string;
+  userId: string;
+  missionId: string;
+  date: string;
+  timeSpentMs: number;
+  pointsEarned: number;
+  completedAt: number;
+  accuracy?: number;
 }

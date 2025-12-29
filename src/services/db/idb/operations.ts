@@ -6,7 +6,10 @@ import type {
   Progress,
   DailyMission,
   UserProfile,
-} from '../../types/idb';
+  Streak,
+  Badge,
+  MissionCompletion,
+} from '../../../types/idb';
 
 // ===== USER OPERATIONS =====
 export async function saveUser(user: User): Promise<string> {
@@ -120,6 +123,10 @@ export async function saveDailyMission(mission: DailyMission): Promise<string> {
   return await db.dailyMissions.put(mission);
 }
 
+export async function getDailyMission(id: string): Promise<DailyMission | undefined> {
+  return await db.dailyMissions.get(id);
+}
+
 export async function getDailyMissionsForDate(
   userId: string,
   date: string
@@ -136,6 +143,34 @@ export async function getUnSyncedMissions(): Promise<DailyMission[]> {
 
 export async function markMissionAsSynced(id: string): Promise<void> {
   await db.dailyMissions.update(id, { synced: true });
+}
+
+// ===== GAMIFICATION OPERATIONS (Verification: Tables MUST exist in db.ts) =====
+
+export async function saveStreak(streak: Streak): Promise<string> {
+  return await db.streaks.put(streak);
+}
+
+export async function getStreak(userId: string): Promise<Streak | undefined> {
+  // Assuming streaks table is keyed by 'id' which we set to userId, or we query by userId
+  // Schema was 'id, userId'.
+  return await db.streaks.where('userId').equals(userId).first();
+}
+
+export async function saveBadge(badge: Badge): Promise<string> {
+  return await db.badges.put(badge);
+}
+
+export async function getBadges(userId: string): Promise<Badge[]> {
+  return await db.badges.where('userId').equals(userId).toArray();
+}
+
+export async function saveMissionCompletion(completion: MissionCompletion): Promise<string> {
+  return await db.missionCompletions.put(completion);
+}
+
+export async function getMissionCompletions(userId: string): Promise<MissionCompletion[]> {
+  return await db.missionCompletions.where('userId').equals(userId).toArray();
 }
 
 // ===== ADMIN DATA OPERATIONS =====
@@ -169,4 +204,7 @@ export async function clearUserData(userId: string): Promise<void> {
   await db.progress.where('userId').equals(userId).delete();
   await db.dailyMissions.where('userId').equals(userId).delete();
   await db.userProfiles.where('userId').equals(userId).delete();
+  await db.streaks.where('userId').equals(userId).delete();
+  await db.badges.where('userId').equals(userId).delete();
+  await db.missionCompletions.where('userId').equals(userId).delete();
 }

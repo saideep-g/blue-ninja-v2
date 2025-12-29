@@ -4,10 +4,10 @@
  * Unified curriculum v2 service that loads and orchestrates all 4 curriculum files.
  */
 
-import manifest from '../../data/cbse7_mathquest_manifest_v2.json';
-import coreCurriculum from '../../data/cbse7_mathquest_core_curriculum_v2.json';
-import templateLibrary from '../../data/mathquest_template_library_v2.json';
-import assessmentGuide from '../../data/cbse7_mathquest_assessment_guide_v2.json';
+import manifest from '../../data/cbse7_manifest_v3.json';
+import coreCurriculum from '../../data/cbse7_core_curriculum_v3.json';
+import templateLibrary from '../../data/template_library_v3.json';
+import assessmentGuide from '../../data/cbse7_assessment_guide_v3.json';
 
 // Type definitions for JSON artifacts
 interface Manifest {
@@ -183,7 +183,7 @@ function validateVersionConsistency(
     issues.push(`Curriculum ID mismatch: manifest=${manifest.curriculum_bundle_id}, core=${core.curriculum_id}`);
   }
 
-  const supportedSchemaVersion = '2.0';
+  const supportedSchemaVersion = '3.0';
   if (core.schema_version !== supportedSchemaVersion) {
     issues.push(`Core schema version ${core.schema_version} not supported (need ${supportedSchemaVersion})`);
   }

@@ -54,23 +54,24 @@ export interface Mission {
   title: string;                           // Mission title
   description: string;                     // Mission description
   instruction: string;                     // What to do
-  
+
   // Requirements
   questionCount?: number;                  // Number of questions to answer
   targetScore?: number;                    // Target percentage (0-100)
   topicId?: string;                        // Specific topic
-  
+  questions?: any[];                       // Pre-generated questions for this mission
+
   // Progress
   questionsCompleted?: number;              // Questions answered so far
   currentScore?: number;                    // Current percentage
   startedAt?: number;                       // When student started (timestamp)
   completedAt?: number;                     // When completed (timestamp)
   timeSpentMs?: number;                     // Time spent in milliseconds
-  
+
   // Rewards
   pointsReward: number;                    // Points awarded on completion
   experience?: number;                      // XP awarded
-  
+
   createdAt: number;                       // When mission created (timestamp)
   expiresAt?: number;                      // When mission expires (timestamp)
 }

@@ -8,6 +8,7 @@ import AnalyticsLogViewer from '../components/admin/AnalyticsLogViewer';
 import TeacherAnalyticsDashboard from '../components/admin/TeacherAnalyticsDashboard';
 import ParentDashboard from '../components/admin/ParentDashboard';
 import { AdminBundleManager } from '../components/admin/AdminBundleManager';
+import TestLab from '../components/admin/TestLab';
 
 export default function AdminRoutes() {
     return (
@@ -23,6 +24,7 @@ export default function AdminRoutes() {
                 <Route path="logs" element={<AnalyticsLogViewer />} />
                 <Route path="analytics" element={<TeacherAnalyticsDashboard />} />
                 <Route path="users" element={<ParentDashboard />} />
+                <Route path="test-lab" element={<TestLab />} />
             </Route>
         </Routes>
     );

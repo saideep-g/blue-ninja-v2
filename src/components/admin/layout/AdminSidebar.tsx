@@ -10,7 +10,8 @@ import {
     ChevronRight,
     Settings,
     LogOut,
-    Package
+    Package,
+    FlaskConical
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -23,6 +24,7 @@ export default function AdminSidebar() {
         { icon: Activity, label: 'Live Logs', to: '/admin/logs' },
         { icon: BarChart2, label: 'Analytics', to: '/admin/analytics' },
         { icon: Users, label: 'Users', to: '/admin/users' },
+        { icon: FlaskConical, label: 'Test Lab', to: '/admin/test-lab' },
     ];
 
     return (

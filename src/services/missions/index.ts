@@ -2,7 +2,7 @@
  * Daily Missions Service for Blue Ninja v3
  * 
  * This service manages the complete daily missions lifecycle:
- * - Generating daily missions for students
+ * - Generating daily missions for students (Powered by V2 "Phase-Based" Logic)
  * - Tracking mission completion
  * - Managing streaks and badges
  * - Calculating points and rewards
@@ -11,7 +11,14 @@
  * @module services/missions
  */
 
-import { v4 as uuidv4 } from 'crypto';
+// Simple UUID generator for browser
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 import type {
   Mission,
   DailyMissionBatch,
@@ -20,66 +27,100 @@ import type {
   MissionCompletion,
   MissionStats,
   MissionGenerationConfig,
-  MissionDifficulty,
 } from '../../types/missions';
 import {
   MissionStatus,
   MissionDifficulty,
   BadgeType,
 } from '../../types/missions';
-import { getRandomQuestions } from '../questions';
-import { idbService } from '../idb';
+import * as idbService from "../db/idb";
 import { logger } from '../logging';
+import { loadCurriculumV2 } from '../curriculum';
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from '../db/firebase';
+
+// Helper Interfaces for V2 Logic
+interface MissionPhase {
+  name: string;
+  slots: number;
+  description: string;
+  strategyKey: string;
+  templates: string[];
+}
+
+interface MissionQuestion {
+  questionId: string;
+  atomId: string;
+  atom_id: string; // legacy support
+  atomName: string;
+  moduleId?: string;
+  moduleName?: string;
+  templateId: string;
+  template: {
+    id: string;
+    displayName: string;
+    description: string;
+    scoringModel: string;
+  } | null;
+  phase: string;
+  phaseIndex: number;
+  phaseTotalSlots: number;
+  slot: number;
+  totalSlots: number;
+  outcomes: any[];
+  difficulty: number;
+  masteryBefore: number;
+  analytics: {
+    curriculumModule?: string;
+    curriculumAtom: string;
+    templateType: string;
+    phaseType: string;
+    learningOutcomeTypes: string[];
+    masteryProfile?: string;
+    prerequisites: string[];
+  };
+}
 
 /**
- * Mission templates for generation
+ * Phase structure for 14+ slot daily mission (V2 Logic)
+ * Mapped to 5 V3 Missions
  */
-const MISSION_TEMPLATES = [
+const MISSION_PHASES: MissionPhase[] = [
   {
-    type: 'SOLVE_QUESTIONS' as const,
-    title: 'Quick Questions',
-    description: 'Solve 5 questions in this category',
-    instruction: 'Answer the questions correctly',
-    questionCount: 5,
-    targetScore: 80,
-    pointsReward: 10,
+    name: 'WARM_UP',
+    slots: 3,
+    description: 'Spaced review - atoms not seen recently',
+    strategyKey: 'spaced_review',
+    templates: ['MCQ_CONCEPT', 'NUMBER_LINE_PLACE', 'NUMERIC_INPUT']
   },
   {
-    type: 'PRACTICE' as const,
-    title: 'Practice Session',
-    description: 'Practice a mix of difficulty levels',
-    instruction: 'Complete 10 questions with focus on weak areas',
-    questionCount: 10,
-    targetScore: 70,
-    pointsReward: 15,
+    name: 'DIAGNOSIS',
+    slots: 3,
+    description: 'Misconception targeting - atoms where student struggles',
+    strategyKey: 'misconception_diagnosis',
+    templates: ['ERROR_ANALYSIS', 'MCQ_CONCEPT', 'MATCHING']
   },
   {
-    type: 'CHALLENGE' as const,
-    title: 'Daily Challenge',
-    description: 'Solve challenging questions',
-    instruction: 'Answer hard questions correctly',
-    questionCount: 5,
-    targetScore: 60,
-    pointsReward: 20,
+    name: 'GUIDED_PRACTICE',
+    slots: 3,
+    description: 'Interactive learning - balanced weak/strong',
+    strategyKey: 'guided_practice',
+    templates: ['BALANCE_OPS', 'CLASSIFY_SORT', 'DRAG_DROP_MATCH']
   },
   {
-    type: 'LEARN' as const,
-    title: 'Learn & Apply',
-    description: 'Learn a concept and apply it',
-    instruction: 'Read the material and solve related questions',
-    questionCount: 8,
-    targetScore: 75,
-    pointsReward: 12,
+    name: 'ADVANCED',
+    slots: 3,
+    description: 'Deep reasoning - progressive difficulty',
+    strategyKey: 'advanced_reasoning',
+    templates: ['STEP_BUILDER', 'MULTI_STEP_WORD', 'EXPRESSION_INPUT']
   },
   {
-    type: 'SOLVE_QUESTIONS' as const,
-    title: 'Mixed Mastery',
-    description: 'Test your knowledge across topics',
-    instruction: 'Solve questions from different topics',
-    questionCount: 7,
-    targetScore: 75,
-    pointsReward: 14,
-  },
+    name: 'REFLECTION',
+    slots: 2,
+    description: 'Transfer & consolidation - apply to novel contexts',
+    strategyKey: 'transfer_learning',
+    templates: ['SHORT_EXPLAIN', 'TRANSFER_MINI']
+  }
 ];
 
 /**
@@ -89,80 +130,136 @@ const MISSION_TEMPLATES = [
 class DailyMissionsService {
   /**
    * Generate daily missions for a student
-   * Creates 5 missions with varying difficulty
+   * Creates 5 missions using V2 Pedagogical Logic
    * 
    * @param config - Mission generation configuration
    * @returns Daily mission batch
    * @throws Error if unable to generate missions
    */
   async generateDailyMissions(
-    config: MissionGenerationConfig
+    config: MissionGenerationConfig,
+    overrideOptions?: {
+      forceTemplate?: string;
+      forceModule?: string;
+      forceDifficulty?: number;
+      questionCount?: number;
+      bypassHistory?: boolean;
+    }
   ): Promise<DailyMissionBatch> {
     try {
-      logger.info('Generating daily missions', {
+      logger.info('Generating daily missions (V3 + V2 Logic)', {
         userId: config.userId,
         date: config.date,
+        overrides: overrideOptions
       });
 
-      const batchId = uuidv4();
-      const missionCount = config.missionCount || 5;
+      const batchId = generateUUID();
       const now = Date.now();
-
-      // Get today's date for caching
-      const today = new Date().toISOString().split('T')[0];
-      const isToday = config.date === today;
+      const isToday = config.date === new Date().toISOString().split('T')[0];
 
       // Check if missions already generated for this date
-      if (isToday) {
-        const existing = await idbService.getMissionsForDate(
+      // SKIP persistence check if we are in override/test mode (bypassHistory)
+      if (isToday && !overrideOptions?.bypassHistory) {
+        const existing = await idbService.getDailyMissionsForDate(
           config.userId,
           config.date
         );
-        if (existing.length > 0) {
+
+        if (existing && existing.length > 0) {
           logger.debug('Missions already generated for today');
-          return await idbService.getDailyMissionBatch(
-            config.userId,
-            config.date
-          ) as DailyMissionBatch;
+          // Reconstruct batch from existing missions
+          // Note: existing is DailyMission[], need to cast or map to Mission[]
+          return {
+            id: 'batch_' + config.date,
+            userId: config.userId,
+            date: config.date,
+            missions: existing as unknown as Mission[],
+            generatedAt: Date.now(),
+            completedCount: existing.filter(m => m.status === 'COMPLETED').length,
+            totalPoints: existing.reduce((sum, m) => sum + (m.pointsReward || 0), 0),
+            earnedPoints: 0,
+          };
         }
       }
 
-      // Generate missions
-      const missions: Mission[] = [];
-      const difficulties: MissionDifficulty[] = [
-        MissionDifficulty.EASY,
-        MissionDifficulty.EASY,
-        MissionDifficulty.MEDIUM,
-        MissionDifficulty.MEDIUM,
-        MissionDifficulty.HARD,
-      ];
+      // --- V2 LOGIC INTEGRATION START ---
 
-      for (let i = 0; i < missionCount; i++) {
-        const template = MISSION_TEMPLATES[i % MISSION_TEMPLATES.length];
-        const difficulty = difficulties[i] || MissionDifficulty.MEDIUM;
+      // Step 1: Load curriculum
+      const curriculum = await loadCurriculumV2();
+
+      // Step 2: Get student mastery (Try Firestore first for V2 compatibility)
+      let studentMastery: Record<string, number> = {};
+      let studentHurdles: Record<string, number> = {};
+      let lastQuestionDates: Record<string, number> = {};
+
+      if (config.userId) {
+        try {
+          const studentRef = doc(db, 'students', config.userId);
+          const studentSnap = await getDoc(studentRef);
+          if (studentSnap.exists()) {
+            const data = studentSnap.data();
+            studentMastery = data.mastery || {};
+            studentHurdles = data.hurdles || {};
+            lastQuestionDates = data.lastQuestionDates || {};
+          }
+        } catch (e) {
+          logger.warn('Failed to fetch remote mastery, using default', e);
+        }
+      }
+
+      // Step 3: Generate missions per Phase
+      const missions: Mission[] = [];
+      let globalIndexOffset = 0;
+
+      // Filter phases based on override if needed (e.g. if we only want 1 question, we might limit phases)
+      // For now, allow overrides to affect the QUESTIONS generated within phases.
+
+      const activePhases = overrideOptions?.questionCount
+        ? MISSION_PHASES.slice(0, Math.ceil(overrideOptions.questionCount / 3)) // Approx
+        : MISSION_PHASES;
+
+      for (const phase of activePhases) {
+        // Apply Overrides to Phase Config
+        const effectivePhase = { ...phase };
+        if (overrideOptions?.forceTemplate) effectivePhase.templates = [overrideOptions.forceTemplate];
+
+        const phaseQuestions = await this.generatePhaseQuestions(
+          curriculum,
+          effectivePhase,
+          studentMastery,
+          studentHurdles,
+          lastQuestionDates,
+          globalIndexOffset,
+          overrideOptions // Pass overrides down
+        );
+
+        globalIndexOffset += phaseQuestions.length;
+
+        const missionDifficulty = this.mapPhaseToDifficulty(phase.name);
+        const points = this.calculatePointsForPhase(phase.name);
 
         const mission: Mission = {
-          id: uuidv4(),
+          id: generateUUID(),
           userId: config.userId,
           date: config.date,
-          type: template.type,
+          type: this.mapPhaseToType(phase.name),
           status: MissionStatus.AVAILABLE,
-          difficulty,
-          title: template.title,
-          description: template.description,
-          instruction: template.instruction,
-          questionCount: template.questionCount,
-          targetScore: template.targetScore,
-          pointsReward: this.adjustPointsForDifficulty(
-            template.pointsReward,
-            difficulty
-          ),
+          difficulty: missionDifficulty,
+          title: this.getPhaseTitle(phase.name),
+          description: phase.description,
+          instruction: `Complete ${phase.slots} questions in this ${phase.name.toLowerCase().replace('_', ' ')} module.`,
+          questionCount: phaseQuestions.length,
+          targetScore: 70, // Default pass mark
+          pointsReward: points,
           createdAt: now,
           expiresAt: this.getExpiryTime(config.date),
+          questions: phaseQuestions
         };
 
         missions.push(mission);
       }
+
+      // --- V2 LOGIC INTEGRATION END ---
 
       // Create batch
       const batch: DailyMissionBatch = {
@@ -181,12 +278,15 @@ class DailyMissionsService {
 
       // Save to IndexedDB
       for (const mission of missions) {
-        await idbService.saveMission(mission);
+        await idbService.saveDailyMission({
+          ...mission,
+          synced: false
+        } as any);
       }
-      await idbService.saveDailyMissionBatch(batch);
+      // Note: Batch object itself is computed from missions, not stored separately in V3 Schema
 
       logger.info('Daily missions generated', {
-        missionCount,
+        missionCount: missions.length,
         totalPoints: batch.totalPoints,
       });
 
@@ -197,17 +297,179 @@ class DailyMissionsService {
     }
   }
 
-  /**
-   * Complete a mission
-   * Updates mission status and awards points
-   * Checks for streak and badge updates
-   * 
-   * @param userId - Student ID
-   * @param missionId - Mission ID
-   * @param accuracy - Accuracy percentage (0-100)
-   * @returns Updated mission
-   * @throws Error if mission not found
-   */
+  // --- V2 HELPER METHODS ---
+
+  private async generatePhaseQuestions(
+    curriculum: any,
+    phase: MissionPhase,
+    studentMastery: Record<string, number>,
+    studentHurdles: Record<string, number>,
+    lastQuestionDates: Record<string, number>,
+    indexOffset: number,
+    overrides?: any
+  ): Promise<MissionQuestion[]> {
+    const phaseQuestions: MissionQuestion[] = [];
+
+    const candidateAtoms = this.selectAtomsForPhase(
+      curriculum,
+      phase,
+      studentMastery,
+      studentHurdles,
+      lastQuestionDates,
+      overrides
+    );
+
+    for (let i = 0; i < phase.slots; i++) {
+      if (candidateAtoms.length === 0) break;
+      const atomIndex = i % candidateAtoms.length;
+      const atom = candidateAtoms[atomIndex];
+      const templateId = phase.templates[i % phase.templates.length];
+      const template = curriculum.templates[templateId];
+
+      const question: MissionQuestion = {
+        questionId: `q_${indexOffset + i}_${atom.atom_id}_${templateId}`,
+        atomId: atom.atom_id,
+        atom_id: atom.atom_id,
+        atomName: atom.title,
+        moduleId: atom.moduleId,
+        moduleName: atom.moduleName,
+        templateId,
+        template: template ? {
+          id: templateId,
+          displayName: template.display_name,
+          description: template.description,
+          scoringModel: template.scoring_model
+        } : null,
+        phase: phase.name,
+        phaseIndex: i,
+        phaseTotalSlots: phase.slots,
+        slot: indexOffset + i + 1,
+        totalSlots: 14,
+        outcomes: atom.outcomes || [],
+        difficulty: this.calculateDifficulty(atom, studentMastery),
+        masteryBefore: studentMastery[atom.atom_id] || 0.5,
+        analytics: {
+          curriculumModule: atom.moduleId,
+          curriculumAtom: atom.atom_id,
+          templateType: templateId,
+          phaseType: phase.name,
+          learningOutcomeTypes: (atom.outcomes || []).map((o: any) => o.type),
+          masteryProfile: atom.mastery_profile_id,
+          prerequisites: atom.prerequisites || []
+        }
+      };
+      phaseQuestions.push(question);
+    }
+    return phaseQuestions;
+  }
+
+  private selectAtomsForPhase(
+    curriculum: any,
+    phase: MissionPhase,
+    studentMastery: Record<string, number>,
+    studentHurdles: Record<string, number>,
+    lastQuestionDates: Record<string, number>,
+    overrides?: any
+  ) {
+    const allAtoms: any[] = Object.values(curriculum.atoms);
+
+    // Override: Module Filter
+    let candidates = overrides?.forceModule
+      ? allAtoms.filter(a => a.moduleId === overrides.forceModule || a.moduleName === overrides.forceModule)
+      : allAtoms;
+
+    // If overrides used, skip standard strategy and just return candidates
+    // OR, apply strategy on the filtered set.
+    // Let's apply strategy on filtered set, unless forced template/module allows anything.
+
+    if (overrides?.forceModule) {
+      return candidates.slice(0, 5);
+    }
+
+    switch (phase.strategyKey) {
+      case 'spaced_review':
+        candidates = allAtoms.filter(atom => {
+          const lastSeen = lastQuestionDates[atom.atom_id] || 0;
+          const daysSince = (Date.now() - lastSeen) / (1000 * 60 * 60 * 24);
+          return daysSince > 1 || lastSeen === 0;
+        }).slice(0, 5);
+        break;
+      case 'misconception_diagnosis':
+        candidates = allAtoms.filter(atom => {
+          const mastery = studentMastery[atom.atom_id] || 0.5;
+          const hasMisc = atom.misconception_ids && atom.misconception_ids.length > 0;
+          return mastery < 0.7 && hasMisc;
+        }).slice(0, 5);
+        break;
+      case 'guided_practice':
+        const weak = allAtoms.filter(a => (studentMastery[a.atom_id] || 0.5) < 0.6);
+        const strong = allAtoms.filter(a => (studentMastery[a.atom_id] || 0.5) >= 0.7);
+        candidates = [...weak.slice(0, 3), ...strong.slice(0, 2)];
+        break;
+      case 'advanced_reasoning':
+        candidates = allAtoms
+          .filter(a => (studentMastery[a.atom_id] || 0.5) >= 0.6)
+          .sort((a, b) => (studentMastery[b.atom_id] || 0) - (studentMastery[a.atom_id] || 0))
+          .slice(0, 5);
+        break;
+      case 'transfer_learning':
+        candidates = allAtoms
+          .filter(a => (studentMastery[a.atom_id] || 0.5) >= 0.7)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 5);
+        break;
+      default:
+        candidates = allAtoms.slice(0, 5);
+    }
+    return candidates.length > 0 ? candidates : allAtoms.slice(0, 5);
+  }
+
+  private calculateDifficulty(atom: any, masteryMap: Record<string, number>): number {
+    const m = masteryMap[atom.atom_id] || 0.5;
+    if (m >= 0.8) return 1;
+    if (m >= 0.5) return 2;
+    return 3;
+  }
+
+  private mapPhaseToDifficulty(phaseName: string): MissionDifficulty {
+    switch (phaseName) {
+      case 'WARM_UP': return MissionDifficulty.EASY;
+      case 'DIAGNOSIS': return MissionDifficulty.MEDIUM;
+      case 'GUIDED_PRACTICE': return MissionDifficulty.MEDIUM;
+      case 'ADVANCED': return MissionDifficulty.HARD;
+      case 'REFLECTION': return MissionDifficulty.EASY;
+      default: return MissionDifficulty.MEDIUM;
+    }
+  }
+
+  private mapPhaseToType(phaseName: string): any {
+    switch (phaseName) {
+      case 'WARM_UP': return 'PRACTICE';
+      case 'DIAGNOSIS': return 'SOLVE_QUESTIONS';
+      case 'GUIDED_PRACTICE': return 'LEARN';
+      case 'ADVANCED': return 'CHALLENGE';
+      case 'REFLECTION': return 'SOLVE_QUESTIONS';
+      default: return 'PRACTICE';
+    }
+  }
+
+  private getPhaseTitle(phaseName: string): string {
+    return phaseName.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  }
+
+  private calculatePointsForPhase(phaseName: string): number {
+    switch (phaseName) {
+      case 'WARM_UP': return 50;
+      case 'DIAGNOSIS': return 75;
+      case 'GUIDED_PRACTICE': return 100;
+      case 'ADVANCED': return 150;
+      case 'REFLECTION': return 50;
+      default: return 50;
+    }
+  }
+
+  // --- STANDARD V3 METHODS (Preserved) ---
+
   async completeMission(
     userId: string,
     missionId: string,
@@ -216,8 +478,9 @@ class DailyMissionsService {
     try {
       logger.info('Completing mission', { userId, missionId });
 
-      // Get mission
-      const mission = await idbService.getMission(missionId);
+      // Retrieve mission by ID
+      const mission = await idbService.getDailyMission(missionId);
+
       if (!mission) {
         throw new Error('Mission not found');
       }
@@ -227,27 +490,34 @@ class DailyMissionsService {
       }
 
       const now = Date.now();
-      const startTime = mission.startedAt || mission.createdAt;
-      const timeSpentMs = now - startTime;
+      const startTime = mission.startedAt || now; // fallback if not tracked
+      // If startTime is ms, use it. If V2 stored IsoString, simpler to assume it's lost and use arbitrary.
+      // Better to check type. In V3 types, it's number.
+      const timeSpentMs = now - (typeof startTime === 'number' ? startTime : now);
 
       // Update mission
-      mission.status = MissionStatus.COMPLETED;
-      mission.completedAt = now;
-      mission.timeSpentMs = timeSpentMs;
-      mission.currentScore = accuracy || 100;
+      const updatedMission = {
+        ...mission,
+        status: MissionStatus.COMPLETED as any,
+        completedAt: now,
+        timeSpentMs: timeSpentMs,
+        currentScore: accuracy || 100,
+        pointsReward: mission.pointsReward, // Type mismatch in some schemas possible, careful
+        synced: false
+      };
 
       // Check if target met
       const targetMet = (accuracy || 100) >= (mission.targetScore || 70);
       const pointsEarned = targetMet ? mission.pointsReward : Math.floor(
         mission.pointsReward * 0.5
-      ); // Half points if target not met
+      );
 
       // Save mission
-      await idbService.saveMission(mission);
+      await idbService.saveDailyMission(updatedMission);
 
       // Create completion record
       const completion: MissionCompletion = {
-        id: uuidv4(),
+        id: generateUUID(),
         userId,
         missionId,
         date: mission.date,
@@ -261,19 +531,12 @@ class DailyMissionsService {
       // Update streak
       await this.updateStreak(userId, mission.date);
 
-      // Update batch
-      const batch = await idbService.getDailyMissionBatch(
-        userId,
-        mission.date
-      );
-      if (batch) {
-        batch.completedCount += 1;
-        batch.earnedPoints += pointsEarned;
-        await idbService.saveDailyMissionBatch(batch);
-      }
+      // Update batch (logical) - handled by getDailyMissionBatch reconstructing it.
 
       // Check for perfect day badge
-      if (batch && batch.completedCount === batch.missions.length) {
+      const todayMissions = await idbService.getDailyMissionsForDate(userId, mission.date);
+      const allCompleted = todayMissions.every((m: any) => m.status === 'COMPLETED');
+      if (allCompleted) {
         await this.awardBadge(userId, BadgeType.PERFECT_DAY);
       }
 
@@ -283,78 +546,55 @@ class DailyMissionsService {
         targetMet,
       });
 
-      return mission;
+      return updatedMission as unknown as Mission;
     } catch (error) {
       logger.error('Failed to complete mission', error);
       throw error;
     }
   }
 
-  /**
-   * Start a mission
-   * Updates mission status to IN_PROGRESS
-   * 
-   * @param missionId - Mission ID
-   * @returns Updated mission
-   * @throws Error if mission not found
-   */
   async startMission(missionId: string): Promise<Mission> {
     try {
-      const mission = await idbService.getMission(missionId);
+      const mission = await idbService.getDailyMission(missionId);
       if (!mission) {
         throw new Error('Mission not found');
       }
 
-      mission.status = MissionStatus.IN_PROGRESS;
-      mission.startedAt = Date.now();
+      const updated = {
+        ...mission,
+        status: MissionStatus.IN_PROGRESS as any,
+        startedAt: Date.now(),
+        synced: false
+      };
 
-      await idbService.saveMission(mission);
-
+      await idbService.saveDailyMission(updated);
       logger.debug('Mission started', { missionId });
 
-      return mission;
+      return updated as unknown as Mission;
     } catch (error) {
       logger.error('Failed to start mission', error);
       throw error;
     }
   }
 
-  /**
-   * Get missions for specific date
-   * 
-   * @param userId - Student ID
-   * @param date - Date (YYYY-MM-DD)
-   * @returns Array of missions
-   */
   async getMissionsForDate(
     userId: string,
     date: string
   ): Promise<Mission[]> {
     try {
-      return await idbService.getMissionsForDate(userId, date);
+      const ms = await idbService.getDailyMissionsForDate(userId, date);
+      return ms as unknown as Mission[];
     } catch (error) {
       logger.error('Failed to get missions for date', error);
       return [];
     }
   }
 
-  /**
-   * Get today's missions
-   * 
-   * @param userId - Student ID
-   * @returns Today's missions
-   */
   async getTodayMissions(userId: string): Promise<Mission[]> {
     const today = new Date().toISOString().split('T')[0];
     return this.getMissionsForDate(userId, today);
   }
 
-  /**
-   * Get student's streak information
-   * 
-   * @param userId - Student ID
-   * @returns Streak information
-   */
   async getStreak(userId: string) {
     try {
       return await idbService.getStreak(userId);
@@ -364,13 +604,6 @@ class DailyMissionsService {
     }
   }
 
-  /**
-   * Calculate streak for a student
-   * Counts consecutive days with completed missions
-   * 
-   * @param userId - Student ID
-   * @returns Streak length in days
-   */
   async calculateStreak(userId: string): Promise<number> {
     try {
       logger.debug('Calculating streak', { userId });
@@ -403,13 +636,6 @@ class DailyMissionsService {
     }
   }
 
-  /**
-   * Get mission statistics for a student
-   * 
-   * @param userId - Student ID
-   * @param days - Number of days to analyze (default: 30)
-   * @returns Mission statistics
-   */
   async getMissionStats(userId: string, days: number = 30): Promise<MissionStats> {
     try {
       logger.debug('Getting mission stats', { userId, days });
@@ -479,7 +705,7 @@ class DailyMissionsService {
         ([, a], [, b]) => b - a
       )[0];
       if (favoriteType) {
-        stats.favoriteType = favoriteType[0];
+        stats.favoriteType = favoriteType[0] as any;
       }
 
       // Get streaks
@@ -501,13 +727,6 @@ class DailyMissionsService {
     }
   }
 
-  /**
-   * Update streak for a student
-   * Called when a mission is completed
-   * 
-   * @param userId - Student ID
-   * @param completionDate - Date mission was completed (YYYY-MM-DD)
-   */
   private async updateStreak(
     userId: string,
     completionDate: string
@@ -576,13 +795,6 @@ class DailyMissionsService {
     }
   }
 
-  /**
-   * Award a badge to a student
-   * Checks if already earned before awarding
-   * 
-   * @param userId - Student ID
-   * @param badgeType - Badge type
-   */
   private async awardBadge(
     userId: string,
     badgeType: BadgeType
@@ -590,14 +802,14 @@ class DailyMissionsService {
     try {
       const streak = await idbService.getStreak(userId);
 
-      // Check if already earned
+      // Check if already earned (logic depends on how we store. if streak.badges is array of strings)
       if (streak && streak.badges.includes(badgeType)) {
         return;
       }
 
       // Create badge
       const badge: Badge = {
-        id: uuidv4(),
+        id: generateUUID(),
         userId,
         type: badgeType,
         title: this.getBadgeTitle(badgeType),
@@ -620,9 +832,6 @@ class DailyMissionsService {
     }
   }
 
-  /**
-   * Get badge title
-   */
   private getBadgeTitle(type: BadgeType): string {
     const titles: Record<BadgeType, string> = {
       [BadgeType.FIRST_MISSION]: 'First Step',
@@ -637,9 +846,6 @@ class DailyMissionsService {
     return titles[type] || 'Achievement';
   }
 
-  /**
-   * Get badge description
-   */
   private getBadgeDescription(type: BadgeType): string {
     const descriptions: Record<BadgeType, string> = {
       [BadgeType.FIRST_MISSION]: 'Completed your first mission',
@@ -654,9 +860,6 @@ class DailyMissionsService {
     return descriptions[type] || 'Achievement unlocked';
   }
 
-  /**
-   * Get badge icon
-   */
   private getBadgeIcon(type: BadgeType): string {
     const icons: Record<BadgeType, string> = {
       [BadgeType.FIRST_MISSION]: '🌟',
@@ -671,25 +874,6 @@ class DailyMissionsService {
     return icons[type] || '⭐';
   }
 
-  /**
-   * Adjust points for difficulty
-   */
-  private adjustPointsForDifficulty(
-    basePoints: number,
-    difficulty: MissionDifficulty
-  ): number {
-    const multipliers: Record<MissionDifficulty, number> = {
-      [MissionDifficulty.EASY]: 0.8,
-      [MissionDifficulty.MEDIUM]: 1,
-      [MissionDifficulty.HARD]: 1.5,
-    };
-    return Math.round(basePoints * multipliers[difficulty]);
-  }
-
-  /**
-   * Get expiry time for a date
-   * Missions expire at end of day
-   */
   private getExpiryTime(dateStr: string): number {
     const date = new Date(dateStr);
     date.setDate(date.getDate() + 1);
@@ -697,9 +881,6 @@ class DailyMissionsService {
     return date.getTime();
   }
 
-  /**
-   * Calculate day difference between two dates
-   */
   private getDayDifference(date1: string, date2: string): number {
     const d1 = new Date(date1).getTime();
     const d2 = new Date(date2).getTime();

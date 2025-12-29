@@ -8,7 +8,10 @@ import type {
   DailyMission,
   AdminData,
   SyncLog,
-} from '../../types/idb';
+  Streak,
+  Badge,
+  MissionCompletion,
+} from '../../../types/idb';
 
 export class BlueNinjaDB extends Dexie {
   users!: Table<User>;
@@ -19,18 +22,24 @@ export class BlueNinjaDB extends Dexie {
   dailyMissions!: Table<DailyMission>;
   adminData!: Table<AdminData>;
   syncLogs!: Table<SyncLog>;
+  streaks!: Table<Streak>;
+  badges!: Table<Badge>;
+  missionCompletions!: Table<MissionCompletion>;
 
   constructor() {
     super('BlueNinjaDB');
-    this.version(1).stores({
+    this.version(2).stores({
       users: 'id, email',
       userProfiles: 'userId',
       questions: 'id, subject, topic, level',
-      assessments: 'id, userId, type, [userId+type]',
-      progress: 'id, userId, date, [userId+date]',
-      dailyMissions: 'id, userId, date, [userId+date]',
+      assessments: 'id, userId, type, [userId+type], synced',
+      progress: 'id, userId, date, [userId+date], synced',
+      dailyMissions: 'id, userId, date, [userId+date], synced',
       adminData: 'id, key',
       syncLogs: '++id, timestamp, entity, status',
+      streaks: 'id, userId',
+      badges: 'id, userId, type',
+      missionCompletions: 'id, userId, missionId, date, [userId+date]',
     });
   }
 }
