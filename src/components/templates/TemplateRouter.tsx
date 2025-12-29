@@ -7,6 +7,7 @@ import { QuestionItem } from '../../types/curriculum.v3';
 import { MCQTemplate } from './MCQTemplate';
 import { TwoTierTemplate } from './TwoTierTemplate';
 import { NumericInputTemplate } from './NumericInputTemplate';
+import { MatchingTemplate } from './MatchingTemplate';
 
 interface TemplateRouterProps {
   question: Question;
@@ -130,6 +131,7 @@ const TEMPLATE_REGISTRY: Record<string, React.ComponentType<any>> = {
   'MCQ_SKILL': MCQTemplate,
   'TWO_TIER': TwoTierAdapter,
   'NUMERIC_INPUT': NumericInputTemplate,
+  'MATCHING': MatchingTemplate,
 };
 
 export function TemplateRouter({ question, onSubmit, isSubmitting = false, readOnly = false }: TemplateRouterProps) {
