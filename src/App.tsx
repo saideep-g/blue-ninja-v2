@@ -20,6 +20,7 @@ import TeacherAnalyticsDashboard from './components/admin/TeacherAnalyticsDashbo
 import ParentDashboard from './components/admin/ParentDashboard';
 import AnalyticsLogViewer from './components/admin/AnalyticsLogViewer';
 import AdminQuestionsPanel from './components/admin/AdminQuestionsPanel';
+import { AdminBundleManager } from './components/admin/AdminBundleManager';
 import CurriculumViewer from './components/curriculum/CurriculumViewer';
 import TemplateWorkbench from './components/templates/TemplateWorkbench';
 import UserProfile from './components/profile/UserProfile';
@@ -272,6 +273,7 @@ export default function App() {
           }>
             <Route index element={<AdminHome />} />
             <Route path="questions" element={<AdminQuestionsPanel />} />
+            <Route path="bundles" element={<AdminBundleManager />} />
             <Route path="logs" element={<AnalyticsLogViewer />} />
             <Route path="analytics" element={<TeacherAnalyticsDashboard />} />
             <Route path="users" element={<ParentDashboard />} />
