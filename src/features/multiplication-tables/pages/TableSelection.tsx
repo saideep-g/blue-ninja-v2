@@ -1,29 +1,44 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useNinja } from '../../../context/NinjaContext';
+import { getTableSettings } from '../services/tablesFirestore';
+import { Play } from 'lucide-react';
 
 export default function TableSelection() {
     const navigate = useNavigate();
-    const [selectedTables, setSelectedTables] = useState<number[]>([]);
-    const [mode, setMode] = useState<'practice' | 'challenge'>('practice');
+    const { user } = useNinja();
+    const [assignedTables, setAssignedTables] = useState<number[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const supportedTables = Array.from({ length: 11 }, (_, i) => i + 2); // 2 to 12
+    useEffect(() => {
+        if (!user) return;
 
-    const toggleTable = (num: number) => {
-        setSelectedTables(prev =>
-            prev.includes(num)
-                ? prev.filter(n => n !== num)
-                : [...prev, num]
-        );
-    };
+        const fetchSettings = async () => {
+            setLoading(true);
+            try {
+                const settings = await getTableSettings(user.uid);
+                if (settings && settings.selectedTables) {
+                    setAssignedTables(settings.selectedTables);
+                } else {
+                    setAssignedTables([]);
+                }
+            } catch (err) {
+                console.error("Failed to load table settings", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSettings();
+    }, [user]);
 
     const startSession = () => {
-        if (selectedTables.length === 0) return;
-        // In a real app, transfer state via Context or URL params. 
-        // For now we'll just navigate.
-        navigate('/tables/practice', { state: { tables: selectedTables, mode } });
+        if (assignedTables.length === 0) return;
+        navigate('/tables/practice', { state: { tables: assignedTables } });
     };
+
+    if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl font-bold text-slate-400">Loading your mission...</div>;
 
     return (
         <div className="max-w-4xl mx-auto p-6 flex flex-col items-center justify-center min-h-screen">
@@ -31,55 +46,51 @@ export default function TableSelection() {
                 <h1 className="text-5xl font-extrabold text-indigo-600 mb-4 tracking-tight">
                     Times Tables
                 </h1>
-                <p className="text-xl text-slate-500">Pick a number to start your adventure!</p>
+                <p className="text-xl text-slate-500">Master your multiplication powers!</p>
             </header>
 
-            <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-3xl border border-indigo-50">
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mb-10">
-                    {supportedTables.map((num) => (
+            <div className="bg-white rounded-3xl shadow-xl p-12 w-full max-w-xl border border-indigo-50 text-center">
+                {assignedTables.length > 0 ? (
+                    <>
+                        <div className="mb-8">
+                            <p className="text-lg text-slate-600 mb-4">Your current mission covers tables:</p>
+                            <div className="flex flex-wrap justify-center gap-2">
+                                {assignedTables.slice().sort((a, b) => a - b).map(t => (
+                                    <span key={t} className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full font-bold text-xl">x{t}</span>
+                                ))}
+                            </div>
+                        </div>
+
                         <motion.button
-                            key={num}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => toggleTable(num)}
-                            className={`
-                h-20 w-full rounded-2xl text-3xl font-bold flex items-center justify-center transition-all shadow-sm
-                ${selectedTables.includes(num)
-                                    ? 'bg-indigo-500 text-white shadow-indigo-200 shadow-lg ring-4 ring-indigo-200'
-                                    : 'bg-slate-100 text-slate-400 hover:bg-indigo-50 hover:text-indigo-400'
-                                }
-              `}
+                            onClick={startSession}
+                            className="w-full py-6 rounded-2xl text-3xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-xl hover:shadow-2xl flex items-center justify-center gap-4"
                         >
-                            {num}
+                            <Play className="w-8 h-8 fill-current" />
+                            Start Practice
                         </motion.button>
-                    ))}
-                </div>
+                    </>
+                ) : (
+                    <div className="py-8">
+                        <p className="text-xl text-slate-400 font-medium mb-4">No tables assigned yet.</p>
+                        <p className="text-slate-500">Ask your parent to configure your practice tables in the Parent Dashboard.</p>
+                    </div>
+                )}
 
-                <div className="flex flex-col gap-4">
-                    <button
-                        onClick={startSession}
-                        disabled={selectedTables.length === 0}
-                        className={`
-                w-full py-5 rounded-2xl text-2xl font-bold transition-all
-                ${selectedTables.length > 0
-                                ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-xl hover:shadow-2xl translate-y-0'
-                                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                            }
-              `}
-                    >
-                        Start Practice
-                    </button>
-
+                <div className="mt-8 pt-8 border-t border-slate-100">
                     <button
                         onClick={() => navigate('/tables/parent')}
-                        className="text-sm text-slate-400 hover:text-slate-600 mt-4 font-medium"
+                        className="text-sm text-slate-400 hover:text-slate-600 font-medium"
                     >
-                        Parent Dashboard
+                        Parent Dashboard (Admin)
                     </button>
                 </div>
             </div>
 
-            {/* Decorative background elements if needed */}
+            {/* Decorative background elements */}
+            <div className="fixed top-20 left-20 w-32 h-32 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob" />
+            <div className="fixed top-40 right-20 w-32 h-32 bg-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000" />
         </div>
     );
 }

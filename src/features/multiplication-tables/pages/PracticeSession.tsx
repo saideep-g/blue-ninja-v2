@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Send, Sparkles } from 'lucide-react';
+import { useNinja } from '../../../context/NinjaContext';
 
 type QuestionType = 'DIRECT' | 'MISSING_MULTIPLIER';
 
@@ -25,6 +26,7 @@ interface InteractionLog {
 export default function PracticeSession() {
     const location = useLocation();
     const navigate = useNavigate();
+    const { user } = useNinja();
 
     // State from navigation
     const selectedTables = (location.state as { tables: number[] })?.tables || [2]; // Fallback to 2
@@ -106,13 +108,32 @@ export default function PracticeSession() {
             timestamp: Date.now()
         }]);
 
+        // Save to Firestore IMMEDIATELY (single log)
+        if (user) {
+            import('../services/tablesFirestore').then(({ saveSinglePracticeLog }) => {
+                const isValidForSpeed = timeTaken <= 30000 && isCorrect; // Filter slow or incorrect answers from speed stats
+
+                saveSinglePracticeLog(user.uid, {
+                    questionId: currentQuestion.id,
+                    table: currentQuestion.table,
+                    multiplier: currentQuestion.multiplier,
+                    type: currentQuestion.type,
+                    isCorrect,
+                    timeTaken,
+                    isValidForSpeed
+                    // timestamp added by service
+                });
+            });
+        }
+
         if (isCorrect) {
             setShowFeedback('CORRECT');
             setStreak(s => s + 1);
-            // Play sound?
+            import('../utils/sounds').then(s => s.playCorrectSound());
         } else {
             setShowFeedback('INCORRECT');
             setStreak(0);
+            import('../utils/sounds').then(s => s.playIncorrectSound());
         }
 
         // Delay for feedback then move next
@@ -125,40 +146,23 @@ export default function PracticeSession() {
                 setStartTime(Date.now());
             } else {
                 // End of session
-                // Save to DB asynchronously
-                import('../services/tablesDb').then(({ saveSessionLogs }) => {
-                    // Correctly map all logs to DB format
-                    const dbLogs = sessionLogs.map(l => {
-                        const q = questions.find(q => q.id === l.questionId);
-                        return {
-                            questionId: l.questionId,
-                            table: l.table,
-                            multiplier: q?.multiplier || 0,
-                            type: q?.type || 'DIRECT',
-                            isCorrect: l.isCorrect,
-                            timeTaken: l.timeTaken,
-                            timestamp: l.timestamp
-                        };
-                    });
+                import('../utils/sounds').then(s => s.playCompletionSound());
 
-                    const currentLog = {
-                        questionId: currentQuestion!.id,
-                        table: currentQuestion!.table,
-                        multiplier: currentQuestion!.multiplier,
-                        type: currentQuestion!.type,
-                        isCorrect,
-                        timeTaken,
-                        timestamp: Date.now()
-                    };
+                // Pass full stored logs to summary for immediate display
+                // Calculate the last log manually since state update might be slightly pending consistency in closure
+                const currentLog = {
+                    questionId: currentQuestion!.id,
+                    table: currentQuestion!.table,
+                    isCorrect,
+                    timeTaken,
+                    timestamp: Date.now()
+                };
 
-                    // Cast to any to bypass strict type check for now if types slightly mismatch, or ensure strictly matching
-                    saveSessionLogs([...dbLogs, currentLog] as any);
-                    navigate('/tables/summary', { state: { logs: [...sessionLogs, { ...currentLog, questionId: currentQuestion!.id }] } });
-                });
+                navigate('/tables/summary', { state: { logs: [...sessionLogs, currentLog] } });
             }
         }, isCorrect ? 1000 : 2500); // Longer delay for incorrect to show answer
 
-    }, [currentIndex, currentQuestion, userAnswer, startTime, questions, sessionLogs, navigate]);
+    }, [currentIndex, currentQuestion, userAnswer, startTime, questions, sessionLogs, navigate, user]);
 
     // Keyboard support (optional but good)
     useEffect(() => {
