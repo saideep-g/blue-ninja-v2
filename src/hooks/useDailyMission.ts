@@ -212,7 +212,9 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
             setMissionQuestions(fullyLoadedQuestions);
 
             const firstUnanswered = fullyLoadedQuestions.findIndex((q: any) => q.status !== 'COMPLETED');
-            setCurrentIndex(firstUnanswered > 0 ? firstUnanswered : 0);
+            const startIndex = firstUnanswered > 0 ? firstUnanswered : 0;
+            console.log(`[useDailyMission] Resuming Daily Flight at Index: ${startIndex} (Questions Completed: ${firstUnanswered > 0 ? firstUnanswered : 0})`);
+            setCurrentIndex(startIndex);
 
             setQuestionStartTime(Date.now());
             setIsLoading(false);

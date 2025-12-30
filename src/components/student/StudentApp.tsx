@@ -74,6 +74,13 @@ export default function StudentApp() {
         }
     }, [ninjaStats?.currentQuest, currentView]);
 
+    // Debug: Trace Question Sequence
+    useEffect(() => {
+        if (currentView === 'DAILY_MISSION' && dailyQ) {
+            console.log(`[DailyFlight] Rendering Question ${dailyIdx + 1}/${dailyTotal} : ${dailyQ.id}`);
+        }
+    }, [dailyQ, dailyIdx, dailyTotal, currentView]);
+
     useEffect(() => {
         const root = document.documentElement;
         root.style.setProperty('--color-primary', BlueNinjaTheme.colors.primary);
