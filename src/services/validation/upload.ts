@@ -76,13 +76,20 @@ export async function runFullValidationSuite(
     const validatedItems: ValidatedItem[] = [];
     const summary: ValidationSummary = { total: 0, valid: 0, invalid: 0, warnings: 0, duplicates: 0 };
 
-    // Track IDs within this batch to catch self-duplicates
+    // Track IDs and Content Signatures within this batch
     const batchIds = new Set<string>();
+    const batchSignatures = new Map<string, string>(); // Signature -> First Item ID
 
     for (let i = 0; i < rawItems.length; i++) {
         const item = rawItems[i];
         const itemIssues: ValidationIssue[] = [];
         let isValid = true;
+        const itemId = item.item_id || 'UNKNOWN';
+
+        // Gen Signature
+        const prompt = item.prompt?.text || item.content?.prompt?.text || '';
+        const sig = prompt.length > 10 ? prompt.toLowerCase().trim().replace(/[^a-z0-9]/g, '') : null;
+
 
         // 1. Schema Check (V3 Only)
         let coreResult;
@@ -113,7 +120,7 @@ export async function runFullValidationSuite(
         itemIssues.push(...consistencyIssues);
 
         // 3. Global Duplication Check (Scanning IndexedDB cache + Batch Self-Check)
-        const itemId = item.item_id;
+
         if (itemId) {
             // Check against DB
             if (existingItemIds.has(itemId)) {
@@ -126,15 +133,30 @@ export async function runFullValidationSuite(
                 summary.duplicates++;
             }
 
-            // Check against Batch
+            // Check ID against Batch
             if (batchIds.has(itemId)) {
                 itemIssues.push({
                     severity: 'CRITICAL',
-                    code: 'BATCH_DUPLICATE',
+                    code: 'BATCH_ID_DUPLICATE',
                     message: `Question ID '${itemId}' appears multiple times in this upload.`,
                 });
             }
             batchIds.add(itemId);
+
+            // Check Content against Batch
+            if (sig) {
+                if (batchSignatures.has(sig)) {
+                    const firstId = batchSignatures.get(sig);
+                    itemIssues.push({
+                        severity: 'CRITICAL',
+                        code: 'BATCH_CONTENT_DUPLICATE',
+                        message: `Question content is identical to '${firstId}'. AI may have generated duplicates.`,
+                        suggestion: "Modify the prompt text slightly."
+                    });
+                } else {
+                    batchSignatures.set(sig, itemId);
+                }
+            }
         }
 
         // Final Validity Decision
