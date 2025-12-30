@@ -72,6 +72,20 @@ export const TwoTierTemplate: React.FC<Props> = ({
   const [isListening, setIsListening] = useState(false);
   const [nudgeType, setNudgeType] = useState<'NONE' | 'LENGTH' | 'KEYWORDS'>('NONE');
 
+  // FORCE RESET when Item ID changes
+  useEffect(() => {
+    setTier1Selected(null);
+    setTier2Text("");
+    setIsTier1Correct(false);
+    setFailureCount(0);
+    setIsTerminated(false);
+    setActiveRemediation(null);
+    setIsSubmitted(false);
+    setIsListening(false);
+    setNudgeType('NONE');
+    console.log(`[TwoTierTemplate] Reset for Item: ${item.item_id}`);
+  }, [item.item_id]);
+
 
 
   // --- SEMANTIC KEYWORD ENGINE (Doc3 Logic Bridge) ---

@@ -132,7 +132,16 @@ export default function StudentApp() {
                     </header>
                     <main className="max-w-7xl mx-auto mt-2 px-4">
                         {dailyQ ? (
-                            <MissionCard key={dailyQ.id} question={dailyQ} onAnswer={handleDailyAnswer} onStartRecovery={null} />
+                            <MissionCard
+                                key={`${dailyQ.id || 'unknown'}-${dailyIdx}`}
+                                question={dailyQ}
+                                onAnswer={(...args: any[]) => {
+                                    console.log(`[DailyFlight] Answer submitted for Q${dailyIdx} (${dailyQ.id})`);
+                                    // @ts-ignore - Dynamic dispatch to fix spread error on tuple
+                                    handleDailyAnswer(...args);
+                                }}
+                                onStartRecovery={null}
+                            />
                         ) : dailyLoading ? (
                             <div className="ninja-card flex flex-col items-center justify-center py-20">
                                 <div className="animate-spin text-4xl mb-4">🌊</div>

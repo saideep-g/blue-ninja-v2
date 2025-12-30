@@ -28,6 +28,14 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
   const [submitted, setSubmitted] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
+  // FORCE RESET when question ID changes (fixes daily flight persistence)
+  React.useEffect(() => {
+    setSelectedIndex(null);
+    setSubmitted(false);
+    setFeedback(null);
+    console.log(`[MCQTemplate] Mounted/Reset for Question: ${question.id}`);
+  }, [question.id]);
+
   // Safe typed access (Supports V2 ContentWrapper, V3 Stages, and V2 Flat)
   const stage0 = (question as any).stages?.[0];
   const interactionConfig =
