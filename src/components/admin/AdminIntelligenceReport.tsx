@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Activity,
     BarChart3,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 import { adminService } from '../../services/admin';
 import { QuestionStats, IntelligenceAction } from '../../types/admin';
+import { useIndexedDB } from '../../hooks/useIndexedDB';
 
 // ============================================================================
 // TYPES & MOCKS (Mocking data that isn't fully in DB yet for V2 Demo)
@@ -80,6 +82,7 @@ const ActionCard = ({ action }: { action: IntelligenceAction }) => {
 // ============================================================================
 
 export const AdminIntelligenceReport: React.FC = () => {
+    const navigate = useNavigate();
     const [stats, setStats] = useState<QuestionStats[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'RADAR' | 'ACTIONS'>('ACTIONS');
@@ -99,6 +102,47 @@ export const AdminIntelligenceReport: React.FC = () => {
             setLoading(false);
         }
     };
+
+    // --- DUPLICATE DETECTIVE ---
+    const { getBrowserItems, isInitialized } = useIndexedDB();
+    const [duplicates, setDuplicates] = useState<{ signature: string, ids: string[], type: string }[]>([]);
+
+    useEffect(() => {
+        if (isInitialized) scanDuplicates();
+    }, [isInitialized]);
+
+    const scanDuplicates = async () => {
+        const items = await getBrowserItems();
+        const signatures = new Map<string, string[]>();
+        const idToType = new Map<string, string>();
+
+        items.forEach((item: any) => {
+            // Create Signature: Template + Prompt Text
+            // We ignore whitespace and case to catch near-duplicates
+            const prompt = item.prompt?.text || item.content?.prompt?.text || '';
+            if (prompt.length < 10) return; // Skip very short prompts to avoid false positives on 'Solve this'
+
+            const sig = prompt.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+            const id = item.item_id || item.id;
+
+            if (!signatures.has(sig)) signatures.set(sig, []);
+            signatures.get(sig)?.push(id);
+            idToType.set(id, item.template_id || item.type);
+        });
+
+        // Filter for collisions
+        const dups: any[] = [];
+        signatures.forEach((ids, sig) => {
+            if (ids.length > 1) {
+                dups.push({
+                    signature: sig,
+                    ids,
+                    type: idToType.get(ids[0]) || 'Unknown'
+                });
+            }
+        });
+        setDuplicates(dups);
+    }
 
     // --- INTELLIGENCE ENGINE ---
     const intelligence = useMemo(() => {
@@ -274,6 +318,28 @@ export const AdminIntelligenceReport: React.FC = () => {
                             ))}
                         </div>
                     </div>
+
+                    {/* Module A2: Duplicate Detective */}
+                    {duplicates.length > 0 && (
+                        <div className="bg-red-50 border border-red-100 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm animate-in slide-in-from-left-4">
+                            <div>
+                                <h3 className="font-bold text-red-900 flex items-center gap-2 text-lg">
+                                    <AlertTriangle className="text-red-600" size={24} />
+                                    Content Integrity Issues
+                                </h3>
+                                <p className="text-red-700 mt-1 max-w-lg">
+                                    Found <strong>{duplicates.length} groups</strong> of questions with identical content but different IDs.
+                                    This creates data redundancy and skewed analytics.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => navigate('/admin/questions', { state: { mode: 'DUPLICATES' } })}
+                                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-lg shadow-red-200 transition flex items-center gap-2 shrink-0"
+                            >
+                                <Search className="w-4 h-4" /> Review & Resolve
+                            </button>
+                        </div>
+                    )}
 
                     {/* Module B: Next-Best-Action Engine */}
                     <div className="space-y-4">

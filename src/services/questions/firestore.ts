@@ -5,7 +5,7 @@
  * Service for publishing validated V3 Question Bundles to Firestore.
  */
 
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { questionBundlesCollection } from "../db/firestore";
 
 interface PublishOptions {
@@ -79,6 +79,35 @@ export async function publishBundleToFirestore(bundleData: any, options: Publish
   }
 }
 
+/**
+ * Deletes a specific question from a bundle.
+ */
+export async function deleteQuestionFromBundle(bundleId: string, questionId: string): Promise<void> {
+  const docRef = doc(questionBundlesCollection, bundleId);
+  const snapshot = await getDoc(docRef);
+
+  if (!snapshot.exists()) throw new Error(`Bundle ${bundleId} not found`);
+
+  const data = snapshot.data();
+  if (!data.items || !Array.isArray(data.items)) throw new Error("Bundle has no valid items array");
+
+  // Filter out the question
+  const originalLength = data.items.length;
+  const newItems = data.items.filter((item: any) => (item.item_id || item.id) !== questionId);
+
+  if (newItems.length === originalLength) {
+    console.warn(`Question ${questionId} not found in bundle ${bundleId}`);
+    return;
+  }
+
+  await updateDoc(docRef, {
+    items: newItems,
+    updated_at: new Date().toISOString()
+  });
+  console.log(`[Firestore] Deleted question ${questionId} from bundle ${bundleId}`);
+}
+
 export default {
-  publishBundleToFirestore
+  publishBundleToFirestore,
+  deleteQuestionFromBundle
 };

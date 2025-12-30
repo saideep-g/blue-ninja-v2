@@ -26,7 +26,7 @@ import MissionCard from '../diagnostic/MissionCard';
 
 import { useIndexedDB } from '../../hooks/useIndexedDB';
 import { runFullValidationSuite, ValidatedItem, ValidationIssue, ValidationSummary } from "../../services/validation/upload";
-import { publishBundleToFirestore } from "../../services/questions/firestore";
+import { publishBundleToFirestore, deleteQuestionFromBundle } from "../../services/questions/firestore";
 import { AdminIntelligenceReport } from './AdminIntelligenceReport';
 
 // Restore PreviewModal here before main component
@@ -119,7 +119,7 @@ const PreviewModal = ({
 // TYPES & CONSTANTS
 // ============================================================================
 
-type UploadStep = 'UPLOAD' | 'REVIEW' | 'PUBLISHING' | 'SUCCESS' | 'BROWSE' | 'INTELLIGENCE';
+type UploadStep = 'UPLOAD' | 'REVIEW' | 'PUBLISHING' | 'SUCCESS' | 'BROWSE' | 'INTELLIGENCE' | 'DUPLICATES';
 
 // ============================================================================
 // SUB-COMPONENTS
@@ -249,6 +249,7 @@ export default function AdminQuestionsPanel() {
   const [browserQuestions, setBrowserQuestions] = useState<any[]>([]);
   const [browserSearch, setBrowserSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<{ type?: string, version?: string } | null>(null);
+  const [duplicateGroups, setDuplicateGroups] = useState<{ signature: string, ids: string[], type: string }[]>([]);
   const [previewItem, setPreviewItem] = useState<any | null>(null);
 
   // IndexedDB State
@@ -277,6 +278,9 @@ export default function AdminQuestionsPanel() {
       setStep('BROWSE');
       setActiveFilter(location.state.filter);
       // Don't call loadAllQuestions here; let the isInitialized effect handle it safely
+    }
+    if (location.state?.mode === 'DUPLICATES') {
+      setStep('DUPLICATES');
     }
   }, [location.state]);
 
@@ -565,7 +569,181 @@ export default function AdminQuestionsPanel() {
   const hasNextPreview = currentPreviewIndex !== -1 && currentPreviewIndex < filteredBrowserItems.length - 1;
   const hasPrevPreview = currentPreviewIndex > 0;
 
+  const scanForDuplicates = async () => {
+    // Ensure we have data
+    let items = browserQuestions;
+    if (items.length === 0) {
+      setBrowserStep('LOADING');
+      items = (await getBrowserItems()) || [];
+      setBrowserQuestions(items);
+      setBrowserStep('READY');
+    }
+
+    const signatures = new Map<string, string[]>();
+    const idToType = new Map<string, string>();
+
+    items.forEach((item: any) => {
+      const prompt = item.prompt?.text || item.content?.prompt?.text || '';
+      if (prompt.length < 10) return;
+      const sig = prompt.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const id = item.item_id || item.id;
+
+      if (!signatures.has(sig)) signatures.set(sig, []);
+      signatures.get(sig)?.push(id);
+      idToType.set(id, item.template_id || item.type);
+    });
+
+    const dups: any[] = [];
+    signatures.forEach((ids, sig) => {
+      if (ids.length > 1) {
+        dups.push({
+          signature: sig,
+          ids,
+          type: idToType.get(ids[0]) || 'Unknown'
+        });
+      }
+    });
+    setDuplicateGroups(dups);
+  };
+
+  const handleResolveDelete = async (id: string, signature: string) => {
+    // Find item to get Bundle ID
+    const item = browserQuestions.find(q => (q.item_id || q.id) === id);
+    if (!item) return;
+
+    const isFirestore = !!item._bundleId;
+    const location = isFirestore ? 'FIRESTORE CLOUD' : 'LOCAL DRAFT';
+
+    if (!window.confirm(`PERMANENTLY DELETE question '${id}' from ${location}? This cannot be undone.`)) return;
+
+    try {
+      if (isFirestore) {
+        await deleteQuestionFromBundle(item._bundleId, id);
+      }
+
+      // Also clean up local index if present
+      await deletePendingQuestion(id);
+
+      // Update Local State
+      setDuplicateGroups(prev => prev.map(g => {
+        if (g.signature === signature) {
+          return { ...g, ids: g.ids.filter(i => i !== id) };
+        }
+        return g;
+      }).filter(g => g.ids.length > 1));
+
+      // Update Browser Cache too
+      setBrowserQuestions(prev => prev.filter(q => (q.item_id || q.id) !== id));
+
+      // Update Cache Async
+      const newCache = browserQuestions.filter(q => (q.item_id || q.id) !== id);
+      cacheBrowserItems(newCache).catch(console.error);
+
+    } catch (e: any) {
+      console.error(e);
+      alert(`Failed to delete: ${e.message}`);
+    }
+  };
+
+  // Trigger scan when entering DUPLICATES mode
+  useEffect(() => {
+    if (step === 'DUPLICATES' && duplicateGroups.length === 0) {
+      scanForDuplicates();
+    }
+  }, [step]);
+
   // Renderers
+  if (step === 'DUPLICATES') {
+    // Trigger scan on mount of this step if empty
+
+
+    return (
+      <div className="h-full flex flex-col bg-slate-50">
+        {/* Header */}
+        <div className="bg-white border-b px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <AlertTriangle className="text-red-500" /> Content Integrity Check
+          </h2>
+          <button onClick={() => setStep('INTELLIGENCE')} className="text-sm font-bold text-slate-500 hover:text-slate-800">
+            ← Back to Report
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-6">
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex gap-4 items-start">
+            <AlertCircle className="w-6 h-6 text-blue-600 shrink-0 mt-1" />
+            <div>
+              <h3 className="font-bold text-blue-900">Duplicate Resolution Mode</h3>
+              <p className="text-sm text-blue-700 mt-1">
+                These groups of questions share identical prompt text. This usually happens when AI generates multiple variations that are too similar, or when a question is uploaded multiple times with different IDs.
+              </p>
+            </div>
+          </div>
+
+          {duplicateGroups.length === 0 ? (
+            <div className="text-center py-20 opacity-50">
+              <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
+              <h3 className="text-xl font-bold text-slate-700">All Clear!</h3>
+              <p>No duplicate content signatures found.</p>
+            </div>
+          ) : (
+            duplicateGroups.map((group, idx) => (
+              <div key={idx} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="bg-slate-50 px-6 py-3 border-b flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold uppercase">{group.type}</span>
+                    <span className="text-xs font-mono text-slate-400">Sig: {group.signature.substring(0, 20)}...</span>
+                  </div>
+                  <span className="text-sm font-bold text-red-600">{group.ids.length} Conflicts</span>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {group.ids.map(id => {
+                    const item = browserQuestions.find(q => (q.item_id || q.id) === id);
+                    return (
+                      <div key={id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition group">
+                        <div className="flex-1 min-w-0 pr-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-mono font-bold text-slate-700">{id}</span>
+                            {item?._bundleId && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded">{item._bundleId}</span>}
+                          </div>
+                          <p className="text-sm text-slate-500 truncate">{item?.prompt?.text || "Text not found"}</p>
+                        </div>
+                        <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => setPreviewItem(item)}
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            title="View Details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleResolveDelete(id, group.signature)}
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Delete this copy"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Re-use Preview Modal */}
+        {previewItem && (
+          <PreviewModal
+            item={previewItem}
+            onClose={() => setPreviewItem(null)}
+          />
+        )}
+      </div>
+    );
+  }
+
   if (step === 'INTELLIGENCE') {
     return (
       <div className="h-full flex flex-col bg-slate-50">
