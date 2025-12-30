@@ -130,7 +130,7 @@ export default function StudentApp() {
                             </div>
                         </div>
                     </header>
-                    <main className="max-w-7xl mx-auto mt-8 px-4">
+                    <main className="max-w-7xl mx-auto mt-2 px-4">
                         {dailyQ ? (
                             <MissionCard key={dailyQ.id} question={dailyQ} onAnswer={handleDailyAnswer} onStartRecovery={null} />
                         ) : dailyLoading ? (
