@@ -170,6 +170,10 @@ export function useIndexedDB() {
     return executeOperation(() => dbRef.current!.clearBrowserCache());
   }, [executeOperation]);
 
+  const deleteBrowserItem = useCallback((id: string) => {
+    return executeOperation(() => dbRef.current!.deleteBrowserItem(id));
+  }, [executeOperation]);
+
   return {
     // State
     isInitialized,
@@ -209,7 +213,8 @@ export function useIndexedDB() {
     // Browser Cache
     cacheBrowserItems,
     getBrowserItems,
-    clearBrowserCache
+    clearBrowserCache,
+    deleteBrowserItem
   };
 }
 

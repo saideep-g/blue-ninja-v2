@@ -564,6 +564,17 @@ export class IndexedDBService {
     }
   }
 
+  async deleteBrowserItem(id: string) {
+    await this._ensureInitialized();
+    try {
+      await this.db.browserCache.delete(id);
+      console.log(`[IndexedDB] Deleted browser item: ${id}`);
+    } catch (error) {
+      console.error(`[IndexedDB] Error deleting browser item ${id}:`, error);
+      throw error;
+    }
+  }
+
   async clearAll() {
     await this._ensureInitialized();
     try {

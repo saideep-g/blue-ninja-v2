@@ -93,11 +93,21 @@ export async function deleteQuestionFromBundle(bundleId: string, questionId: str
 
   // Filter out the question
   const originalLength = data.items.length;
-  const newItems = data.items.filter((item: any) => (item.item_id || item.id) !== questionId);
+  console.log(`[Firestore] Deleting ${questionId} from bundle ${bundleId}. Bundle has ${originalLength} items.`);
+
+  const newItems = data.items.filter((item: any) => {
+    const iId = item.item_id || item.id;
+    // Debug first few checks
+    // console.log(`Comparing ${iId} vs ${questionId}`);
+    return iId !== questionId;
+  });
 
   if (newItems.length === originalLength) {
-    console.warn(`Question ${questionId} not found in bundle ${bundleId}`);
-    return;
+    console.warn(`[Firestore] Question ${questionId} already missing from bundle ${bundleId}. Treating as success.`);
+    // Log available IDs to help debug
+    const availableIds = data.items.map((i: any) => i.item_id || i.id).slice(0, 5);
+    console.log(`Available IDs (first 5):`, availableIds);
+    return; // Return success so local cleanup can proceed
   }
 
   await updateDoc(docRef, {

@@ -246,18 +246,27 @@ export default function AdminQuestionsPanel() {
 
   // Browser State
   const [browserStep, setBrowserStep] = useState<'IDLE' | 'LOADING' | 'READY'>('IDLE');
+  // IndexedDB State
+  const {
+    getAllPendingQuestions,
+    deletePendingQuestion,
+    isInitialized,
+    cacheBrowserItems,
+    getBrowserItems,
+    clearBrowserCache,
+    deleteBrowserItem
+  } = useIndexedDB();
+
   const [browserQuestions, setBrowserQuestions] = useState<any[]>([]);
   const [browserSearch, setBrowserSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<{ type?: string, version?: string } | null>(null);
   const [duplicateGroups, setDuplicateGroups] = useState<{ signature: string, ids: string[], type: string }[]>([]);
   const [previewItem, setPreviewItem] = useState<any | null>(null);
 
-  // IndexedDB State
-  const { getAllPendingQuestions, deletePendingQuestion, isInitialized, cacheBrowserItems, getBrowserItems, clearBrowserCache } = useIndexedDB();
   const [existingIds, setExistingIds] = useState<Set<string>>(new Set());
   const [pendingDraftCount, setPendingDraftCount] = useState(0);
 
-  // Initialization
+  // Init Logic
   useEffect(() => {
     if (isInitialized) {
       loadExistingIds();
@@ -632,12 +641,11 @@ export default function AdminQuestionsPanel() {
         return g;
       }).filter(g => g.ids.length > 1));
 
-      // Update Browser Cache too
+      // Update Browser UI
       setBrowserQuestions(prev => prev.filter(q => (q.item_id || q.id) !== id));
 
-      // Update Cache Async
-      const newCache = browserQuestions.filter(q => (q.item_id || q.id) !== id);
-      cacheBrowserItems(newCache).catch(console.error);
+      // Permanently remove from IndexedDB Browser Cache
+      await deleteBrowserItem(id);
 
     } catch (e: any) {
       console.error(e);
