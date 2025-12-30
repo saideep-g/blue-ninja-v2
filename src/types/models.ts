@@ -78,6 +78,7 @@ export interface NinjaStats {
 }
 
 export interface QuestionLog {
+    id?: string;
     questionId: string;
     studentAnswer: string | number | any;
     isCorrect: boolean;

@@ -97,7 +97,7 @@ function AnalyticsLogViewer() {
                 timestamp: doc.data().timestamp?.toDate ? doc.data().timestamp.toDate() : new Date(doc.data().timestamp)
             }));
 
-            setLogs(logData);
+            setLogs(logData as any);
             calculateStats(logData);
             setLoading(false);
 
