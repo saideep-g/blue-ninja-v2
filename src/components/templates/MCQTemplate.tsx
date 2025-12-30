@@ -28,13 +28,27 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
   const [submitted, setSubmitted] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
-  // Safe typed access
-  const interactionConfig = (question as any).interaction?.config || (question.content as any)?.interaction?.config || {};
-  const options = (interactionConfig.options || []) as { text: string }[];
-  const correctIndex = question.answerKey?.correctOptionIndex as number;
+  // Safe typed access (Supports V2 ContentWrapper, V3 Stages, and V2 Flat)
+  const stage0 = (question as any).stages?.[0];
+  const interactionConfig =
+    stage0?.interaction?.config ||
+    (question as any).interaction?.config ||
+    (question.content as any)?.interaction?.config ||
+    {};
+
+  const options = (interactionConfig.options || []) as { text: string; id?: string }[];
+
+  // Resolve correct index (V3 uses IDs, V2 uses Index)
+  let correctIndex = question.answerKey?.correctOptionIndex as number;
+  if (stage0?.answer_key?.correct_option_id) {
+    correctIndex = options.findIndex(o => o.id === stage0.answer_key.correct_option_id);
+  } else if ((question as any).correctOptionId) {
+    correctIndex = options.findIndex(o => o.id === (question as any).correctOptionId);
+  }
 
   // Robust Prompt Extraction
   const getPromptText = (q: any) => {
+    if (q.stages?.[0]?.prompt?.text) return q.stages[0].prompt.text;
     if (q.prompt?.text) return q.prompt.text;
     if (typeof q.prompt === 'string') return q.prompt;
     if (q.content?.prompt?.text) return q.content.prompt.text;
