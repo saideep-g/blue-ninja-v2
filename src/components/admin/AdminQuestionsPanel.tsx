@@ -531,13 +531,16 @@ export default function AdminQuestionsPanel() {
 
     // 2. Apply Search
     if (!browserSearch.trim()) return result.slice(0, 50); // Limit initial view
-    const q = browserSearch.toLowerCase();
-    return result.filter(item =>
-      (item.item_id || '').toLowerCase().includes(q) ||
-      (item.id || '').toLowerCase().includes(q) ||
-      (item.template_id || '').toLowerCase().includes(q) ||
-      JSON.stringify(item).toLowerCase().includes(q)
-    ).slice(0, 100); // hard limit render
+
+    const terms = browserSearch.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+
+    return result.filter(item => {
+      // Create a search corpus from common fields + raw JSON to ensure we catch everything
+      const corpus = JSON.stringify(item).toLowerCase();
+
+      // Strict AND search: Item must contain ALL terms
+      return terms.every(term => corpus.includes(term));
+    }).slice(0, 100); // hard limit render
   }, [browserQuestions, browserSearch, activeFilter]);
 
   // Preview Navigation Logic
