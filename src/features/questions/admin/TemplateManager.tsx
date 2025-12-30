@@ -1,19 +1,15 @@
 import React, { useState } from 'react';
 import { registry } from '../registry';
-import { Terminal, Copy, BarChart3, Database, AlertCircle, CheckCircle2 } from 'lucide-react';
-
-const MOCK_INVENTORY_STATS = {
-    total: 1250,
-    distribution: [
-        { type: 'LEGACY_MCQ', count: 850, version: 'legacy', details: 'Old V2 Template' },
-        { type: 'multiple-choice', count: 300, version: 'v1', details: 'Standard QLMS' },
-        { type: 'mcq-branching', count: 100, version: 'v1', details: 'New Adaptive Flow' }
-    ]
-};
+import { useIndexedDB } from '../../../hooks/useIndexedDB';
+import { Terminal, Copy, BarChart3, Database, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
 export const TemplateManager: React.FC = () => {
     const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
     const [showStats, setShowStats] = useState(false);
+    const [inventoryStats, setInventoryStats] = useState<{ total: number, distribution: any[] } | null>(null);
+    const [isScanning, setIsScanning] = useState(false);
+
+    const { getBrowserItems } = useIndexedDB();
 
     const allTypes = registry.getAllTypes();
     const selectedManifest = selectedTypeId ? registry.get(selectedTypeId) : null;
@@ -22,6 +18,50 @@ export const TemplateManager: React.FC = () => {
         navigator.clipboard.writeText(text);
         // Toast logic here ideally
     };
+
+    const runInventoryScan = async () => {
+        setIsScanning(true);
+        try {
+            const items = await getBrowserItems();
+
+            // Analyze Items
+            let legacyCount = 0;
+            let v1Count = 0;
+            let branchCount = 0;
+
+            items.forEach((item: any) => {
+                const meta = item.metadata || {};
+                const type = item.type || item.template_id;
+
+                if (type === 'mcq-branching' || item.flow?.mode === 'branching') {
+                    branchCount++;
+                } else if (meta.version === 'v1') {
+                    v1Count++;
+                } else {
+                    legacyCount++;
+                }
+            });
+
+            setInventoryStats({
+                total: items.length,
+                distribution: [
+                    { type: 'LEGACY_MCQ', count: legacyCount, version: 'legacy', details: 'Old V2 Template' },
+                    { type: 'STANDARD_V1', count: v1Count, version: 'v1', details: 'Standard QLMS' },
+                    { type: 'BRANCHING', count: branchCount, version: 'v1', details: 'New Adaptive Flow' }
+                ]
+            });
+        } catch (e) {
+            console.error("Scan failed", e);
+        } finally {
+            setIsScanning(false);
+        }
+    };
+
+    React.useEffect(() => {
+        if (showStats && !inventoryStats) {
+            runInventoryScan();
+        }
+    }, [showStats]);
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -45,45 +85,56 @@ export const TemplateManager: React.FC = () => {
                     <div className="flex items-center gap-3 mb-6">
                         <Database className="w-6 h-6 text-blue-400" />
                         <h2 className="text-xl font-bold">Repository Health Check</h2>
+                        {isScanning && <RefreshCw className="w-4 h-4 animate-spin text-gray-400" />}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {/* Summary Widget */}
-                        <div className="bg-gray-800 p-4 rounded-xl">
-                            <div className="text-gray-400 text-sm mb-1">Total Questions</div>
-                            <div className="text-4xl font-mono font-bold">{MOCK_INVENTORY_STATS.total}</div>
-                            <div className="text-xs text-green-400 mt-2 flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" /> Database Connected
-                            </div>
+                    {!inventoryStats || isScanning ? (
+                        <div className="text-center py-8 text-gray-400">
+                            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2" />
+                            Scanning local IndexedDB...
                         </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            {/* Summary Widget */}
+                            <div className="bg-gray-800 p-4 rounded-xl">
+                                <div className="text-gray-400 text-sm mb-1">Total Questions</div>
+                                <div className="text-4xl font-mono font-bold">{inventoryStats.total}</div>
+                                <div className="text-xs text-green-400 mt-2 flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" /> Database Connected
+                                </div>
+                            </div>
 
-                        {/* Distribution Bar */}
-                        <div className="col-span-2 space-y-4">
-                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Version Distribution</h3>
-                            <div className="space-y-3">
-                                {MOCK_INVENTORY_STATS.distribution.map((item, idx) => {
-                                    const percent = Math.round((item.count / MOCK_INVENTORY_STATS.total) * 100);
-                                    return (
-                                        <div key={idx}>
-                                            <div className="flex justify-between text-sm mb-1">
-                                                <span className="font-bold flex items-center gap-2">
-                                                    {item.version === 'legacy' ? <AlertCircle className="w-3 h-3 text-red-400" /> : <CheckCircle2 className="w-3 h-3 text-green-400" />}
-                                                    {item.type} <span className="opacity-50 font-normal">({item.version})</span>
-                                                </span>
-                                                <span className="font-mono">{percent}%</span>
+                            {/* Distribution Bar */}
+                            <div className="col-span-2 space-y-4">
+                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Version Distribution</h3>
+                                <div className="space-y-3">
+                                    {inventoryStats.distribution.map((item, idx) => {
+                                        const percent = inventoryStats.total > 0
+                                            ? Math.round((item.count / inventoryStats.total) * 100)
+                                            : 0;
+
+                                        return (
+                                            <div key={idx}>
+                                                <div className="flex justify-between text-sm mb-1">
+                                                    <span className="font-bold flex items-center gap-2">
+                                                        {item.version === 'legacy' ? <AlertCircle className="w-3 h-3 text-red-400" /> : <CheckCircle2 className="w-3 h-3 text-green-400" />}
+                                                        {item.type} <span className="opacity-50 font-normal">({item.version})</span>
+                                                    </span>
+                                                    <span className="font-mono">{percent}% ({item.count})</span>
+                                                </div>
+                                                <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full ${item.version === 'legacy' ? 'bg-red-500' : 'bg-blue-500'}`}
+                                                        style={{ width: `${percent}%` }}
+                                                    />
+                                                </div>
                                             </div>
-                                            <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                                                <div
-                                                    className={`h-full ${item.version === 'legacy' ? 'bg-red-500' : 'bg-blue-500'}`}
-                                                    style={{ width: `${percent}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
 
@@ -98,8 +149,8 @@ export const TemplateManager: React.FC = () => {
                             key={t.id}
                             onClick={() => setSelectedTypeId(t.id)}
                             className={`w-full text-left p-3 rounded-lg border transition-all ${selectedTypeId === t.id
-                                    ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-sm ring-1 ring-blue-200'
-                                    : 'bg-white border-gray-100 hover:border-gray-300 hover:bg-gray-50'
+                                ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-sm ring-1 ring-blue-200'
+                                : 'bg-white border-gray-100 hover:border-gray-300 hover:bg-gray-50'
                                 }`}
                         >
                             <div className="font-bold">{t.name}</div>
