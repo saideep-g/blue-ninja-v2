@@ -10,6 +10,7 @@ import ParentDashboard from '../components/admin/ParentDashboard';
 import { AdminBundleManager } from '../components/admin/AdminBundleManager';
 import TestLab from '../components/admin/TestLab';
 import { MigrationDashboard } from '../features/questions/admin/MigrationDashboard';
+import { TemplateManager } from '../features/questions/admin/TemplateManager';
 
 export default function AdminRoutes() {
     return (
@@ -27,6 +28,7 @@ export default function AdminRoutes() {
                 <Route path="users" element={<ParentDashboard />} />
                 <Route path="test-lab" element={<TestLab />} />
                 <Route path="migration" element={<MigrationDashboard />} />
+                <Route path="templates" element={<TemplateManager />} />
             </Route>
         </Routes>
     );

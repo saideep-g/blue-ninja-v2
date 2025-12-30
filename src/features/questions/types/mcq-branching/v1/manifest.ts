@@ -14,7 +14,44 @@ export const MCQBranchingManifestV1: QuestionManifest<MCQBranchingDataV1> = {
 
     aiContext: {
         description: "Multi-stage adaptive question (FSM).",
-        generationPrompt: `Generate a JSON object for a branching question. Use { "flow": { "mode": "branching" }, "stages": [...] }. Define explicit 'next' transitions for each option.`
+        generationPrompt: `
+You are an expert curriculum designer. Generate a 'mcq-branching' question JSON.
+The structure must follow the V1 Schema.
+TEMPLATE:
+{
+  "item_id": "UNIQUE_ID",
+  "atom_id": "CURRICULUM_ATOM_ID",
+  "difficulty": 2,
+  "context_tags": ["tag1", "tag2"],
+  "flow": { "mode": "branching", "entry_stage_id": "ST1" },
+  "stages": [
+    {
+      "stage_id": "ST1",
+      "intent": "INITIAL",
+      "prompt": { "text": "Question Text?" },
+      "interaction": {
+        "type": "mcq_concept",
+        "config": {
+          "options": [
+            { 
+               "id": "A", "text": "Wrong", 
+               "feedback": "Hint...", 
+               "next": { "type": "branch", "target": "REPAIR_ST1" } 
+            },
+            { 
+               "id": "B", "text": "Correct", 
+               "is_correct": true,
+               "feedback": "Good job!", 
+               "next": { "type": "exit", "outcome": "pass" } 
+            }
+          ]
+        }
+      }
+    }
+    // Add REPAIR_ST1 stage here...
+  ]
+}
+`
     },
 
     analytics: {
