@@ -63,6 +63,7 @@ export interface Mission {
 
   // Progress
   questionsCompleted?: number;              // Questions answered so far
+  completedQuestionIds?: string[];          // IDs of questions answered (for granularity)
   currentScore?: number;                    // Current percentage
   startedAt?: number;                       // When student started (timestamp)
   completedAt?: number;                     // When completed (timestamp)

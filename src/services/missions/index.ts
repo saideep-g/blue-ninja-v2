@@ -584,13 +584,11 @@ class DailyMissionsService {
       const timeSpentMs = now - (typeof startTime === 'number' ? startTime : now);
 
       // Update mission
-      const updatedMission = {
-        ...mission,
+      const updates = {
         status: MissionStatus.COMPLETED as any,
         completedAt: now,
         timeSpentMs: timeSpentMs,
         currentScore: accuracy || 100,
-        pointsReward: mission.pointsReward, // Type mismatch in some schemas possible, careful
         synced: false
       };
 
@@ -600,8 +598,11 @@ class DailyMissionsService {
         mission.pointsReward * 0.5
       );
 
-      // Save mission
-      await idbService.saveDailyMission(updatedMission);
+      // Save mission (Atomic Update)
+      await idbService.db.dailyMissions.update(missionId, updates);
+
+      // Merge for local return (optimistic)
+      const updatedMission = { ...mission, ...updates };
 
       // Create completion record
       const completion: MissionCompletion = {
@@ -641,6 +642,35 @@ class DailyMissionsService {
     }
   }
 
+  /**
+   * Track granular question progress (Atomic Transaction)
+   */
+  async markQuestionComplete(userId: string, missionId: string, questionId: string) {
+    try {
+      console.log(`[Missions] markQuestionComplete invoked for Mission: ${missionId} Question: ${questionId}`);
+      await idbService.db.transaction('rw', idbService.db.dailyMissions, async () => {
+        const mission = await idbService.db.dailyMissions.get(missionId);
+        if (!mission) return;
+
+        const completedIds = mission.completedQuestionIds || [];
+        if (completedIds.includes(questionId)) return;
+
+        const updatedIds = [...completedIds, questionId];
+
+        await idbService.db.dailyMissions.update(missionId, {
+          completedQuestionIds: updatedIds,
+          questionsCompleted: updatedIds.length,
+          synced: false
+        });
+        console.log(`[Missions] Progress saved for ${missionId} (${updatedIds.length}/${mission.questionCount})`);
+      });
+    } catch (e) {
+      console.error('Failed to save question progress', e);
+    }
+  }
+
+
+
   async startMission(missionId: string): Promise<Mission> {
     try {
       const mission = await idbService.getDailyMission(missionId);
@@ -648,16 +678,16 @@ class DailyMissionsService {
         throw new Error('Mission not found');
       }
 
-      const updated = {
-        ...mission,
+      await idbService.db.dailyMissions.update(missionId, {
         status: MissionStatus.IN_PROGRESS as any,
         startedAt: Date.now(),
         synced: false
-      };
+      });
 
-      await idbService.saveDailyMission(updated);
       logger.debug('Mission started', { missionId });
 
+      // Return updated object (fetching freshly to be accurate)
+      const updated = await idbService.getDailyMission(missionId);
       return updated as unknown as Mission;
     } catch (error) {
       logger.error('Failed to start mission', error);

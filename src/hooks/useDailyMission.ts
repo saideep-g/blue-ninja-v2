@@ -136,6 +136,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                         ...skel,
                         ...match,
                         id: skel.id,
+                        metadata: skel.metadata, // Force preserve metadata (missionId)
                         content_hash: Math.random().toString(36)
                     };
                 }
@@ -153,7 +154,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
         }
     };
 
-    const generateMission = useCallback(async () => {
+    const generateMission = useCallback(async (manualOverrides?: any) => {
         if (devQuestions && devQuestions.length > 0) {
             setMissionQuestions(devQuestions);
             setIsLoading(false);
@@ -170,23 +171,46 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
 
             const storedSimConfig = localStorage.getItem('BLUE_NINJA_SIM_CONFIG');
             const simConfig = storedSimConfig ? JSON.parse(storedSimConfig) : undefined;
-            const isSimulation = !!simConfig;
+            const isSimulation = !!simConfig || !!manualOverrides; // Treat manual override as simulation context
 
             if (simConfig) console.log('🧪 Simulation Active', simConfig);
+            if (manualOverrides) console.log('🔄 Manual Override / New Session', manualOverrides);
+
+            const finalOptions = { ...simConfig, ...manualOverrides };
+
+            if (manualOverrides?.bypassHistory) {
+                // Reset local state explicitely
+                setIsComplete(false);
+                setCurrentIndex(0);
+                setMissionQuestions([]);
+            }
 
             // 1. Generate Plan (Skeleton or Bundle)
             const batch = await missionsService.generateDailyMissions({
                 userId: user.uid,
                 date: new Date().toISOString().split('T')[0]
-            }, simConfig);
+            }, finalOptions);
 
             let extractedQuestions: any[] = [];
             if (batch && batch.missions) {
-                batch.missions.forEach(mission => {
+                // FIX: Sort missions chronologically to ensure "New Flight" questions appear AFTER completed ones
+                // This prevents "shuffling" where new questions insert themselves into the middle of the completed list.
+                const sortedMissions = [...batch.missions].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+                sortedMissions.forEach(mission => {
                     if (mission.questions) {
                         mission.questions.forEach((mq: any) => {
+                            const qId = mq.questionId || mq.id;
+                            const isQCompleted = mission.completedQuestionIds?.includes(qId);
+
+                            // DEBUG: Trace completion logic
+                            if (mission.completedQuestionIds?.length > 0) {
+                                console.log(`[Hydration] Checking Q ${qId} in Mission ${mission.id} (Completed: ${mission.completedQuestionIds.join(',')}) -> ${isQCompleted}`);
+                            }
+
                             const uiQ = {
-                                id: mq.questionId || mq.id,
+                                ...mq,
+                                id: qId,
                                 questionId: mq.questionId,
                                 atom: mq.atomId,
                                 type: mq.templateId || mq.type,
@@ -196,8 +220,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                                     phase: mission.title,
                                     ...mq.analytics
                                 },
-                                status: mission.status,
-                                ...mq
+                                status: isQCompleted ? 'COMPLETED' : mission.status
                             };
                             extractedQuestions.push(uiQ);
                         });
@@ -212,9 +235,17 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
             setMissionQuestions(fullyLoadedQuestions);
 
             const firstUnanswered = fullyLoadedQuestions.findIndex((q: any) => q.status !== 'COMPLETED');
-            const startIndex = firstUnanswered > 0 ? firstUnanswered : 0;
-            console.log(`[useDailyMission] Resuming Daily Flight at Index: ${startIndex} (Questions Completed: ${firstUnanswered > 0 ? firstUnanswered : 0})`);
-            setCurrentIndex(startIndex);
+
+            // Fix: If all questions are completed (index -1), mark mission as complete
+            if (firstUnanswered === -1 && fullyLoadedQuestions.length > 0) {
+                console.log('[useDailyMission] All questions completed! Setting Complete State.');
+                setIsComplete(true);
+                setCurrentIndex(fullyLoadedQuestions.length); // Ensure index is out of bounds
+            } else {
+                const startIndex = firstUnanswered > 0 ? firstUnanswered : 0;
+                console.log(`[useDailyMission] Resuming Daily Flight at Index: ${startIndex} (Questions Completed: ${firstUnanswered > 0 ? firstUnanswered : 0})`);
+                setCurrentIndex(startIndex);
+            }
 
             setQuestionStartTime(Date.now());
             setIsLoading(false);
@@ -272,8 +303,12 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
 
         if (currentQuestion.metadata?.missionId) {
             const missionId = currentQuestion.metadata.missionId;
+
+            // Track granular progress to prevent rollback
+            missionsService.markQuestionComplete(auth.currentUser.uid, missionId, currentQuestion.id).catch(console.error);
+
             const questionsInThisMission = missionQuestions.filter(q => q.metadata?.missionId === missionId);
-            const myIndexInMission = questionsInThisMission.findIndex(q => q.id === currentQuestion.id);
+            const myIndexInMission = questionsInThisMission.findIndex(q => q === currentQuestion);
             const isLastInMission = myIndexInMission === questionsInThisMission.length - 1;
 
             if (isLastInMission) {
@@ -304,6 +339,8 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
         }
     };
 
+    const startNewSession = () => generateMission({ bypassHistory: true });
+
     return {
         currentQuestion: missionQuestions[currentIndex],
         currentIndex,
@@ -311,6 +348,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
         isLoading,
         isComplete,
         sessionResults,
-        submitDailyAnswer
+        submitDailyAnswer,
+        startNewSession
     };
 }

@@ -74,6 +74,7 @@ export interface DailyMission {
   questions?: any[];
   pointsReward: number;
   questionsCompleted?: number;
+  completedQuestionIds?: string[];
   currentScore?: number;
   startedAt?: number;
   completedAt?: number;

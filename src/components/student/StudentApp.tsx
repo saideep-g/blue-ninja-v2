@@ -48,7 +48,8 @@ export default function StudentApp() {
         submitDailyAnswer,
         isComplete: dailyComplete,
         sessionResults,
-        isLoading: dailyLoading // Destructure isLoading
+        isLoading: dailyLoading, // Destructure isLoading
+        startNewSession
     } = useDailyMission(null);
 
     const handleDiagAnswer = (isCorrect: boolean, choice: string | number, isRecovered: boolean, tag: string, timeSpentSeconds: number) => {
@@ -99,7 +100,7 @@ export default function StudentApp() {
                     <FlaskConical size={14} /> SIMULATION MODE ACTIVE
                 </div>
             )}
-            {dailyComplete && (
+            {dailyComplete && currentView === 'DAILY_MISSION' && (
                 <div className="min-h-screen flex items-center justify-center p-6">
                     <div className="ninja-card max-w-md w-full text-center space-y-8 animate-in zoom-in duration-500">
                         <h1 className="text-4xl font-black italic text-blue-800 uppercase tracking-tighter">Mission Accomplished</h1>
@@ -119,8 +120,11 @@ export default function StudentApp() {
                                 <span>⚡</span> {sessionResults.sprintCount} Ninja Sprints Detected!
                             </div>
                         )}
-                        <button onClick={() => window.location.reload()} className="w-full py-5 bg-[var(--color-primary)] text-white rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+                        <button onClick={() => setCurrentView('DASHBOARD')} className="w-full py-5 bg-[var(--color-primary)] text-white rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
                             Return to Dashboard ➤
+                        </button>
+                        <button onClick={startNewSession} className="w-full mt-4 py-4 bg-yellow-400 text-blue-900 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all hover:bg-yellow-300">
+                            🔄 Continue Practice (New Flight)
                         </button>
                     </div>
                 </div>
