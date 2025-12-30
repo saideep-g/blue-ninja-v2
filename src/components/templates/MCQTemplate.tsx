@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
+import { CheckCircle2, XCircle, Lightbulb, AlertCircle } from 'lucide-react';
 import { Question } from '../../types';
 
 interface MCQTemplateProps {
@@ -80,6 +80,26 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
           <p className="text-base text-gray-600 leading-relaxed">
             {instruction}
           </p>
+        )}
+
+        {/* DEBUGGING AID: Only show if content failed to load */}
+        {prompt === 'What is your answer?' && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-900 font-mono overflow-auto">
+            <div className="font-bold mb-2 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              <span>Content Load Error (Fallback Triggered)</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <span className="opacity-75">ID:</span> <span>{question.id}</span>
+              <span className="opacity-75">Type:</span> <span>{question.type || (question as any).template_id || 'UNKNOWN'}</span>
+            </div>
+            <details className="cursor-pointer">
+              <summary className="font-bold opacity-75 hover:opacity-100">View Raw Data</summary>
+              <pre className="mt-2 text-xs bg-white p-2 border rounded overflow-auto max-h-40">
+                {JSON.stringify(question, null, 2)}
+              </pre>
+            </details>
+          </div>
         )}
       </div>
 
