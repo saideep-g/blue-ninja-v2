@@ -87,11 +87,11 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
     <div className="w-full space-y-8 flex flex-col">
       {/* ========== QUESTION PROMPT (HERO) ========== */}
       <div className="space-y-3">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight whitespace-pre-wrap">
           {prompt}
         </h2>
         {instruction && (
-          <p className="text-base text-gray-600 leading-relaxed">
+          <p className="text-base text-gray-600 leading-relaxed whitespace-pre-wrap">
             {instruction}
           </p>
         )}

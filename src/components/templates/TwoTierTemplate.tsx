@@ -208,10 +208,10 @@ export const TwoTierTemplate: React.FC<Props> = ({
           <div className="bg-white p-8 lg:p-10 rounded-[40px] border border-slate-100 shadow-sm flex-1">
             <header className="mb-8">
               <Badge color="indigo">Stage 1: The Answer</Badge>
-              <h3 className="text-2xl lg:text-3xl font-black text-slate-900 leading-tight mt-6">
+              <h3 className="text-2xl lg:text-3xl font-black text-slate-900 leading-tight mt-6 whitespace-pre-wrap">
                 <LatexRenderer text={tier1.prompt.text} />
               </h3>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mt-3 italic">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mt-3 italic whitespace-pre-wrap">
                 {tier1.instruction}
               </p>
             </header>
