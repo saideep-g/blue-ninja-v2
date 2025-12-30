@@ -18,6 +18,7 @@ import {
   Save, Edit3, Trash2, Database, Play, Loader, FileJson, ArrowRight, X, Eye, RefreshCw,
   CheckCircle, AlertTriangle, AlertCircle, XCircle, Search, Upload, FileUp, Download
 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 import { getDocs } from 'firebase/firestore';
 import { questionBundlesCollection } from '../../services/db/firestore';
@@ -235,6 +236,7 @@ const EditorModal = ({
 // ============================================================================
 
 export default function AdminQuestionsPanel() {
+  const location = useLocation();
   // State
   const [step, setStep] = useState<UploadStep>('BROWSE');
   const [items, setItems] = useState<ValidatedItem[]>([]);
@@ -246,6 +248,7 @@ export default function AdminQuestionsPanel() {
   const [browserStep, setBrowserStep] = useState<'IDLE' | 'LOADING' | 'READY'>('IDLE');
   const [browserQuestions, setBrowserQuestions] = useState<any[]>([]);
   const [browserSearch, setBrowserSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState<{ type?: string, version?: string } | null>(null);
   const [previewItem, setPreviewItem] = useState<any | null>(null);
 
   // IndexedDB State
@@ -266,6 +269,16 @@ export default function AdminQuestionsPanel() {
       loadAllQuestions(false);
     }
   }, [isInitialized, step, browserStep]);
+
+  // Handle Incoming Deep Links / Filters
+  useEffect(() => {
+    if (location.state?.filter) {
+      console.log("Applying Filter:", location.state.filter);
+      setStep('BROWSE');
+      setActiveFilter(location.state.filter);
+      // Don't call loadAllQuestions here; let the isInitialized effect handle it safely
+    }
+  }, [location.state]);
 
   const loadExistingIds = async () => {
     try {
@@ -491,15 +504,41 @@ export default function AdminQuestionsPanel() {
   };
 
   const filteredBrowserItems = useMemo(() => {
-    if (!browserSearch.trim()) return browserQuestions.slice(0, 50); // Limit initial view
+    let result = browserQuestions;
+
+    // 1. Apply Strict Filter (if active)
+    if (activeFilter) {
+      result = result.filter(item => {
+        // Type Check
+        const itemType = (item.type || item.template_id || 'unknown').toLowerCase();
+        // Normalize legacy types for check
+        const normalizedType = ['mcq_concept', 'mcq_skill', 'legacy_mcq', 'mcq'].includes(itemType)
+          ? 'multiple-choice'
+          : (itemType === 'mcq_branching' ? 'mcq-branching' : itemType);
+
+        if (activeFilter.type && normalizedType !== activeFilter.type) return false;
+
+        // Version Check
+        if (activeFilter.version) {
+          const itemVer = item.metadata?.version ? `v${item.metadata.version}` : 'legacy';
+          // Handle case where we click "legacy" but item has no version (which means legacy)
+          if (activeFilter.version === 'legacy' && item.metadata?.version) return false;
+          if (activeFilter.version !== 'legacy' && `v${item.metadata?.version}` !== activeFilter.version) return false;
+        }
+        return true;
+      });
+    }
+
+    // 2. Apply Search
+    if (!browserSearch.trim()) return result.slice(0, 50); // Limit initial view
     const q = browserSearch.toLowerCase();
-    return browserQuestions.filter(item =>
+    return result.filter(item =>
       (item.item_id || '').toLowerCase().includes(q) ||
       (item.id || '').toLowerCase().includes(q) ||
       (item.template_id || '').toLowerCase().includes(q) ||
       JSON.stringify(item).toLowerCase().includes(q)
     ).slice(0, 100); // hard limit render
-  }, [browserQuestions, browserSearch]);
+  }, [browserQuestions, browserSearch, activeFilter]);
 
   // Preview Navigation Logic
   const currentPreviewIndex = useMemo(() => {
@@ -561,25 +600,41 @@ export default function AdminQuestionsPanel() {
         <div className="flex-1 overflow-hidden flex flex-col p-8 max-w-7xl mx-auto w-full">
 
           {/* Search & Actions */}
-          <div className="flex gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search by ID, Template, Content..."
-                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium"
-                value={browserSearch}
-                onChange={(e) => setBrowserSearch(e.target.value)}
-              />
+          <div className="flex flex-col gap-4 mb-6">
+            {activeFilter && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold uppercase text-xs tracking-wider bg-blue-200 px-2 py-1 rounded">Filtered View</span>
+                  <span className="font-medium">
+                    {activeFilter.type && `Type: ${activeFilter.type}`}
+                    {activeFilter.version && ` • Version: ${activeFilter.version}`}
+                  </span>
+                </div>
+                <button onClick={() => setActiveFilter(null)} className="p-1 hover:bg-blue-100 rounded-full">
+                  <XCircle className="w-5 h-5 text-blue-500" />
+                </button>
+              </div>
+            )}
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search by ID, Template, Content..."
+                  className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium"
+                  value={browserSearch}
+                  onChange={(e) => setBrowserSearch(e.target.value)}
+                />
+              </div>
+              <button
+                onClick={() => loadAllQuestions(true)}
+                disabled={browserStep === 'LOADING'}
+                className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg hover:bg-slate-800 transition flex items-center gap-2"
+              >
+                {browserStep === 'LOADING' ? <Loader className="animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                {browserStep === 'IDLE' ? 'Load Data' : 'Refresh'}
+              </button>
             </div>
-            <button
-              onClick={() => loadAllQuestions(true)}
-              disabled={browserStep === 'LOADING'}
-              className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg hover:bg-slate-800 transition flex items-center gap-2"
-            >
-              {browserStep === 'LOADING' ? <Loader className="animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              {browserStep === 'IDLE' ? 'Load Data' : 'Refresh'}
-            </button>
           </div>
 
           {/* Results List */}
