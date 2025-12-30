@@ -295,7 +295,8 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
             masteryBefore: 0.5,
             masteryAfter: 0.5,
             atomId: currentQuestion.atom || 'UNKNOWN',
-            mode: 'DAILY'
+            mode: 'DAILY',
+            selectionRationale: currentQuestion.metadata?.selectionRationale
         }, currentIndex);
 
         const gain = isCorrect ? 15 : (isRecovered ? 7 : 0);

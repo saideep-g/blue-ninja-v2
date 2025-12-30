@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from "../../services/db/firebase";
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { QuestionLog } from '../../types/models';
+import { SelectionRationale } from '../../types/analytics';
 
 /**
  * AnalyticsLogViewer - Insightful Edition
@@ -14,7 +16,7 @@ import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, onSnaps
  * - Whether the logging system is working (data quality health)
  */
 function AnalyticsLogViewer() {
-    const [logs, setLogs] = useState([]);
+    const [logs, setLogs] = useState<QuestionLog[]>([]);
     const [students, setStudents] = useState([]);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [selectedStudentData, setSelectedStudentData] = useState(null);
@@ -165,6 +167,17 @@ function AnalyticsLogViewer() {
     const generateLogInsight = (log, index, totalLogs) => {
         const insights = [];
 
+        // Story Part 0: WHY this question? (AI Explainability)
+        if (log.selectionRationale) {
+            const rat = log.selectionRationale;
+            insights.push({
+                type: 'ai_rationale',
+                icon: '🧠',
+                title: `AI Rationale: ${rat.strategy}`,
+                message: `${rat.trigger || 'No trigger details'} ${rat.srsState ? `(Interval: ${rat.srsState.interval}d)` : ''}`
+            });
+        }
+
         // Story Part 1: What happened?
         if (log.isCorrect) {
             insights.push({
@@ -282,6 +295,36 @@ function AnalyticsLogViewer() {
         const avgMasteryGain = logs.reduce((sum, l) => sum + ((l.masteryAfter || 0) - (l.masteryBefore || 0)), 0) / logs.length;
         const avgTime = logs.reduce((sum, l) => sum + (l.timeSpent || 0), 0) / logs.length;
         const sprintCount = logs.filter(l => l.speedRating === 'SPRINT').length;
+
+        // AI Strategy Breakdown
+        const strategyCounts: Record<string, number> = {};
+        logs.forEach(l => {
+            const strat = l.selectionRationale?.strategy || 'LEGACY';
+            strategyCounts[strat] = (strategyCounts[strat] || 0) + 1;
+        });
+        const strategyMessage = Object.entries(strategyCounts)
+            .sort(([, a], [, b]) => b - a) // Sort by count descending
+            .map(([strat, count]) => `• ${strat}: ${count} questions (${Math.round(count / logs.length * 100)}%)`)
+            .join('\n');
+
+        insights.push({
+            type: 'ai_summary',
+            icon: '🧠',
+            title: `AI Strategy Mix`,
+            message: strategyMessage
+        });
+
+        // Check for Content Gaps (Fallbacks)
+        const fallbacks = logs.filter(l => l.selectionRationale?.strategy === 'FALLBACK');
+        if (fallbacks.length > 0) {
+            const reasons = [...new Set(fallbacks.map(f => f.selectionRationale?.trigger || 'Unknown'))].join(', ');
+            insights.push({
+                type: 'content_gap',
+                icon: '🚧',
+                title: 'Content Gap Alert',
+                message: `System fell back to random selection for ${fallbacks.length} items.\nMissing Content for: ${reasons}`
+            });
+        }
 
         insights.push({
             type: 'summary',
@@ -439,10 +482,12 @@ function AnalyticsLogViewer() {
                             <div
                                 key={idx}
                                 className={`rounded-lg p-4 border-l-4 ${insight.type === 'summary' ? 'bg-blue-50 border-blue-500' :
-                                    insight.type === 'momentum' ? 'bg-yellow-50 border-yellow-500' :
-                                        insight.type === 'struggle' ? 'bg-red-50 border-red-500' :
-                                            insight.type === 'learning' ? 'bg-green-50 border-green-500' :
-                                                'bg-purple-50 border-purple-500'
+                                    insight.type === 'ai_summary' ? 'bg-indigo-50 border-indigo-600' :
+                                        insight.type === 'content_gap' ? 'bg-amber-50 border-amber-600 border-dashed' :
+                                            insight.type === 'momentum' ? 'bg-yellow-50 border-yellow-500' :
+                                                insight.type === 'struggle' ? 'bg-red-50 border-red-500' :
+                                                    insight.type === 'learning' ? 'bg-green-50 border-green-500' :
+                                                        'bg-purple-50 border-purple-500'
                                     }`}
                             >
                                 <div className="flex items-start gap-3">
@@ -564,9 +609,10 @@ function AnalyticsLogViewer() {
                                                             insight.type === 'recovery' ? 'bg-yellow-50 border-yellow-500' :
                                                                 insight.type === 'struggle' ? 'bg-red-50 border-red-500' :
                                                                     insight.type === 'speed' ? 'bg-blue-50 border-blue-500' :
-                                                                        insight.type === 'concept' ? 'bg-purple-50 border-purple-500' :
-                                                                            insight.type === 'action' ? 'bg-orange-50 border-orange-500' :
-                                                                                'bg-slate-50 border-slate-300'
+                                                                        insight.type === 'ai_rationale' ? 'bg-indigo-50 border-indigo-600 shadow-sm' :
+                                                                            insight.type === 'concept' ? 'bg-purple-50 border-purple-500' :
+                                                                                insight.type === 'action' ? 'bg-orange-50 border-orange-500' :
+                                                                                    'bg-slate-50 border-slate-300'
                                                             }`}
                                                     >
                                                         <p className="text-sm font-bold text-slate-900">

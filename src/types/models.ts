@@ -1,3 +1,4 @@
+import { SelectionRationale } from './analytics';
 
 export interface User {
     id: string;
@@ -54,7 +55,12 @@ export interface Question {
         interaction?: any;
         instruction?: string; // alternate location
     };
-    metadata?: any;
+    metadata?: {
+        missionId?: string;
+        phase?: string;
+        selectionRationale?: SelectionRationale;
+        [key: string]: any;
+    };
     answerKey?: any; // Legacy/V2 support
     workedSolution?: any; // Legacy/V2 support
 }
@@ -90,4 +96,5 @@ export interface QuestionLog {
     studentId?: string;
     isSuccess?: boolean;
     syncedAt?: number;
+    selectionRationale?: SelectionRationale;
 }

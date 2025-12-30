@@ -39,6 +39,7 @@ import { loadCurriculumV2 } from '../curriculum';
 import { db } from '../db/firebase';
 import { questionBundlesCollection } from '../db/firestore';
 import { getDoc, doc } from 'firebase/firestore';
+import { SelectionRationale } from '../../types/analytics';
 
 // Helper Interfaces for V2 Logic
 interface MissionPhase {
@@ -79,6 +80,7 @@ interface MissionQuestion {
     learningOutcomeTypes: string[];
     masteryProfile?: string;
     prerequisites: string[];
+    selectionRationale?: SelectionRationale;
   };
 }
 
@@ -410,7 +412,10 @@ class DailyMissionsService {
     for (let i = 0; i < phase.slots; i++) {
       if (candidateAtoms.length === 0) break;
       const atomIndex = i % candidateAtoms.length;
-      const atom = candidateAtoms[atomIndex];
+      const selection = candidateAtoms[atomIndex];
+      const atom = selection.atom;
+      const rationale = selection.rationale;
+
       const templateId = phase.templates[i % phase.templates.length];
       const template = curriculum.templates[templateId];
 
@@ -443,12 +448,25 @@ class DailyMissionsService {
           phaseType: phase.name,
           learningOutcomeTypes: (atom.outcomes || []).map((o: any) => o.type),
           masteryProfile: atom.mastery_profile_id,
-          prerequisites: atom.prerequisites || []
+          prerequisites: atom.prerequisites || [],
+          selectionRationale: rationale
         }
       };
       phaseQuestions.push(question);
     }
     return phaseQuestions;
+  }
+  private validatePrerequisites(
+    atom: any,
+    studentMastery: Record<string, number>
+  ): boolean {
+    const prerequisites = atom.prerequisites || [];
+    if (prerequisites.length === 0) return true;
+
+    return prerequisites.every((preqId: string) => {
+      const preqMastery = studentMastery[preqId] || 0;
+      return preqMastery >= 0.6; // Require 60% mastery of prereqs
+    });
   }
 
   private selectAtomsForPhase(
@@ -458,58 +476,117 @@ class DailyMissionsService {
     studentHurdles: Record<string, number>,
     lastQuestionDates: Record<string, number>,
     overrides?: any
-  ) {
+  ): { atom: any; rationale: SelectionRationale }[] {
     const allAtoms: any[] = Object.values(curriculum.atoms);
 
-    // Override: Module Filter
+    // Default Rationale
+    const defaultRationale: SelectionRationale = { strategy: 'RANDOM' };
+
+    // Filter by Module Override
     let candidates = overrides?.forceModule
       ? allAtoms.filter(a => a.moduleId === overrides.forceModule || a.moduleName === overrides.forceModule)
       : allAtoms;
 
-    // If overrides used, skip standard strategy and just return candidates
-    // OR, apply strategy on the filtered set.
-    // Let's apply strategy on filtered set, unless forced template/module allows anything.
+    // Prerequisite Filter (Global Safety) - Applied to ALL selections
+    candidates = candidates.filter(atom => this.validatePrerequisites(atom, studentMastery));
 
     if (overrides?.forceModule) {
-      return candidates.slice(0, 5);
+      return candidates.slice(0, 5).map(atom => ({ atom, rationale: { strategy: 'NEW_CONTENT', trigger: 'Manual Override' } }));
     }
+
+    let selected: { atom: any; rationale: SelectionRationale }[] = [];
 
     switch (phase.strategyKey) {
       case 'spaced_review':
-        candidates = allAtoms.filter(atom => {
+        const reviewCandidates = candidates.filter(atom => {
           const lastSeen = lastQuestionDates[atom.atom_id] || 0;
           const daysSince = (Date.now() - lastSeen) / (1000 * 60 * 60 * 24);
           return daysSince > 1 || lastSeen === 0;
         }).slice(0, 5);
+        selected = reviewCandidates.map(atom => ({
+          atom,
+          rationale: { strategy: 'SRS', trigger: 'Simple Decay > 1 Day' }
+        }));
         break;
+
       case 'misconception_diagnosis':
-        candidates = allAtoms.filter(atom => {
-          const mastery = studentMastery[atom.atom_id] || 0.5;
-          const hasMisc = atom.misconception_ids && atom.misconception_ids.length > 0;
-          return mastery < 0.7 && hasMisc;
-        }).slice(0, 5);
+        // NEW LOGIC: Target Top 3 Hurdles
+        const topHurdles = Object.entries(studentHurdles)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 3)
+          .map(([tag]) => tag);
+
+        const hurdleCandidates = candidates
+          .filter(atom => {
+            const miscs = atom.misconception_ids || [];
+            const matchesHurdle = miscs.some((m: string) => topHurdles.includes(m));
+            const weakMastery = (studentMastery[atom.atom_id] || 0.5) < 0.75;
+            return matchesHurdle && weakMastery;
+          })
+          .sort((a, b) => {
+            const aCount = (a.misconception_ids || []).reduce((sum: number, m: string) => sum + (studentHurdles[m] || 0), 0);
+            const bCount = (b.misconception_ids || []).reduce((sum: number, m: string) => sum + (studentHurdles[m] || 0), 0);
+            return bCount - aCount;
+          })
+          .slice(0, 5);
+
+        selected = hurdleCandidates.map(atom => ({
+          atom,
+          rationale: {
+            strategy: 'MISCONCEPTION',
+            trigger: `Hurdles: ${(atom.misconception_ids || []).filter((m: string) => topHurdles.includes(m)).join(', ')}`,
+            targetedHurdles: (atom.misconception_ids || [])
+          }
+        }));
         break;
+
       case 'guided_practice':
-        const weak = allAtoms.filter(a => (studentMastery[a.atom_id] || 0.5) < 0.6);
-        const strong = allAtoms.filter(a => (studentMastery[a.atom_id] || 0.5) >= 0.7);
-        candidates = [...weak.slice(0, 3), ...strong.slice(0, 2)];
+        // NEW LOGIC: ZPD (0.3 - 0.75)
+        const zpd = candidates.filter(a => {
+          const m = studentMastery[a.atom_id] || 0.5;
+          return m >= 0.3 && m <= 0.75;
+        });
+        const weak = candidates.filter(a => (studentMastery[a.atom_id] || 0.5) < 0.3);
+
+        const combined = [...zpd.slice(0, 3), ...weak.slice(0, 2)];
+        selected = combined.map(atom => ({
+          atom,
+          rationale: {
+            strategy: 'ZPD',
+            trigger: `Mastery: ${(studentMastery[atom.atom_id] || 0.5).toFixed(2)}`
+          }
+        }));
         break;
+
       case 'advanced_reasoning':
-        candidates = allAtoms
+        selected = candidates
           .filter(a => (studentMastery[a.atom_id] || 0.5) >= 0.6)
           .sort((a, b) => (studentMastery[b.atom_id] || 0) - (studentMastery[a.atom_id] || 0))
-          .slice(0, 5);
+          .slice(0, 5)
+          .map(atom => ({ atom, rationale: { strategy: 'ZPD', trigger: 'High Mastery Extension' } }));
         break;
+
       case 'transfer_learning':
-        candidates = allAtoms
+        selected = candidates
           .filter(a => (studentMastery[a.atom_id] || 0.5) >= 0.7)
           .sort(() => Math.random() - 0.5)
-          .slice(0, 5);
+          .slice(0, 5)
+          .map(atom => ({ atom, rationale: { strategy: 'NEW_CONTENT', trigger: 'Transfer Randomization' } }));
         break;
+
       default:
-        candidates = allAtoms.slice(0, 5);
+        selected = candidates.slice(0, 5).map(atom => ({ atom, rationale: defaultRationale }));
     }
-    return candidates.length > 0 ? candidates : allAtoms.slice(0, 5);
+
+    // Fallback if empty selection
+    if (selected.length === 0) {
+      selected = candidates.slice(0, 5).map(atom => ({
+        atom,
+        rationale: { strategy: 'FALLBACK', trigger: 'Insufficient Candidates' }
+      }));
+    }
+
+    return selected;
   }
 
   private calculateDifficulty(atom: any, masteryMap: Record<string, number>): number {
