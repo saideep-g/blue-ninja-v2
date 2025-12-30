@@ -592,10 +592,21 @@ export default function AdminQuestionsPanel() {
     const idToType = new Map<string, string>();
 
     items.forEach((item: any) => {
-      const prompt = item.prompt?.text || item.content?.prompt?.text || '';
+      let prompt = item.prompt?.text || item.content?.prompt?.text || '';
+      // Support V3 Stages if top-level prompt is effectively empty
+      if (prompt.trim().length === 0 && item.stages && Array.isArray(item.stages) && item.stages.length > 0) {
+        prompt = item.stages[0].prompt?.text || '';
+      }
+
+      // Debug specific difficult items
+      const id = item.item_id || item.id || 'unknown_id';
+      if (id.includes('BRANCH.SET1.001')) {
+        console.log(`[DuplicateDebug] Scanning ${id}`);
+        console.log(`__ Extracted Prompt: ${prompt.substring(0, 50)}...`);
+      }
+
       if (prompt.length < 10) return;
       const sig = prompt.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-      const id = item.item_id || item.id;
 
       if (!signatures.has(sig)) signatures.set(sig, []);
       signatures.get(sig)?.push(id);

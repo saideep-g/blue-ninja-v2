@@ -87,7 +87,10 @@ export async function runFullValidationSuite(
         const itemId = item.item_id || 'UNKNOWN';
 
         // Gen Signature
-        const prompt = item.prompt?.text || item.content?.prompt?.text || '';
+        let prompt = item.prompt?.text || item.content?.prompt?.text || '';
+        if (prompt.trim().length === 0 && item.stages && Array.isArray(item.stages) && item.stages.length > 0) {
+            prompt = item.stages[0].prompt?.text || '';
+        }
         const sig = prompt.length > 10 ? prompt.toLowerCase().trim().replace(/[^a-z0-9]/g, '') : null;
 
 
