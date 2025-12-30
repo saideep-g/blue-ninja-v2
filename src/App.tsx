@@ -11,6 +11,7 @@ import TemplateWorkbench from './components/templates/TemplateWorkbench';
 import UserProfile from './components/profile/UserProfile';
 // Routes
 import AdminRoutes from './routes/AdminRoutes';
+import TablesFeature from './features/multiplication-tables/TablesFeature';
 
 // Data
 import coreCurriculum from './data/cbse7_core_curriculum_v3.json';
@@ -73,6 +74,9 @@ export default function App() {
           {/* Admin Module - Delegated Routing */}
           <Route path="/admin/*" element={<AdminRoutes />} />
 
+
+
+          <Route path="/tables/*" element={<TablesFeature />} />
 
           <Route
             path="/curriculum"
