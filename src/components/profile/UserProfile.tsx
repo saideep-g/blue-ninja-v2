@@ -62,7 +62,8 @@ export default function UserProfile() {
         diagnosticQuestionCount: 10,
         excludedChapters: [] as string[],
         theme: 'light' as 'light' | 'dark' | 'system',
-        grade: '7'
+        grade: '7',
+        autoAdvance: true
     });
 
     const [isSaving, setIsSaving] = useState(false);
@@ -77,7 +78,8 @@ export default function UserProfile() {
             diagnosticQuestionCount: profileStore.diagnosticQuestionCount || 10,
             excludedChapters: profileStore.excludedChapters || [],
             theme: profileStore.theme || 'system',
-            grade: profileStore.grade || '7'
+            grade: profileStore.grade || '7',
+            autoAdvance: profileStore.autoAdvance ?? true
         });
     }, [profileStore]);
 
@@ -341,6 +343,24 @@ export default function UserProfile() {
                                     <div className="flex items-center gap-3 pb-6 border-b border-slate-100">
                                         <div className="p-2 bg-purple-50 rounded-xl text-purple-500"><Settings size={20} /></div>
                                         <h3 className="text-lg font-bold">Mission Config</h3>
+                                    </div>
+
+                                    {/* Auto Advance Toggle */}
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-500">AUTO ADVANCE</label>
+                                            <p className="text-xs text-slate-400 font-medium mt-1">Automatically move to next question when correct</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setFormData({ ...formData, autoAdvance: !formData.autoAdvance })}
+                                            className={`relative w-14 h-8 rounded-full transition-colors flex items-center px-1 ${formData.autoAdvance ? 'bg-green-500' : 'bg-slate-200'
+                                                }`}
+                                        >
+                                            <div
+                                                className={`w-6 h-6 bg-white rounded-full shadow-sm transform transition-transform ${formData.autoAdvance ? 'translate-x-6' : 'translate-x-0'
+                                                    }`}
+                                            />
+                                        </button>
                                     </div>
 
                                     {/* Daily Mission Count */}

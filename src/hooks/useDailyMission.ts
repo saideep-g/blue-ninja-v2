@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNinja } from '../context/NinjaContext';
 import { Question } from '../types';
 import { auth } from '../services/db/firebase';
@@ -21,6 +21,9 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
     const [isLoading, setIsLoading] = useState(false); // Start false to allow trigger
     const [isComplete, setIsComplete] = useState(false);
 
+    // VALIDATION: Global session history to prevent duplicates across multiple flights
+    const servedIdsRef = useRef<Set<string>>(new Set());
+
     const [questionStartTime, setQuestionStartTime] = useState(Date.now());
     const [sessionResults, setSessionResults] = useState({
         correctCount: 0,
@@ -35,7 +38,11 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
 
         // If the skeletons already have content (Simulation Bundle Mode), pass them through.
         const needsHydration = skeletons.some(q => !q.content && !q.question_text);
-        if (!needsHydration) return skeletons;
+        if (!needsHydration) {
+            // Register these IDs as served to prevent future duplicates
+            skeletons.forEach(q => servedIdsRef.current.add(q.id));
+            return skeletons;
+        }
 
         // ALLOWED TEMPLATES (Daily Diagnostic Filter)
         // User requested restricting to specific stable templates.
@@ -67,7 +74,8 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
             console.log(`[useDailyMission] Found ${allAvailableItems.length} candidate items in bundles.`);
 
             // Track used content to avoid duplication
-            const usedContentIds = new Set<string>();
+            // INITIALIZE with ids served in previous flights in this session
+            const usedContentIds = new Set<string>(servedIdsRef.current);
 
             const hydratedQuestions = skeletons.map((skel, idx) => {
                 // FILTER: Remove experimental templates unless in Simulation Mode
@@ -77,11 +85,14 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                     return null;
                 }
 
-                if (skel.content || skel.question_text) return skel;
+                if (skel.content || skel.question_text) {
+                    usedContentIds.add(skel.id);
+                    return skel;
+                }
 
                 // 1. Try Strict Atom Match (Must also match requested Template Type)
                 let match = allAvailableItems.find(i => {
-                    // Skip if already used
+                    // Skip if already used (CHECK GLOBAL HISTORY)
                     if (usedContentIds.has(i.item_id || i.id)) return false;
 
                     const saneAtom = i.atom_id === skel.atom || i.atom === skel.atom;
@@ -146,6 +157,10 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
             }).filter(Boolean); // Remove nulls (Truncate mission)
 
             console.log(`[useDailyMission] Final Ready Questions: ${hydratedQuestions.length} (Truncated duplicates/experimental)`);
+
+            // Sync local used status to global ref
+            usedContentIds.forEach(id => servedIdsRef.current.add(id));
+
             return hydratedQuestions;
 
         } catch (e) {

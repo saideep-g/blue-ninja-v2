@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { CheckCircle2, XCircle, Lightbulb, Calculator, ArrowRight } from 'lucide-react';
+// @ts-nocheck
+import React, { useState, useEffect, useRef } from 'react';
+import { CheckCircle2, XCircle, Lightbulb, Calculator, ArrowRight, ArrowRightCircle, Loader2 } from 'lucide-react';
 import { Question } from '../../types';
+import { useProfileStore } from '../../store/profile';
 
 interface NumericInputTemplateProps {
     question: Question;
@@ -15,15 +17,50 @@ interface Feedback {
     feedback: string;
 }
 
+const GEN_Z_PRAISES = [
+    "Slay! 🔥",
+    "Periodt. 💅",
+    "Main Character Energy ✨",
+    "No crumbs left 🍪",
+    "It's giving genius 🧠",
+    "High key brilliant 🔑",
+    "Big W 🏆",
+    "Big brain moment 🤯",
+    "ATE 🍽️",
+    "Go off! 🚀",
+    "Sheesh! 🥶",
+    "Vibe check passed ✅",
+    "Iconic behavior 🌟",
+    "CEO of Math 💼",
+    "Understood the assignment 📝",
+    "Flex on 'em 💪",
+    "Pure Gold 🥇",
+    "Unmatched 🚫",
+    "Straight Fire 🔥",
+    "Zero Misses 🎯"
+];
+
 /**
  * NUMERIC INPUT TEMPLATE
  * Designed for 13-year-old math learners.
  * Focus: Clarity, Encouragement, Touch-First.
  */
 export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnly }: NumericInputTemplateProps) {
+    const { autoAdvance } = useProfileStore(); // Get preference
+
     const [inputValue, setInputValue] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [feedback, setFeedback] = useState<Feedback | null>(null);
+    const [result, setResult] = useState<any>(null); // Store result for delayed submission
+    const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Clean up timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        };
+    }, []);
 
     // Safe Access
     const content = question.content || {};
@@ -64,10 +101,15 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
 
     const feedbackMap = (question as any).feedbackMap || {};
 
-    const handleCreateFeedback = (isCorrect: boolean) => {
-        return isCorrect
-            ? feedbackMap.onCorrect || '✓ Brilliant! You got it right!'
-            : feedbackMap.onIncorrectAttempt1 || '✗ Not quite. Double check your calculation.';
+    const getRandomPraise = () => {
+        return GEN_Z_PRAISES[Math.floor(Math.random() * GEN_Z_PRAISES.length)];
+    };
+
+    const handleCreateFeedback = (isCorrect: boolean, selectedPraise?: string) => {
+        if (isCorrect) {
+            return selectedPraise || feedbackMap.onCorrect || getRandomPraise();
+        }
+        return feedbackMap.onIncorrectAttempt1 || '✗ Not quite. Double check your calculation.';
     };
 
     const gcd = (a: number, b: number): number => {
@@ -76,7 +118,7 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
 
     const handleSubmit = (e?: React.FormEvent) => {
         e?.preventDefault();
-        if (!inputValue.trim() || submittable === false) return;
+        if (!inputValue.trim() || submitted || isSubmitting || readOnly) return;
 
         const userNum = parseValue(inputValue);
 
@@ -105,14 +147,15 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
                 // gcd includes sign check usually but Math.abs safer for logical simplification check
                 const divisor = gcd(num, den);
                 if (divisor > 1) {
-                    const result = {
+                    const resultData = {
                         isCorrect: false,
                         value: inputValue,
                         feedback: `Your answer is correct roughly, but not in simplest form. Please simplify ${inputValue}.`
                     };
-                    setFeedback(result);
+                    setFeedback(resultData);
                     setSubmitted(true);
-                    onAnswer(result);
+                    setResult(resultData);
+                    // onAnswer (immediately) removed - wait for user to click next
                     return;
                 }
             }
@@ -122,25 +165,35 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
         const diff = Math.abs(userNum - correctValue);
         const isCorrect = diff <= tolerance;
 
-        console.log('[NumericInput] Submission:', {
-            input: inputValue,
-            parsedUser: userNum,
-            rawCorrect: rawCorrectValue,
-            parsedCorrect: correctValue,
-            diff,
-            tolerance,
-            isCorrect
-        });
+        const selectedPraise = isCorrect ? getRandomPraise() : undefined;
 
-        const result = {
+        const resultData = {
             isCorrect,
             value: inputValue,
-            feedback: handleCreateFeedback(isCorrect)
+            feedback: handleCreateFeedback(isCorrect, selectedPraise)
         };
 
-        setFeedback(result);
+        setFeedback(resultData);
         setSubmitted(true);
-        onAnswer(result);
+        setResult(resultData);
+
+        // AUTO-ADVANCE FOR CORRECT ANSWERS
+        // Only if correct AND autoAdvance preference is explicitly true (or undefined default)
+        if (isCorrect && autoAdvance !== false) {
+            setIsAutoAdvancing(true);
+            timeoutRef.current = setTimeout(() => {
+                if (onAnswer) onAnswer(resultData);
+            }, 2000); // 2 second delay
+        }
+    };
+
+    const handleContinue = () => {
+        // Clear timeout if user manually clicks
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+        if (result && onAnswer) {
+            onAnswer(result);
+        }
     };
 
     const submittable = !submitted && !isSubmitting && !readOnly;
@@ -148,7 +201,7 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col gap-6 md:gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-            {/* ========== HERO SECTION ========== */}
+            {/* ========== HERO SECTION (Question Prompt) ========== */}
             <div className="bg-white rounded-3xl p-6 md:p-10 shadow-xl shadow-blue-900/5 border-2 border-white relative overflow-hidden group hover:border-blue-100 transition-all">
                 {/* Decorative Background Elements */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-16 -mt-16 opacity-50 group-hover:bg-blue-100 transition-colors" />
@@ -239,59 +292,84 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
                 </form>
             </div>
 
-            {/* ========== FEEDBACK SECTION ========== */}
+            {/* ========== INLINE FEEDBACK SECTION ========== */}
             {submitted && feedback && (
-                <div className={`p-6 rounded-2xl animate-in slide-in-from-top-2 duration-300 ${feedback.isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                    <div className="flex gap-4">
-                        <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${feedback.isCorrect ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}`}>
-                            {feedback.isCorrect ? <CheckCircle2 className="w-6 h-6" /> : <Lightbulb className="w-6 h-6" />}
-                        </div>
-                        <div className="space-y-1 pt-1">
-                            <h4 className={`font-bold text-lg ${feedback.isCorrect ? 'text-green-800' : 'text-red-800'}`}>
-                                {feedback.isCorrect ? 'Excellent!' : 'Keep trying!'}
-                            </h4>
-                            <p className={`${feedback.isCorrect ? 'text-green-700' : 'text-red-700'}`}>
-                                {feedback.feedback}
-                            </p>
-                            {!feedback.isCorrect && (
-                                <div className="mt-3 pt-3 border-t border-red-200/50">
-                                    <p className="text-sm font-semibold text-red-600/80 uppercase tracking-wide">Correct Answer</p>
-                                    <p className="text-xl font-mono font-bold text-red-800">
+                <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                    <div className={`p-6 rounded-2xl ${feedback.isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                        <div className="flex gap-4">
+                            <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${feedback.isCorrect ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}`}>
+                                {feedback.isCorrect ? <CheckCircle2 className="w-6 h-6" /> : <Lightbulb className="w-6 h-6" />}
+                            </div>
+                            <div className="space-y-1 pt-1 flex-1">
+                                <h4 className={`font-bold text-lg ${feedback.isCorrect ? 'text-green-800' : 'text-red-800'}`}>
+                                    {feedback.isCorrect ? (
+                                        <span className="flex items-center gap-2">
+                                            {feedback.feedback}
+                                            {isAutoAdvancing && <Loader2 className="w-4 h-4 animate-spin opacity-50" />}
+                                        </span>
+                                    ) : 'Correct Answer:'}
+                                </h4>
+
+                                {!feedback.isCorrect && (
+                                    <p className="text-2xl font-mono font-bold text-red-800 mt-1">
                                         {correctValue} {unit}
                                     </p>
-                                </div>
-                            )}
+                                )}
+
+                                {!feedback.isCorrect && (
+                                    <p className={`mt-2 text-red-700`}>
+                                        {feedback.feedback}
+                                    </p>
+                                )}
+
+                                {isAutoAdvancing && (
+                                    <div className="w-full h-1 bg-green-200 mt-3 rounded-full overflow-hidden">
+                                        <div className="h-full bg-green-500 animate-[progress_2s_linear_forward]" style={{ width: '100%' }}></div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
+
+                    {/* Explanation (Worked Solution) - Show only if exists */}
+                    {question.workedSolution?.steps && question.workedSolution.steps.length > 0 && (
+                        <div className="bg-white p-6 rounded-2xl border-2 border-slate-100 shadow-sm">
+                            <h4 className="font-bold text-slate-800 text-lg flex items-center gap-2 mb-4">
+                                <span className="bg-slate-100 p-2 rounded-lg text-blue-600">💡</span>
+                                How to solve this
+                            </h4>
+                            <div className="space-y-4 relative">
+                                <div className="absolute left-[19px] top-2 bottom-4 w-0.5 bg-slate-100" />
+                                {question.workedSolution.steps.map((step: string, idx: number) => (
+                                    <div key={idx} className="flex gap-4 relative z-10">
+                                        <div className="flex-shrink-0 w-10 h-10 bg-white border-2 border-slate-100 text-slate-500 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">
+                                            {idx + 1}
+                                        </div>
+                                        <div className="bg-slate-50 rounded-xl p-4 flex-1 text-slate-700 leading-relaxed font-medium">
+                                            {step}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* CONTINUE BUTTON */}
+                    <button
+                        autoFocus
+                        onClick={handleContinue}
+                        className={`w-full py-4 rounded-xl font-extrabold text-lg shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 ${feedback.isCorrect
+                            ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20 text-white'
+                            }`}
+                    >
+                        {feedback.isCorrect ? 'Finish & Next Question' : 'Got it, Next Question'} <ArrowRightCircle size={24} />
+                    </button>
+                    <p className="text-center text-xs text-slate-400 font-medium pb-4">
+                        Press Enter or Click to continue
+                    </p>
                 </div>
             )}
-
-            {/* ========== WORKED SOLUTION (COLLAPSIBLE) ========== */}
-            {submitted && question.workedSolution?.steps && question.workedSolution.steps.length > 0 && (
-                <details className="bg-white p-6 rounded-2xl border-2 border-slate-100 shadow-sm group">
-                    <summary className="cursor-pointer font-bold text-slate-800 text-lg flex items-center gap-2 hover:text-blue-600 transition-colors list-none select-none">
-                        <span className="bg-slate-100 p-2 rounded-lg group-open:bg-blue-100 group-open:text-blue-600 transition-colors">
-                            💡
-                        </span>
-                        <span>How to solve this</span>
-                        <span className="ml-auto text-slate-400 group-open:rotate-180 transition-transform">▼</span>
-                    </summary>
-                    <div className="mt-6 space-y-4 relative">
-                        <div className="absolute left-[19px] top-2 bottom-4 w-0.5 bg-slate-100" />
-                        {question.workedSolution.steps.map((step: string, idx: number) => (
-                            <div key={idx} className="flex gap-4 relative z-10">
-                                <div className="flex-shrink-0 w-10 h-10 bg-white border-2 border-slate-100 text-slate-500 rounded-full flex items-center justify-center text-sm font-bold shadow-sm group-hover:border-blue-100 group-hover:text-blue-500 transition-all">
-                                    {idx + 1}
-                                </div>
-                                <div className="bg-slate-50 rounded-xl p-4 flex-1 text-slate-700 leading-relaxed font-medium">
-                                    {step}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </details>
-            )}
-
         </div>
     );
 }

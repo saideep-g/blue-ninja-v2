@@ -10,6 +10,7 @@ interface ProfileState {
   preferredLanguage: 'en' | 'te' | 'hi';
   theme: 'light' | 'dark' | 'system';
   notifications: boolean;
+  autoAdvance: boolean;
   dailyQuestionCount: number;
   diagnosticQuestionCount: number;
   excludedChapters: string[];
@@ -30,6 +31,7 @@ export const useProfileStore = create<ProfileState>()(
       preferredLanguage: 'en',
       theme: 'system',
       notifications: true,
+      autoAdvance: true,
       dailyQuestionCount: 5,
       diagnosticQuestionCount: 10,
       excludedChapters: [],
