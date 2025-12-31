@@ -3,13 +3,41 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useNinja } from '../../../context/NinjaContext';
 import { getTableSettings } from '../services/tablesFirestore';
-import { Play } from 'lucide-react';
+import { Play, Sparkles, Zap, Bug } from 'lucide-react';
 
 export default function TableSelection() {
     const navigate = useNavigate();
-    const { user } = useNinja();
+    const { user, ninjaStats } = useNinja();
     const [assignedTables, setAssignedTables] = useState<number[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showDebug, setShowDebug] = useState(false);
+
+    // Determine Grade Level / Mode
+    // Robust detection logic
+    const statsAny = ninjaStats as any;
+    const userAny = user as any;
+
+    // Check all potential locations
+    const rawClass =
+        statsAny?.class ||
+        statsAny?.grade ||
+        statsAny?.profile?.class ||
+        userAny?.profile?.class ||
+        userAny?.class ||
+        2;
+
+    const userClass = parseInt(String(rawClass), 10); // Ensure integer
+    const isAdvanced = userClass >= 7;
+
+    useEffect(() => {
+        // Console Debug
+        console.group('[TableSelection Debug]');
+        console.log('User UID:', user?.uid);
+        console.log('Raw NinjaStats:', ninjaStats);
+        console.log('Resolved Class:', userClass);
+        console.log('Is Advanced:', isAdvanced);
+        console.groupEnd();
+    }, [userClass, isAdvanced, ninjaStats, user]);
 
     useEffect(() => {
         if (!user) return;
@@ -36,23 +64,15 @@ export default function TableSelection() {
     // Back Button - Exit App Confirmation
     useEffect(() => {
         window.history.pushState(null, '', window.location.pathname);
-
         const handlePopState = () => {
             const confirmExit = window.confirm("Do you want to exit the app?");
             if (confirmExit) {
-                // Try to close tab (works if opened by script, otherwise browser security blocks it)
                 window.close();
-                // Fallback for PWA/Mobile wrappers:
-                // In some mobile browsers, navigating to 'about:blank' or triggering a specific bridge event might be needed.
-                // For standard web, effectively 'stopping' here or redirecting to a 'goodbye' page is standard practice.
-                // If this is a standalone PWA, standard window.close might be ignored.
-                // We will try to replace with a blank page as a "close" proxy for standard web.
                 window.location.href = "about:blank";
             } else {
                 window.history.pushState(null, '', window.location.pathname);
             }
         };
-
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
     }, []);
@@ -62,25 +82,44 @@ export default function TableSelection() {
         navigate('/tables/practice', { state: { tables: assignedTables } });
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl font-bold text-slate-400">Loading your mission...</div>;
+    if (loading) return (
+        <div className={`min-h-screen flex items-center justify-center text-2xl font-bold ${isAdvanced ? 'bg-slate-900 text-cyan-400' : 'bg-slate-50 text-slate-400'}`}>
+            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
+                {isAdvanced ? <Zap size={48} /> : <Sparkles size={48} />}
+            </motion.div>
+        </div>
+    );
 
     return (
-        <div className="max-w-4xl mx-auto p-6 flex flex-col items-center justify-center min-h-screen">
-            <header className="mb-12 text-center">
-                <h1 className="text-5xl font-extrabold text-indigo-600 mb-4 tracking-tight">
-                    Times Tables
-                </h1>
-                <p className="text-xl text-slate-500">Master your multiplication powers!</p>
+        <div className={`max-w-4xl mx-auto p-6 flex flex-col items-center justify-center min-h-screen relative overflow-hidden transition-colors duration-500 ${isAdvanced ? 'bg-slate-900' : 'bg-slate-50'}`}>
+
+            <header className="mb-12 text-center z-10">
+                <div
+                    onClick={() => setShowDebug(!showDebug)}
+                    className={`text-5xl font-extrabold mb-4 tracking-tight cursor-pointer select-none ${isAdvanced ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500' : 'text-indigo-600'}`}
+                >
+                    {isAdvanced ? 'QUANTUM TABLES' : 'Times Tables'}
+                </div>
+                <p className={`text-xl ${isAdvanced ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {isAdvanced ? 'Optimize your calculation matrix.' : 'Master your multiplication powers!'}
+                </p>
+                <div className="mt-2 text-xs opacity-50 font-mono">
+                    Class: {userClass} | Mode: {isAdvanced ? 'Advanced' : 'Standard'}
+                </div>
             </header>
 
-            <div className="bg-white rounded-3xl shadow-xl p-12 w-full max-w-xl border border-indigo-50 text-center">
+            <div className={`rounded-3xl shadow-xl p-12 w-full max-w-xl border text-center z-10 transition-all ${isAdvanced ? 'bg-slate-800 border-slate-700' : 'bg-white border-indigo-50'}`}>
                 {assignedTables.length > 0 ? (
                     <>
                         <div className="mb-8">
-                            <p className="text-lg text-slate-600 mb-4">Your current mission covers tables:</p>
+                            <p className={`text-lg mb-4 ${isAdvanced ? 'text-slate-300' : 'text-slate-600'}`}>
+                                {isAdvanced ? 'Active protocols:' : 'Your current mission covers tables:'}
+                            </p>
                             <div className="flex flex-wrap justify-center gap-2">
                                 {assignedTables.slice().sort((a, b) => a - b).map(t => (
-                                    <span key={t} className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full font-bold text-xl">x{t}</span>
+                                    <span key={t} className={`px-4 py-2 rounded-full font-bold text-xl ${isAdvanced ? 'bg-slate-700 text-cyan-400 border border-slate-600' : 'bg-indigo-100 text-indigo-700'}`}>
+                                        x{t}
+                                    </span>
                                 ))}
                             </div>
                         </div>
@@ -89,32 +128,63 @@ export default function TableSelection() {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={startSession}
-                            className="w-full py-6 rounded-2xl text-3xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-xl hover:shadow-2xl flex items-center justify-center gap-4"
+                            className={`w-full py-6 rounded-2xl text-3xl font-bold shadow-xl hover:shadow-2xl flex items-center justify-center gap-4 transition-all ${isAdvanced ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-900/50' : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white'}`}
                         >
                             <Play className="w-8 h-8 fill-current" />
-                            Start Practice
+                            {isAdvanced ? 'INITIATE' : 'Start Practice'}
                         </motion.button>
                     </>
                 ) : (
                     <div className="py-8">
-                        <p className="text-xl text-slate-400 font-medium mb-4">No tables assigned yet.</p>
-                        <p className="text-slate-500">Ask your parent to configure your practice tables in the Parent Dashboard.</p>
+                        <p className={`text-xl font-medium mb-4 ${isAdvanced ? 'text-slate-400' : 'text-slate-400'}`}>No protocols assigned.</p>
+                        <p className={`${isAdvanced ? 'text-slate-500' : 'text-slate-500'}`}>Ask admin to configure target vectors.</p>
                     </div>
                 )}
 
-                <div className="mt-8 pt-8 border-t border-slate-100">
+                <div className={`mt-8 pt-8 border-t ${isAdvanced ? 'border-slate-700' : 'border-slate-100'}`}>
                     <button
                         onClick={() => navigate('/tables/parent')}
-                        className="text-sm text-slate-400 hover:text-slate-600 font-medium"
+                        className={`text-sm font-medium hover:underline ${isAdvanced ? 'text-slate-500 hover:text-cyan-400' : 'text-slate-400 hover:text-slate-600'}`}
                     >
                         Parent Dashboard (Admin)
+                    </button>
+                    <button
+                        onClick={() => setShowDebug(!showDebug)}
+                        className="block mx-auto mt-4 text-xs text-slate-300 hover:text-slate-500 flex items-center gap-1"
+                    >
+                        <Bug size={12} /> Debug Profile
                     </button>
                 </div>
             </div>
 
+            {/* Debug Overlay */}
+            {showDebug && (
+                <div className="fixed bottom-4 right-4 bg-black/90 text-green-400 p-4 rounded-lg font-mono text-xs z-50 max-w-sm overflow-auto max-h-96 shadow-2xl border border-green-900">
+                    <h4 className="font-bold border-b border-green-800 pb-2 mb-2">DEBUG: User Profile</h4>
+                    <div className="space-y-1">
+                        <div><span className="text-gray-500">UID:</span> {user?.uid.substring(0, 8)}...</div>
+                        <div><span className="text-gray-500">Resolved Class:</span> <span className="text-white font-bold">{userClass}</span></div>
+                        <div><span className="text-gray-500">Is Advanced:</span> {isAdvanced ? 'YES' : 'NO'}</div>
+                        <div className="mt-2 border-t border-green-900 pt-2 text-gray-400">Raw Stats Dump:</div>
+                        <pre className="whitespace-pre-wrap break-all text-[10px] text-gray-500">
+                            {JSON.stringify(ninjaStats, null, 2)}
+                        </pre>
+                    </div>
+                </div>
+            )}
+
             {/* Decorative background elements */}
-            <div className="fixed top-20 left-20 w-32 h-32 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob" />
-            <div className="fixed top-40 right-20 w-32 h-32 bg-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000" />
+            {isAdvanced ? (
+                <>
+                    <div className="fixed top-20 right-20 w-96 h-96 bg-blue-900/20 rounded-full filter blur-3xl animate-pulse" />
+                    <div className="fixed bottom-20 left-20 w-64 h-64 bg-cyan-900/10 rounded-full filter blur-3xl" />
+                </>
+            ) : (
+                <>
+                    <div className="fixed top-20 left-20 w-32 h-32 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob" />
+                    <div className="fixed top-40 right-20 w-32 h-32 bg-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000" />
+                </>
+            )}
         </div>
     );
 }

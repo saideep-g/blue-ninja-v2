@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, TrendingUp, Clock, AlertCircle, Save, Check } from 'lucide-react';
@@ -15,7 +14,7 @@ interface TableStat {
 
 export default function ParentDashboard() {
     const navigate = useNavigate();
-    const { user } = useNinja();
+    const { user, ninjaStats } = useNinja();
     const [stats, setStats] = useState<TableStat[]>([]);
     const [settings, setSettings] = useState<TableSettings>({
         selectedTables: [],
@@ -25,13 +24,34 @@ export default function ParentDashboard() {
     const [saving, setSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
+    // Determine Grade Level / Mode
+    // Robust detection logic matching TableSelection
+    const statsAny = ninjaStats as any;
+    const userAny = user as any;
+
+    // Check all potential locations
+    const rawClass =
+        statsAny?.class ||
+        statsAny?.grade ||
+        statsAny?.profile?.class ||
+        userAny?.profile?.class ||
+        userAny?.class ||
+        2;
+
+    const userClass = parseInt(String(rawClass), 10); // Ensure integer
+    const isAdvanced = userClass >= 7;
+    const maxTable = isAdvanced ? 20 : 12;
+
     useEffect(() => {
         if (!user) return;
+
+        console.log(`[ParentDashboard] Loaded user class: ${userClass} (Raw: ${rawClass}), Max Table: ${maxTable}`);
 
         // Load Stats
         getStudentTableStats(user.uid).then(data => {
             const fullStats: TableStat[] = [];
-            for (let i = 2; i <= 12; i++) {
+            // Dynamic loop based on maxTable
+            for (let i = 2; i <= maxTable; i++) {
                 const found = data.find(d => d.table === i);
                 if (found) {
                     let status: TableStat['status'] = 'IN_PROGRESS';
@@ -58,7 +78,7 @@ export default function ParentDashboard() {
             else setSettings(prev => ({ ...prev, selectedTables: [2, 3, 4, 5] })); // Defaults
         });
 
-    }, [user]);
+    }, [user, maxTable, userClass, rawClass]); // Added rawClass dependency
 
     const toggleTable = (num: number) => {
         setSettings(prev => ({
@@ -94,7 +114,10 @@ export default function ParentDashboard() {
                         </button>
                         <div>
                             <h1 className="text-3xl font-bold text-slate-800">Parent Dashboard</h1>
-                            <p className="text-slate-500">Monitor progress and configure settings</p>
+                            <p className="text-slate-500">
+                                Monitor progress and configure settings
+                                {isAdvanced && <span className="ml-2 text-xs font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded">Grade {userClass} Mode</span>}
+                            </p>
                         </div>
                     </div>
                 </header>
@@ -107,12 +130,13 @@ export default function ParentDashboard() {
                             <h2 className="text-xl font-bold text-slate-800 mb-4">Practice Configuration</h2>
                             <p className="text-sm text-slate-500 mb-6">Select the tables your child should practice during their sessions.</p>
 
-                            <div className="grid grid-cols-3 gap-2 mb-8">
-                                {Array.from({ length: 11 }, (_, i) => i + 2).map(num => (
+                            <div className="grid grid-cols-4 gap-2 mb-8">
+                                {/* Dynamic Grid for Tables */}
+                                {Array.from({ length: maxTable - 1 }, (_, i) => i + 2).map(num => (
                                     <button
                                         key={num}
                                         onClick={() => toggleTable(num)}
-                                        className={`h-12 rounded-xl font-bold transition-all border-2
+                                        className={`h-10 rounded-lg font-bold transition-all border-2 text-sm
                                     ${settings.selectedTables.includes(num)
                                                 ? 'bg-indigo-100 border-indigo-500 text-indigo-700'
                                                 : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300'
@@ -134,6 +158,11 @@ export default function ParentDashboard() {
                                 {saveSuccess ? <Check className="w-5 h-5" /> : <Save className="w-5 h-5" />}
                                 {saveSuccess ? 'Saved!' : 'Save Settings'}
                             </button>
+
+                            {/* Debug info invisible unless inspected or needed later */}
+                            <div className="mt-4 text-[10px] text-slate-300 font-mono text-center">
+                                Class Detection: {userClass} (from {String(rawClass)})
+                            </div>
                         </div>
 
                         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">

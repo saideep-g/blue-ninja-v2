@@ -14,7 +14,8 @@ import {
     TrendingUp,
     Radar,
     Search,
-    Lightbulb
+    Lightbulb,
+    PieChart
 } from 'lucide-react';
 import { adminService } from '../../services/admin';
 import { QuestionStats, IntelligenceAction } from '../../types/admin';
@@ -186,11 +187,11 @@ export const AdminIntelligenceReport: React.FC = () => {
         Object.entries(atomCounts).forEach(([atom, count]) => {
             if (count < 3 && atom !== 'Uncategorized') {
                 actions.push({
-                    id: `gap_${atom}`,
+                    id: `gap_${atom} `,
                     type: 'GAP_FILL',
                     priority: 'HIGH',
-                    title: `Content Gap: ${atom}`,
-                    description: `Only ${count} questions found for '${atom}'. This exposes students to guessing.`,
+                    title: `Content Gap: ${atom} `,
+                    description: `Only ${count} questions found for '${atom}'.This exposes students to guessing.`,
                     reasoning: "The 'Ratio as a Fraction' atom requires at least 5 variants to prevent pattern matching.",
                     targetAtom: atom,
                     suggestedTemplate: 'MATCHING' // Default suggestion
@@ -206,7 +207,7 @@ export const AdminIntelligenceReport: React.FC = () => {
                 type: 'REMEDIAL',
                 priority: 'MEDIUM',
                 title: "Contextualize Algebra",
-                description: `Found ${abstractQs.length} abstract variable questions. Convert 5 to Storytelling format.`,
+                description: `Found ${abstractQs.length} abstract variable questions.Convert 5 to Storytelling format.`,
                 reasoning: "Algebra questions using abstract x/y have 20% lower engagement. Try 'Architectural Design' or 'Recipe Scaling' contexts.",
                 suggestedTemplate: 'TWO_TIER'
             });
@@ -287,13 +288,21 @@ export const AdminIntelligenceReport: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <KPI_Card
                     title="Concept Vitality Score"
-                    value={`${intelligence.coverageScore}%`}
+                    value={`${intelligence.coverageScore}% `}
                     subtext={`${intelligence.robustAtomsCount}/${intelligence.totalAtoms} Atoms Robust`}
                     icon={Activity}
                     color="text-emerald-600 bg-emerald-500"
                     onClick={() => navigate('/admin/questions', { state: { mode: 'VITALITY_DETAIL' } })}
                 />
                 <KPI_Card
+                    title="Pedagogical Health"
+                    value="Gap Analysis"
+                    subtext="Check missing question formats"
+                    icon={PieChart}
+                    color="text-purple-600 bg-purple-500"
+                    onClick={() => navigate('/admin/questions', { state: { mode: 'TEMPLATE_DIVERSITY' } })}
+                />
+                < KPI_Card
                     title="Active Misconceptions"
                     value={studentVoiceLogs.length}
                     subtext="Patterns tracked in repository"
@@ -314,43 +323,15 @@ export const AdminIntelligenceReport: React.FC = () => {
                     icon={Lightbulb}
                     color="text-purple-600 bg-purple-500"
                 />
-            </div>
+            </div >
 
             <div className="grid grid-cols-12 gap-8">
 
                 {/* LEFT COLUMN - RADAR & ACTIONS (8 Kols) */}
                 <div className="col-span-12 lg:col-span-8 space-y-8">
 
-                    {/* Module A: Content Gap Radar (Visual List for now) */}
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <Radar className="text-blue-500" size={20} />
-                                Content Gap Radar
-                            </h3>
-                            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                                Scanning {intelligence.totalAtoms} Atoms
-                            </div>
-                        </div>
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {Object.entries(intelligence.atomCounts).slice(0, 6).map(([atom, count]) => (
-                                <div key={atom} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-slate-50 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all group cursor-pointer">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-2 h-2 rounded-full ${count < 3 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
-                                        <span className="font-medium text-slate-700">{atom}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xs text-slate-400 font-mono">{count} Qs</span>
-                                        {count < 3 && (
-                                            <button className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                                + CREATE
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                    {/* Module A: Content Gap Radar (Visual List for now) - REMOVED PER REQUEST */}
+                    {/* <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">...</div> */}
 
                     {/* Module A2: Duplicate Detective */}
                     {duplicates.length > 0 && (
@@ -392,47 +373,12 @@ export const AdminIntelligenceReport: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Module C: Misconception Tracker Table */}
+                    {/* Module C: Misconception Tracker Table (Hidden for High Level View) */}
+                    {/* 
                     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <AlertTriangle className="text-amber-500" size={20} />
-                                Misconception Hotspots
-                            </h3>
-                        </div>
-                        <div className="overflow-x-auto text-sm">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-50 text-slate-500 font-medium">
-                                    <tr>
-                                        <th className="p-4 pl-6">Atom</th>
-                                        <th className="p-4">Top Misconception</th>
-                                        <th className="p-4">Status</th>
-                                        <th className="p-4">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    <tr className="group hover:bg-slate-50 transition">
-                                        <td className="p-4 pl-6 font-bold text-slate-700">Variable Isolation</td>
-                                        <td className="p-4 text-slate-600">"Adding instead of Subtracting"</td>
-                                        <td className="p-4"><Badge type="LOW_COVERAGE" /></td>
-                                        <td className="p-4 text-purple-600 font-bold group-hover:underline cursor-pointer">Add Matching Qs</td>
-                                    </tr>
-                                    <tr className="group hover:bg-slate-50 transition">
-                                        <td className="p-4 pl-6 font-bold text-slate-700">Trapezoids</td>
-                                        <td className="p-4 text-slate-600">"Confusing Height with Slant"</td>
-                                        <td className="p-4"><Badge type="HIGH_FAIL" /></td>
-                                        <td className="p-4 text-purple-600 font-bold group-hover:underline cursor-pointer">Refine Two-Tier</td>
-                                    </tr>
-                                    <tr className="group hover:bg-slate-50 transition">
-                                        <td className="p-4 pl-6 font-bold text-slate-700">Negatives</td>
-                                        <td className="p-4 text-slate-600">"Negative + Negative = Positive"</td>
-                                        <td className="p-4"><Badge type="ROBUST" /></td>
-                                        <td className="p-4 text-slate-400">None</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        ... (Detailed Table Hidden) ...
                     </div>
+                    */}
 
                 </div>
 
@@ -527,7 +473,7 @@ export const AdminIntelligenceReport: React.FC = () => {
 
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

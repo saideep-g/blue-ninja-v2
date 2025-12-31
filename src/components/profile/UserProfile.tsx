@@ -299,7 +299,16 @@ export default function UserProfile() {
                                         {['2', '3', '4', '5', '6', '7', '8', '9'].map(g => (
                                             <button
                                                 key={g}
-                                                onClick={() => setFormData({ ...formData, grade: g })}
+                                                onClick={async () => {
+                                                    setFormData(prev => ({ ...prev, grade: g }));
+                                                    // PERSIST IMMEDIATELY
+                                                    if (user?.uid) {
+                                                        const numGrade = Number(g);
+                                                        console.log(`Updating grade to ${g} (${numGrade})`);
+                                                        // Update both 'grade' (string) and 'class' (number) for compatibility
+                                                        await profileStore.updateProfile(user.uid, { grade: g, class: numGrade });
+                                                    }
+                                                }}
                                                 className={`py-3 rounded-xl font-black text-sm transition-all ${formData.grade === g
                                                     ? 'bg-blue-500 text-white shadow-lg scale-105'
                                                     : 'bg-slate-50 text-slate-400 hover:bg-slate-100'

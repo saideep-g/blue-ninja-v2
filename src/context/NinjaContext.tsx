@@ -98,17 +98,29 @@ export function NinjaProvider({ children }: { children: ReactNode }) {
                     setLocalBuffer(data.buffer);
                     bufferRef.current = data.buffer;
                     setUserRole(data.role || 'STUDENT');
-                } else {
-                    console.log('☁️ No local session. Fetching from Firestore...');
-                    const userDoc = await getDoc(getStudentRef(user.uid));
+                }
 
-                    if (userDoc.exists()) {
-                        console.log('✅ Remote profile loaded successfully');
-                        const data = userDoc.data();
-                        setNinjaStats(data);
-                        setUserRole((data as any).role || 'STUDENT');
-                        fetchSessionLogs(user.uid);
-                    } else {
+                // ALWAYS Fetch Remote Data to ensure Profile/Settings are fresh
+                // This fixes the issue where local cache hides profile updates (like Grade change)
+                console.log('☁️ Fetching fresh data from Firestore...');
+                const userDoc = await getDoc(getStudentRef(user.uid));
+
+                if (userDoc.exists()) {
+                    console.log('✅ Remote data received');
+                    const remoteData = userDoc.data();
+
+                    // Merge remote data into state
+                    // We prioritize remote for Profile/Class, but keep local for transient session stuff if needed
+                    setNinjaStats(prev => {
+                        const merged = { ...prev, ...remoteData };
+                        console.log('🔄 Merged Remote Stats:', merged);
+                        return merged;
+                    });
+
+                    setUserRole((remoteData as any).role || 'STUDENT');
+                    fetchSessionLogs(user.uid);
+                } else {
+                    if (!localSession) {
                         console.log('🆕 No profile found. Initializing new Ninja...');
                         const initialStats: NinjaStats = {
                             powerPoints: 0,
