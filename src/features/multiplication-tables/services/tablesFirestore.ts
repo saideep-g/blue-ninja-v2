@@ -114,16 +114,23 @@ export async function getStudentTableStats(studentId: string) {
         // Threshold: 30 seconds (30000ms) as requested.
         const isReasonableTime = data.timeTaken < 30000;
 
-        if (data.isValidForSpeed !== false && isReasonableTime && data.isCorrect) {
+        if (data.isValidForSpeed !== false && isReasonableTime) {
             stats[data.table].timeSum += data.timeTaken || 0;
             stats[data.table].speedSamples++;
         }
     });
 
-    return Object.entries(stats).map(([table, s]) => ({
-        table: parseInt(table),
-        accuracy: Math.round((s.correct / s.total) * 100),
-        totalAttempts: s.total,
-        avgTime: s.speedSamples > 0 ? parseFloat((s.timeSum / s.speedSamples / 1000).toFixed(1)) : 0
-    }));
+    return Object.entries(stats).map(([table, s]) => {
+        let avgTime = 0;
+        if (s.speedSamples > 0 && s.timeSum > 0) {
+            avgTime = parseFloat((s.timeSum / s.speedSamples / 1000).toFixed(1));
+        }
+
+        return {
+            table: parseInt(table),
+            accuracy: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0,
+            totalAttempts: s.total,
+            avgTime
+        };
+    });
 }

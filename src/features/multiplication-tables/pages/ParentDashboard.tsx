@@ -42,7 +42,8 @@ export default function ParentDashboard() {
                         table: i,
                         accuracy: found.accuracy,
                         totalAttempts: found.totalAttempts,
-                        status
+                        status,
+                        avgTime: found.avgTime
                     });
                 } else {
                     fullStats.push({ table: i, accuracy: 0, totalAttempts: 0, status: 'NOT_STARTED' });
@@ -203,7 +204,7 @@ export default function ParentDashboard() {
                                                     {stat.totalAttempts > 0 ? `${stat.accuracy}%` : '-'}
                                                 </td>
                                                 <td className="px-6 py-4 font-mono text-slate-500">
-                                                    {stat.avgTime && stat.avgTime > 0 ? `${stat.avgTime}s` : '-'}
+                                                    {stat.avgTime !== undefined ? `${stat.avgTime}s` : '-'}
                                                 </td>
                                                 <td className="px-6 py-4 font-mono text-slate-500">
                                                     {stat.totalAttempts}
