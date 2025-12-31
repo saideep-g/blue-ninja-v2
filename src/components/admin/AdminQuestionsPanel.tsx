@@ -852,24 +852,32 @@ export default function AdminQuestionsPanel() {
               </div>
             )}
 
-            {filteredBrowserItems.map((item, idx) => (
-              <div key={idx} onClick={() => setPreviewItem(item)} className="bg-white p-4 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer transition lg:flex items-center gap-6 group">
-                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-blue-50 group-hover:text-blue-600 transition">
-                  <Eye className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="font-bold text-slate-800 truncate">{item.item_id}</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{item.template_id || 'UNKNOWN'}</span>
-                    <span className="text-[10px] font-mono text-slate-300">{item._bundleId}</span>
+            {filteredBrowserItems.map((item, idx) => {
+              // Robust Prompt Extraction for Display
+              let displayPrompt = item.prompt?.text || item.content?.prompt?.text || "";
+              if (!displayPrompt && item.stages && Array.isArray(item.stages) && item.stages.length > 0) {
+                displayPrompt = item.stages[0].prompt?.text || "";
+              }
+
+              return (
+                <div key={idx} onClick={() => setPreviewItem(item)} className="bg-white p-4 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer transition lg:flex items-center gap-6 group">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-blue-50 group-hover:text-blue-600 transition">
+                    <Eye className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
                   </div>
-                  <p className="text-sm text-slate-500 truncate font-medium">
-                    {item.prompt?.text || item.content?.prompt?.text || "No prompt text found..."}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="font-bold text-slate-800 truncate">{item.item_id}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{item.template_id || 'UNKNOWN'}</span>
+                      <span className="text-[10px] font-mono text-slate-300">{item._bundleId}</span>
+                    </div>
+                    <p className="text-sm text-slate-500 truncate font-medium">
+                      {displayPrompt || "No prompt text found..."}
+                    </p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-slate-200 group-hover:text-blue-500 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition" />
                 </div>
-                <ArrowRight className="w-5 h-5 text-slate-200 group-hover:text-blue-500 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition" />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
