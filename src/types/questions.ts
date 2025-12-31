@@ -33,9 +33,82 @@ export type QuestionType =
   | 'multiple_select'
   | 'sequencing'
   | 'table_fill'
-  | 'formula';
+  | 'formula'
+  | 'mcq_branching'
+  | 'balance_ops';
 
 // Type-specific question interfaces
+
+// New Branching MCQ Types
+export interface McqBranchingQuestion extends BaseQuestion {
+  template: 'mcq_branching';
+  flow: {
+    mode: 'branching';
+    entry_stage_id: string;
+    return_behavior: 'reload_with_new_vars' | 'continue';
+  };
+  stages: BranchStage[];
+}
+
+export interface BalanceOpsQuestion extends BaseQuestion {
+  template: 'balance_ops';
+  interaction: {
+    config: {
+      equation: {
+        left: {
+          a: number;
+          variable: string;
+          b: number;
+        };
+        right: {
+          value: number;
+        };
+      };
+      operations: Array<{
+        op_id: string;
+        label: string;
+        value: number;
+      }>;
+    };
+  };
+}
+
+export interface BranchStage {
+  stage_id: string;
+  intent: 'MAIN_CHALLENGE' | 'REPAIR_VISUAL' | 'REPAIR_CONCEPT' | 'REPAIR_PROCEDURE';
+  prompt: {
+    text: string;
+    latex?: string;
+    media_ref?: string | null;
+  };
+  stimulus?: {
+    type: 'table' | 'image' | 'steps' | 'none';
+    content: any;
+  };
+  instruction?: string;
+  interaction: {
+    type: 'mcq' | 'mcq_procedural' | 'mcq_concept';
+    config: {
+      options: BranchOption[];
+    };
+  };
+}
+
+export interface BranchOption {
+  id: string;
+  text?: string;
+  latex?: string;
+  is_correct: boolean;
+  feedback?: string;
+  diagnostic?: string | null;
+  next: BranchNextAction;
+}
+
+export type BranchNextAction =
+  | { type: 'exit'; outcome: 'pass' | 'fail' }
+  | { type: 'branch'; target: string }
+  | { type: 'return_to_entry' }
+  | { type: 'loop' };
 
 export interface MultipleChoiceQuestion extends BaseQuestion {
   template: 'multiple_choice';
@@ -128,6 +201,7 @@ export interface MultipleSelectQuestion extends BaseQuestion {
   options: {
     id: string;
     text: string;
+    imageUrl?: string;
   }[];
   correctOptionIds: string[];
   partialCredit?: boolean;
@@ -156,6 +230,8 @@ export interface FormulaQuestion extends BaseQuestion {
 
 // Union type of all questions
 export type Question =
+  | McqBranchingQuestion
+  | BalanceOpsQuestion
   | MultipleChoiceQuestion
   | FillBlankQuestion
   | TrueFalseQuestion

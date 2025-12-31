@@ -12,6 +12,8 @@ import { ClassifySortTemplate } from './ClassifySortTemplate';
 import { NumberLineTemplate } from './NumberLineTemplate';
 import { SortOrderTemplate } from './SortOrderTemplate';
 import { ErrorAnalysisTemplate } from './ErrorAnalysisTemplate';
+import { McqBranchingTemplate } from './McqBranchingTemplate';
+import { BalanceOpsTemplate } from './BalanceOpsTemplate';
 
 interface TemplateRouterProps {
   question: Question;
@@ -142,12 +144,14 @@ const TEMPLATE_REGISTRY: Record<string, React.ComponentType<any>> = {
   'STEP_ORDER': SortOrderTemplate,
   'SORT_ORDER': SortOrderTemplate,
   'ERROR_ANALYSIS': ErrorAnalysisTemplate,
+  'MCQ_BRANCHING': McqBranchingTemplate,
+  'BALANCE_OPS': BalanceOpsTemplate,
 };
 
 export function TemplateRouter({ question, onSubmit, isSubmitting = false, readOnly = false }: TemplateRouterProps) {
   const TemplateComponent = useMemo(() => {
     // Check all possible ID locations (V2 camelCase, V3 snake_case, legacy type)
-    let templateId = question.type || (question as any).templateId || (question as any).template_id;
+    let templateId = question.type || (question as any).templateId || (question as any).template_id || (question as any).template;
     if (templateId && typeof templateId === 'string') {
       templateId = templateId.toUpperCase();
     }

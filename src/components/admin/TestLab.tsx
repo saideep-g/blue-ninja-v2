@@ -209,6 +209,7 @@ export default function TestLab() {
                                         <option value="ERROR_ANALYSIS">Error Analysis</option>
                                         <option value="STEP_ORDER">Step Order</option>
                                         <option value="TWO_TIER">Two Tier (Reasoning)</option>
+                                        <option value="MCQ_BRANCHING">MCQ Branching</option>
                                     </select>
                                 </div>
                                 <div>

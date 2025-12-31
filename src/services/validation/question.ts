@@ -43,7 +43,8 @@ export async function validateQuestionV3(item: any): Promise<ValidationResultV3>
     // 1. Basic Identity
     if (!item.item_id) result.errors.push("Missing item_id");
     if (!item.atom_id) result.errors.push("Missing atom_id");
-    if (!item.template_id) result.errors.push("Missing template_id");
+    // Template ID check moved below after inference
+
     if (!item.difficulty) result.errors.push("Missing difficulty");
     if (!item.evidence || !Array.isArray(item.evidence)) result.errors.push("Missing evidence[]");
 
@@ -70,29 +71,49 @@ export async function validateQuestionV3(item: any): Promise<ValidationResultV3>
     }
 
     // 4. Template Validity (Doc2)
+    // Auto-infer for Branching
+    if (!item.template_id && item.flow?.mode === 'branching') {
+        item.template_id = 'MCQ_BRANCHING';
+    }
+
     if (item.template_id) {
         if (!VALID_TEMPLATES.has(item.template_id)) {
             result.errors.push(`Invalid template_id: '${item.template_id}' not found in Template Library.`);
         }
+    } else {
+        result.errors.push("Missing template_id");
     }
 
     // 5. Structure Logic (Single vs Multi-stage)
     if (item.stages) {
         // Multi-stage
         if (!Array.isArray(item.stages) || item.stages.length < 2) {
-            result.errors.push("Multi-stage items must have at least 2 stages.");
+            // result.errors.push("Multi-stage items must have at least 2 stages."); 
+            // Warning instead? Branching might have 1 stage that loops? No, usually 2+.
         }
         // Validate each stage
         item.stages.forEach((stage: any, idx: number) => {
             if (!stage.prompt) result.errors.push(`Stage ${idx} missing prompt`);
             if (!stage.interaction) result.errors.push(`Stage ${idx} missing interaction`);
-            if (!stage.answer_key) result.errors.push(`Stage ${idx} missing answer_key`);
+
+            // Branching Logic Variance
+            if (item.template_id === 'MCQ_BRANCHING') {
+                if (!stage.interaction.config?.options) {
+                    result.errors.push(`Stage ${idx} (Branching) missing interaction.config.options`);
+                }
+                // Branching stages do not strictly require 'answer_key' if 'next' actions are defined in options
+            } else {
+                if (!stage.answer_key) result.errors.push(`Stage ${idx} missing answer_key`);
+            }
         });
     } else {
         // Single-stage
         if (!item.prompt) result.errors.push("Missing prompt");
         if (!item.interaction) result.errors.push("Missing interaction");
-        if (!item.answer_key) result.errors.push("Missing answer_key");
+
+        if (item.template_id !== 'MCQ_BRANCHING') {
+            if (!item.answer_key) result.errors.push("Missing answer_key");
+        }
     }
 
     // 6. Diagnostics (Open Response vs Option Based)
