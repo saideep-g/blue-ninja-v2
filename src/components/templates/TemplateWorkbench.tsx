@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { TwoTierTemplate } from './TwoTierTemplate';
 import type { QuestionItem } from '../../types/curriculum.v3';
@@ -7,7 +7,6 @@ import type { QuestionItem } from '../../types/curriculum.v3';
 // Note: Ensure these paths match your project structure
 import coreCurriculum from '../../data/cbse7_core_curriculum_v3.json';
 import assessmentGuide from '../../data/cbse7_assessment_guide_v3.json';
-import goldQuestions from '../../data/cbse7_gold_questions_v3_medium_kpop_cdrama_set1.json';
 
 /**
  * TEMPLATE WORKBENCH
@@ -21,13 +20,31 @@ import goldQuestions from '../../data/cbse7_gold_questions_v3_medium_kpop_cdrama
 export const TemplateWorkbench: React.FC = () => {
   const { templateId } = useParams<{ templateId: string }>();
 
+  // State for dynamic data
+  const [goldQuestions, setGoldQuestions] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Dynamic load of the heavy JSON to avoid build warnings about mixed static/dynamic imports
+  useEffect(() => {
+    let mounted = true;
+    import('../../data/cbse7_gold_questions_v3_medium_kpop_cdrama_set1.json')
+      .then(mod => {
+        if (mounted) {
+          setGoldQuestions(mod.default);
+          setIsLoading(false);
+        }
+      });
+    return () => { mounted = false; };
+  }, []);
+
   // Find the first question in the Gold set that matches the template type
   // This allows you to use the same workbench for different templates later.
   const activeItem = useMemo(() => {
+    if (!goldQuestions) return undefined;
     return goldQuestions.items.find(
       (item: any) => item.template_id === templateId?.toUpperCase()
     ) as QuestionItem | undefined;
-  }, [templateId]);
+  }, [templateId, goldQuestions]);
 
   /**
    * Mock Telemetry Handler
@@ -39,6 +56,10 @@ export const TemplateWorkbench: React.FC = () => {
     console.log('Timestamp:', new Date().toISOString());
     console.groupEnd();
   };
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading Workbench Data...</div>;
+  }
 
   if (!activeItem) {
     return (
@@ -70,7 +91,7 @@ export const TemplateWorkbench: React.FC = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            {activeItem.context_tags.map(tag => (
+            {activeItem.context_tags.map((tag: string) => (
               <span key={tag} className="px-2 py-1 bg-slate-100 text-slate-500 rounded-lg text-[9px] font-black uppercase">
                 {tag}
               </span>

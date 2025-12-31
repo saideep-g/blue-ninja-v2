@@ -7,7 +7,8 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { IndexedDBService, PendingQuestion, UploadSession } from '../services/admin/cacheDb';
+// Changed to type import to allow dynamic loading of class
+import type { IndexedDBService, PendingQuestion, UploadSession } from '../services/admin/cacheDb';
 
 /**
  * Custom React hook for IndexedDB operations
@@ -28,6 +29,8 @@ export function useIndexedDB() {
     const initialize = async () => {
       try {
         if (!dbRef.current) {
+          // Dynamic import to avoid chunk splitting issues with Admin Service
+          const { IndexedDBService } = await import('../services/admin/cacheDb');
           dbRef.current = new IndexedDBService();
         }
 

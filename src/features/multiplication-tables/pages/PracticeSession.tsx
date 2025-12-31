@@ -3,6 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Send, Sparkles, Zap } from 'lucide-react';
 import { useNinja } from '../../../context/NinjaContext';
+// Static import to resolve build warning (was mixed with dynamic/static in other files)
+import { getStudentTableStats, saveSinglePracticeLog } from '../services/tablesFirestore';
+import { playCorrectSound, playIncorrectSound, playCompletionSound } from '../utils/sounds';
 
 type QuestionType = 'DIRECT' | 'MISSING_MULTIPLIER';
 
@@ -96,22 +99,20 @@ export default function PracticeSession() {
         }
 
         console.log('[PracticeSession] Fetching mastery stats for dynamic limits...');
-        import('../services/tablesFirestore').then(({ getStudentTableStats }) => {
-            getStudentTableStats(user.uid).then(stats => {
-                let maxMastered = 10;
-                stats.forEach(s => {
-                    // Definition of Mastery: 80% accuracy after 20+ attempts
-                    // This creates a "Safe Zone" where we assume the student knows the table well enough to use it as a multiplier
-                    if (s.accuracy >= 80 && s.totalAttempts >= 20) {
-                        if (s.table > maxMastered) maxMastered = s.table;
-                    }
-                });
-
-                const limit = Math.max(10, maxMastered);
-                console.log(`[PracticeSession] Max Mastered: ${maxMastered}, Multiplier Limit: ${limit}`);
-                setMasteryLimit(limit);
-                setMasteryFetched(true);
+        getStudentTableStats(user.uid).then(stats => {
+            let maxMastered = 10;
+            stats.forEach(s => {
+                // Definition of Mastery: 80% accuracy after 20+ attempts
+                // This creates a "Safe Zone" where we assume the student knows the table well enough to use it as a multiplier
+                if (s.accuracy >= 80 && s.totalAttempts >= 20) {
+                    if (s.table > maxMastered) maxMastered = s.table;
+                }
             });
+
+            const limit = Math.max(10, maxMastered);
+            console.log(`[PracticeSession] Max Mastered: ${maxMastered}, Multiplier Limit: ${limit}`);
+            setMasteryLimit(limit);
+            setMasteryFetched(true);
         });
     }, [user, isAdvanced]);
 
@@ -213,28 +214,26 @@ export default function PracticeSession() {
         }]);
 
         if (user) {
-            import('../services/tablesFirestore').then(({ saveSinglePracticeLog }) => {
-                const isValidForSpeed = timeTaken <= 30000 && isCorrect;
-                saveSinglePracticeLog(user.uid, {
-                    questionId: currentQuestion.id,
-                    table: currentQuestion.table,
-                    multiplier: currentQuestion.multiplier,
-                    type: currentQuestion.type,
-                    isCorrect,
-                    timeTaken,
-                    isValidForSpeed
-                });
+            const isValidForSpeed = timeTaken <= 30000 && isCorrect;
+            saveSinglePracticeLog(user.uid, {
+                questionId: currentQuestion.id,
+                table: currentQuestion.table,
+                multiplier: currentQuestion.multiplier,
+                type: currentQuestion.type,
+                isCorrect,
+                timeTaken,
+                isValidForSpeed
             });
         }
 
         if (isCorrect) {
             setShowFeedback('CORRECT');
             setStreak(s => s + 1);
-            import('../utils/sounds').then(s => s.playCorrectSound());
+            playCorrectSound();
         } else {
             setShowFeedback('INCORRECT');
             setStreak(0);
-            import('../utils/sounds').then(s => s.playIncorrectSound());
+            playIncorrectSound();
         }
 
         setTimeout(() => {
@@ -245,7 +244,7 @@ export default function PracticeSession() {
                 setCurrentIndex(prev => prev + 1);
                 setStartTime(Date.now());
             } else {
-                import('../utils/sounds').then(s => s.playCompletionSound());
+                playCompletionSound();
                 const currentLog = {
                     questionId: currentQuestion!.id,
                     table: currentQuestion!.table,
