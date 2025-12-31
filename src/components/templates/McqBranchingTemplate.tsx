@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, CheckCircle2, XCircle, ArrowRight, RotateCcw } from 'lucide-react'; // Example icons
-import { McqBranchingQuestion, BranchStage, BranchOption } from '../../types/questions';
-import { useNinja } from '../../context/NinjaContext'; // Assuming context is needed for audio/etc, or removed if not.
+import { AlertCircle, ArrowRight } from 'lucide-react';
+import { McqBranchingQuestion, BranchOption } from '../../types/questions';
+import 'katex/dist/katex.min.css';
+import { InlineMath } from 'react-katex';
 
 interface McqBranchingTemplateProps {
     question: McqBranchingQuestion;
@@ -10,6 +11,40 @@ interface McqBranchingTemplateProps {
     isSubmitting: boolean;
     readOnly: boolean;
 }
+
+const LatexRenderer = ({ text }: { text: string | null }) => {
+    if (!text) return null;
+    const parts = text.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g);
+    return (
+        <>
+            {parts.map((part, i) => {
+                if ((part.startsWith('$$') && part.endsWith('$$')) || (part.startsWith('$') && part.endsWith('$'))) {
+                    const math = part.startsWith('$$') ? part.slice(2, -2) : part.slice(1, -1);
+                    return <InlineMath key={i} math={math} />;
+                }
+
+                // Handle implicit power notation (e.g. 2^3, (a+b)^2, (-2)^3, 2.5^x)
+                if (part.includes('^')) {
+                    // Allow alphanumeric, parens, +, -, ., ,, /, =, <, >, _
+                    const subParts = part.split(/([a-zA-Z0-9\(\)\+\-\.\\,\/\=\<\>_]+(?:\^[a-zA-Z0-9\(\)\+\-\.\\,\/\=\<\>_\^]+)+)/g);
+                    return (
+                        <span key={i}>
+                            {subParts.map((sub, j) => {
+                                if (sub.includes('^')) {
+                                    // Fix for parenthesized exponents e.g. 2^(3^2) -> 2^{(3^2)} to ensure entire group is superscript
+                                    const fixedSub = sub.replace(/\^(\([^\)]+\))/g, '^{$1}');
+                                    return <InlineMath key={`${i}-${j}`} math={fixedSub} />;
+                                }
+                                return <span key={`${i}-${j}`}>{sub}</span>;
+                            })}
+                        </span>
+                    );
+                }
+                return <span key={i}>{part}</span>;
+            })}
+        </>
+    );
+};
 
 export const McqBranchingTemplate: React.FC<McqBranchingTemplateProps> = ({
     question,
@@ -25,6 +60,7 @@ export const McqBranchingTemplate: React.FC<McqBranchingTemplateProps> = ({
     const [isComplete, setIsComplete] = useState(false);
 
     // Trace history for debugging or advanced feedback
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [history, setHistory] = useState<string[]>([entryStageId]);
 
     // Find current stage data
@@ -99,7 +135,7 @@ export const McqBranchingTemplate: React.FC<McqBranchingTemplateProps> = ({
             {/* PROMPT */}
             <div className="mb-6">
                 <h2 className="text-xl md:text-2xl font-bold text-slate-800 leading-relaxed">
-                    {currentStage.prompt.text}
+                    <LatexRenderer text={currentStage.prompt.text} />
                 </h2>
                 {currentStage.prompt.media_ref && (
                     <div className="mt-4 p-4 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
@@ -122,7 +158,7 @@ export const McqBranchingTemplate: React.FC<McqBranchingTemplateProps> = ({
             {/* INSTRUCTION */}
             {currentStage.instruction && (
                 <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">
-                    {currentStage.instruction}
+                    <LatexRenderer text={currentStage.instruction} />
                 </p>
             )}
 
@@ -149,7 +185,7 @@ export const McqBranchingTemplate: React.FC<McqBranchingTemplateProps> = ({
                                     {option.id}
                                 </div>
                                 <div className="text-lg font-medium pt-0.5">
-                                    {option.text || option.latex || "Option"}
+                                    <LatexRenderer text={option.text || option.latex || "Option"} />
                                 </div>
                             </div>
                         </button>
@@ -170,7 +206,7 @@ export const McqBranchingTemplate: React.FC<McqBranchingTemplateProps> = ({
                         {feedback && (
                             <div className="mb-4 p-4 bg-indigo-50 text-indigo-800 rounded-xl text-sm font-medium flex gap-3">
                                 <AlertCircle className="shrink-0 w-5 h-5" />
-                                <div>{feedback}</div>
+                                <div><LatexRenderer text={feedback} /></div>
                             </div>
                         )}
 

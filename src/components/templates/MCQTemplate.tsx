@@ -1,5 +1,7 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
+import 'katex/dist/katex.min.css';
+import { InlineMath } from 'react-katex';
 import { CheckCircle2, XCircle, Lightbulb, AlertCircle, Loader2, ArrowRightCircle } from 'lucide-react';
 import { Question } from '../../types';
 import { useProfileStore } from '../../store/profile';
@@ -17,6 +19,42 @@ interface Feedback {
   selectedIndex?: number;
   feedback: string;
 }
+
+const LatexRenderer = ({ text }: { text: string | null }) => {
+  if (!text) return null;
+  // Match both $$...$$ and $...$ delimiters
+  const parts = text.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if ((part.startsWith('$$') && part.endsWith('$$')) || (part.startsWith('$') && part.endsWith('$'))) {
+          const math = part.startsWith('$$') ? part.slice(2, -2) : part.slice(1, -1);
+          return <InlineMath key={i} math={math} />;
+        }
+
+        // Handle implicit power notation (e.g. 2^3, (a+b)^2, (-2)^3, 2.5^x)
+        if (part.includes('^')) {
+          // Allow alphanumeric, parens, +, -, ., ,, /, =, <, >, _
+          const subParts = part.split(/([a-zA-Z0-9\(\)\+\-\.\\,\/\=\<\>_]+(?:\^[a-zA-Z0-9\(\)\+\-\.\\,\/\=\<\>_\^]+)+)/g);
+          return (
+            <span key={i}>
+              {subParts.map((sub, j) => {
+                if (sub.includes('^')) {
+                  // Fix for parenthesized exponents e.g. 2^(3^2) -> 2^{(3^2)} to ensure entire group is superscript
+                  const fixedSub = sub.replace(/\^(\([^\)]+\))/g, '^{$1}');
+                  return <InlineMath key={`${i}-${j}`} math={fixedSub} />;
+                }
+                return <span key={`${i}-${j}`}>{sub}</span>;
+              })}
+            </span>
+          );
+        }
+
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+};
 
 /**
  * REDESIGNED MCQTemplate
@@ -144,11 +182,11 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
       {/* ========== QUESTION PROMPT (HERO) ========== */}
       <div className="space-y-3">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight whitespace-pre-wrap">
-          {prompt}
+          <LatexRenderer text={prompt} />
         </h2>
         {instruction && (
           <p className="text-base text-gray-600 leading-relaxed whitespace-pre-wrap">
-            {instruction}
+            <LatexRenderer text={instruction} />
           </p>
         )}
 
@@ -243,7 +281,7 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
                   {submitted && isWrongSelected && <XCircle className="w-5 h-5 text-white" />}
                 </div>
 
-                <span className="flex-1">{option.text}</span>
+                <span className="flex-1"><LatexRenderer text={option.text} /></span>
               </div>
             </button>
           );
@@ -288,7 +326,7 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
               {!feedback.isCorrect && (
                 <div className="space-y-2">
                   <p className="text-xl font-bold text-green-700">
-                    {options[correctIndex]?.text}
+                    <LatexRenderer text={options[correctIndex]?.text} />
                   </p>
                   <p className="text-base text-red-700">
                     {feedback.feedback}
@@ -336,7 +374,7 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
                   {idx + 1}
                 </div>
                 <p className="text-gray-700 text-sm md:text-base leading-relaxed flex-1 pt-0.5">
-                  {step}
+                  <LatexRenderer text={step} />
                 </p>
               </div>
             ))}

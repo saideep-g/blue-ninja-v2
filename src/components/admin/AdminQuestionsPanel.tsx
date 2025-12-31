@@ -407,8 +407,12 @@ export default function AdminQuestionsPanel() {
       } else if (data.items) {
         rawItems = data.items;
         version = data.schema_version || '3.0';
+      } else if (data.item_id || data.atom_id || data.template_id) {
+        // Single V3 Item Upload Support
+        rawItems = [data];
+        version = '3.0';
       } else {
-        throw new Error("Invalid Format: Could not find 'items' array.");
+        throw new Error("Invalid Format: Could not find 'items' array and data does not look like a Question Item.");
       }
 
       parseAndValidateItems(rawItems, version);
