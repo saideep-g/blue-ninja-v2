@@ -19,6 +19,9 @@ import type {
   AdminFilterOptions,
   StudentInfo as AdminStudentInfo
 } from '../../types/admin';
+import { db as firestoreDb } from '../db/firebase';
+import { collectionGroup, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { QuestionLog } from '../../types';
 
 // Helper to safely access dynamic properties on generic IDB objects
 const safeGet = (obj: any, key: string, fallback: any = null) => {
@@ -182,6 +185,37 @@ export const adminService = {
   },
 
   /**
+   * Get real student error logs for Intelligence Report
+   */
+  async getStudentVoiceFeed(): Promise<any[]> {
+    try {
+      const q = query(
+        collectionGroup(firestoreDb, 'session_logs'),
+        where('isCorrect', '==', false),
+        orderBy('timestamp', 'desc'),
+        limit(20)
+      );
+
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => {
+        const data = doc.data() as QuestionLog;
+        // Map to the shape expected by UI
+        return {
+          id: doc.id,
+          atom: data.metadata?.atom_id || data.topic || 'General',
+          wrongAnswer: data.userAnswer?.answer || JSON.stringify(data.userAnswer) || "No Answer",
+          context: data.feedback?.feedback || "No feedback logged",
+          type: data.feedback?.isCorrect === false ? 'Misconception' : 'Unknown', // Infer type
+          timestamp: data.timestamp
+        };
+      });
+    } catch (e) {
+      console.error("Failed to fetch student voice feed:", e);
+      throw e; // Re-throw so UI can handle specific errors like missing indexes
+    }
+  },
+
+  /**
    * Get question statistics
    * @returns List of questions with usage stats
    */
@@ -209,6 +243,9 @@ export const adminService = {
             topic: item.topic || (item.metadata?.topic) || 'Uncategorized',
             level: item.difficulty || 'medium',
             content: JSON.stringify(item),
+            // Crucial: Pass through metadata or top-level atom properties so the next map step can find them
+            metadata: item.metadata || {},
+            atom: item.atom || item.atom_id || item.metadata?.atom_id,
             answer: '',
             explanation: '',
             createdBy: 'admin',

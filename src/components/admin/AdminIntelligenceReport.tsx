@@ -19,24 +19,23 @@ import {
 import { adminService } from '../../services/admin';
 import { QuestionStats, IntelligenceAction } from '../../types/admin';
 import { useIndexedDB } from '../../hooks/useIndexedDB';
+import { getCurriculumStats } from '../../services/curriculum';
 
 // ============================================================================
 // TYPES & MOCKS (Mocking data that isn't fully in DB yet for V2 Demo)
 // ============================================================================
 
-const STUDENT_VOICE_MOCKS = [
-    { id: 1, atom: "Variable Isolation", wrongAnswer: "x = 42", context: "Adding instead of Subtracting", type: "Logic Error" },
-    { id: 2, atom: "Area of Trapezoids", wrongAnswer: "Area = 12", context: "Confused height with slant edge", type: "Misconception" },
-    { id: 3, atom: "Integers", wrongAnswer: "-5 + -3 = 8", context: "Thinking two negatives make a positive in addition", type: "Rule Confusion" },
-    { id: 4, atom: "Ratios", wrongAnswer: "2:3 = 3:2", context: "Reversed order—doesn't see ratio as directional", type: "Concept Gap" },
-];
+// Mocks removed in favor of real firestore feed
 
 // ============================================================================
 // SUB-COMPONENTS
 // ============================================================================
 
-const KPI_Card = ({ title, value, subtext, icon: Icon, color }: any) => (
-    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+const KPI_Card = ({ title, value, subtext, icon: Icon, color, onClick }: any) => (
+    <div
+        onClick={onClick}
+        className={`bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all ${onClick ? 'cursor-pointer' : ''}`}
+    >
         <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
             <Icon size={64} />
         </div>
@@ -84,8 +83,11 @@ const ActionCard = ({ action }: { action: IntelligenceAction }) => {
 export const AdminIntelligenceReport: React.FC = () => {
     const navigate = useNavigate();
     const [stats, setStats] = useState<QuestionStats[]>([]);
+    const [studentVoiceLogs, setStudentVoiceLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [totalCurriculumAtoms, setTotalCurriculumAtoms] = useState(0); // New state for total atoms
     const [activeTab, setActiveTab] = useState<'RADAR' | 'ACTIONS'>('ACTIONS');
+    const [indexErrorUrl, setIndexErrorUrl] = useState<string | null>(null);
 
     useEffect(() => {
         loadData();
@@ -95,9 +97,21 @@ export const AdminIntelligenceReport: React.FC = () => {
         try {
             setLoading(true);
             const data = await adminService.getQuestionStats();
+            const logs = await adminService.getStudentVoiceFeed();
+            const curriculumStats = await getCurriculumStats(); // Fetch curriculum stats
+
             setStats(data);
-        } catch (err) {
-            console.error(err);
+            setStudentVoiceLogs(logs);
+            setTotalCurriculumAtoms(curriculumStats.totalAtoms); // Set total atoms
+        } catch (err: any) {
+            console.error("Intelligence Report Load Error:", err);
+            // Check for Firestore Index Error
+            if (err.message && err.message.includes('requires an index')) {
+                const match = err.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+                if (match) {
+                    setIndexErrorUrl(match[0]);
+                }
+            }
         } finally {
             setLoading(false);
         }
@@ -211,11 +225,19 @@ export const AdminIntelligenceReport: React.FC = () => {
             targetAtom: 'Geometry'
         });
 
+        // Improved Vitality Score:
+        // Calculate how many atoms have >= 5 questions
+        const robustAtomsCount = Object.values(atomCounts).filter(count => count >= 5).length;
+
+        // Use the REAL total from curriculum service (fallback to found atoms if service fails/loading)
+        const denominator = totalCurriculumAtoms || Object.keys(atomCounts).length || 1;
+
         return {
             atomCounts,
             actions: actions.sort((a, b) => a.priority === 'HIGH' ? -1 : 1),
-            totalAtoms: Object.keys(atomCounts).length,
-            coverageScore: Math.min(100, Math.round((stats.length / (Object.keys(atomCounts).length * 5 || 1)) * 100)) // Crude "Vitality"
+            totalAtoms: denominator,
+            robustAtomsCount,
+            coverageScore: Math.round((robustAtomsCount / denominator) * 100)
         };
 
     }, [stats]);
@@ -266,13 +288,14 @@ export const AdminIntelligenceReport: React.FC = () => {
                 <KPI_Card
                     title="Concept Vitality Score"
                     value={`${intelligence.coverageScore}%`}
-                    subtext="Weighted coverage of all Atoms"
+                    subtext={`${intelligence.robustAtomsCount}/${intelligence.totalAtoms} Atoms Robust`}
                     icon={Activity}
                     color="text-emerald-600 bg-emerald-500"
+                    onClick={() => navigate('/admin/questions', { state: { mode: 'VITALITY_DETAIL' } })}
                 />
                 <KPI_Card
                     title="Active Misconceptions"
-                    value={STUDENT_VOICE_MOCKS.length}
+                    value={studentVoiceLogs.length}
                     subtext="Patterns tracked in repository"
                     icon={Microscope}
                     color="text-amber-600 bg-amber-500"
@@ -423,20 +446,44 @@ export const AdminIntelligenceReport: React.FC = () => {
                             <h3 className="font-bold">Student Voice Feed</h3>
                         </div>
                         <div className="space-y-4">
-                            {STUDENT_VOICE_MOCKS.map(voice => (
-                                <div key={voice.id} className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800 transition">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="text-[10px] uppercase font-bold text-blue-300 tracking-wider opacity-80">{voice.atom}</span>
-                                        <span className="text-[10px] text-slate-500">{voice.type}</span>
+                            {indexErrorUrl ? (
+                                <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-center">
+                                    <div className="flex justify-center mb-2">
+                                        <AlertTriangle className="text-amber-500 w-6 h-6" />
                                     </div>
-                                    <div className="font-mono text-red-300 text-sm mb-2 bg-black/20 p-2 rounded border-l-2 border-red-500">
-                                        "{voice.wrongAnswer}"
-                                    </div>
-                                    <p className="text-xs text-slate-400 italic">
-                                        Context: {voice.context}
+                                    <h4 className="font-bold text-amber-900 text-xs mb-1">Database Optimization Required</h4>
+                                    <p className="text-xs text-amber-700 mb-3">
+                                        To enable Student Voice analysis, a new index is required on Firestore.
                                     </p>
+                                    <a
+                                        href={indexErrorUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-block px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 transition"
+                                    >
+                                        Create Index &rarr;
+                                    </a>
                                 </div>
-                            ))}
+                            ) : studentVoiceLogs.length === 0 ? (
+                                <div className="text-slate-500 text-xs italic p-4 text-center border border-dashed border-slate-700 rounded-xl">
+                                    No student errors logged yet.
+                                </div>
+                            ) : (
+                                studentVoiceLogs.map(voice => (
+                                    <div key={voice.id} className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800 transition">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-[10px] uppercase font-bold text-blue-300 tracking-wider opacity-80">{voice.atom}</span>
+                                            <span className="text-[10px] text-slate-500">{voice.type}</span>
+                                        </div>
+                                        <div className="font-mono text-red-300 text-sm mb-2 bg-black/20 p-2 rounded border-l-2 border-red-500 overflow-hidden text-ellipsis">
+                                            "{voice.wrongAnswer}"
+                                        </div>
+                                        <p className="text-xs text-slate-400 italic">
+                                            Context: {voice.context}
+                                        </p>
+                                    </div>
+                                ))
+                            )}
                         </div>
                         <div className="mt-6 pt-4 border-t border-slate-800 text-center">
                             <button className="text-xs text-blue-300 hover:text-white font-bold uppercase tracking-wider transition">

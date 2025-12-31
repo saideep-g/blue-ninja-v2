@@ -28,6 +28,7 @@ import { useIndexedDB } from '../../hooks/useIndexedDB';
 import { runFullValidationSuite, ValidatedItem, ValidationIssue, ValidationSummary } from "../../services/validation/upload";
 import { publishBundleToFirestore, deleteQuestionFromBundle } from "../../services/questions/firestore";
 import { AdminIntelligenceReport } from './AdminIntelligenceReport';
+import { ConceptVitalityDetail } from './ConceptVitalityDetail';
 
 // Restore PreviewModal here before main component
 const PreviewModal = ({
@@ -119,7 +120,7 @@ const PreviewModal = ({
 // TYPES & CONSTANTS
 // ============================================================================
 
-type UploadStep = 'UPLOAD' | 'REVIEW' | 'PUBLISHING' | 'SUCCESS' | 'BROWSE' | 'INTELLIGENCE' | 'DUPLICATES';
+type UploadStep = 'UPLOAD' | 'REVIEW' | 'PUBLISHING' | 'SUCCESS' | 'BROWSE' | 'INTELLIGENCE' | 'DUPLICATES' | 'VITALITY_DETAIL';
 
 // ============================================================================
 // SUB-COMPONENTS
@@ -290,6 +291,9 @@ export default function AdminQuestionsPanel() {
     }
     if (location.state?.mode === 'DUPLICATES') {
       setStep('DUPLICATES');
+    }
+    if (location.state?.mode === 'VITALITY_DETAIL') {
+      setStep('VITALITY_DETAIL');
     }
   }, [location.state]);
 
@@ -766,6 +770,10 @@ export default function AdminQuestionsPanel() {
         )}
       </div>
     );
+  }
+
+  if (step === 'VITALITY_DETAIL') {
+    return <ConceptVitalityDetail onBack={() => setStep('INTELLIGENCE')} />;
   }
 
   if (step === 'INTELLIGENCE') {
