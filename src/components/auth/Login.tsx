@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { auth } from "../../services/db/firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 /**
  * Login: The Dojo Entrance
@@ -11,6 +11,7 @@ function Login() {
     const [isSignUp, setIsSignUp] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('');
     const [error, setError] = useState('');
 
     const handleAuth = async (e: React.FormEvent) => {
@@ -18,7 +19,10 @@ function Login() {
         setError('');
         try {
             if (isSignUp) {
-                await createUserWithEmailAndPassword(auth, email, password);
+                const cred = await createUserWithEmailAndPassword(auth, email, password);
+                if (username) {
+                    await updateProfile(cred.user, { displayName: username });
+                }
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
             }
@@ -41,6 +45,16 @@ function Login() {
                 </div>
 
                 <form onSubmit={handleAuth} className="space-y-4">
+                    {isSignUp && (
+                        <input
+                            type="text"
+                            placeholder="Ninja Name (Username)"
+                            className="input-field"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
+                        />
+                    )}
                     <input
                         type="email"
                         placeholder="Guardian's Email"

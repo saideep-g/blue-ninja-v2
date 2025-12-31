@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
     User,
     Settings,
@@ -13,7 +14,8 @@ import {
     ChevronRight,
     TrendingUp,
     Save,
-    Check
+    Check,
+    ChevronLeft
 } from 'lucide-react';
 import { useProfileStore } from '../../store/profile';
 import { useNinja } from '../../context/NinjaContext';
@@ -65,6 +67,8 @@ export default function UserProfile() {
 
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
+    const [activityDays, setActivityDays] = useState<Set<string>>(new Set());
+    const [calendarGrid, setCalendarGrid] = useState<Date[]>([]);
 
     // Load initial data from store
     useEffect(() => {
@@ -76,6 +80,34 @@ export default function UserProfile() {
             grade: profileStore.grade || '7'
         });
     }, [profileStore]);
+
+    // Fetch Activity Data (Real Consistency)
+    useEffect(() => {
+        const today = new Date();
+        // Align to start of current week (Sunday)
+        const currentDay = today.getDay(); // 0 = Sun
+        const startOfCurrentWeek = new Date(today);
+        startOfCurrentWeek.setDate(today.getDate() - currentDay);
+
+        // Go back 3 more weeks to show 4 weeks total
+        const startDate = new Date(startOfCurrentWeek);
+        startDate.setDate(startDate.getDate() - 21);
+        startDate.setHours(0, 0, 0, 0);
+
+        // Generate Calendar Grid Dates
+        const days: Date[] = [];
+        for (let i = 0; i < 28; i++) {
+            const d = new Date(startDate);
+            d.setDate(startDate.getDate() + i);
+            days.push(d);
+        }
+        setCalendarGrid(days);
+
+        // Load consistency from Sync Log (Optimized: No extra reads)
+        if (ninjaStats?.activityLog) {
+            setActivityDays(new Set(ninjaStats.activityLog));
+        }
+    }, [ninjaStats]);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -101,42 +133,50 @@ export default function UserProfile() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50/50 p-6 md:p-12 font-sans text-slate-900">
+        <div className="min-h-screen bg-slate-50/50 p-4 md:p-8 font-sans text-slate-900 pb-20">
             <motion.div
                 className="max-w-5xl mx-auto"
                 initial="hidden"
                 animate="visible"
                 variants={containerVariants}
             >
+                {/* Back Link */}
+                <motion.div variants={itemVariants} className="mb-6">
+                    <Link to="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold text-sm transition-colors">
+                        <ChevronLeft size={20} />
+                        Back to Dashboard
+                    </Link>
+                </motion.div>
+
                 {/* HEADER SECTION */}
-                <motion.div variants={itemVariants} className="mb-12 flex items-end justify-between">
-                    <div className="flex items-center gap-6">
+                <motion.div variants={itemVariants} className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="flex items-center gap-4 md:gap-6">
                         <div className="relative">
-                            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-400 to-indigo-500 p-1">
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-tr from-blue-400 to-indigo-500 p-1">
                                 <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
-                                    <User size={48} className="text-slate-300" />
+                                    <User size={40} className="text-slate-300 md:w-12 md:h-12" />
                                     {/* Real avatar would go here */}
                                 </div>
                             </div>
-                            <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-yellow-900 text-xs font-black px-3 py-1 rounded-full shadow-lg border-2 border-white">
+                            <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] md:text-xs font-black px-2 md:px-3 py-1 rounded-full shadow-lg border-2 border-white">
                                 LVL {ninjaStats?.heroLevel || 1}
                             </div>
                         </div>
                         <div>
-                            <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-1">
-                                {user?.displayName || 'Ninja Scout'}
+                            <h1 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight mb-1">
+                                {user?.displayName || (ninjaStats as any)?.username || 'Ninja Scout'}
                             </h1>
-                            <p className="text-slate-500 font-medium flex items-center gap-2">
+                            <p className="text-slate-500 font-medium flex items-center gap-2 text-sm md:text-base">
                                 <Award size={16} className="text-blue-500" />
                                 {ninjaStats?.currentQuest || 'Novice Journey'}
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-slate-200">
+                    <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-slate-200 self-start md:self-auto w-full md:w-auto">
                         <button
                             onClick={() => setActiveTab('overview')}
-                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'overview'
+                            className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'overview'
                                 ? 'bg-blue-500 text-white shadow-md'
                                 : 'text-slate-400 hover:text-slate-600'
                                 }`}
@@ -145,7 +185,7 @@ export default function UserProfile() {
                         </button>
                         <button
                             onClick={() => setActiveTab('settings')}
-                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'settings'
+                            className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'settings'
                                 ? 'bg-blue-500 text-white shadow-md'
                                 : 'text-slate-400 hover:text-slate-600'
                                 }`}
@@ -162,42 +202,48 @@ export default function UserProfile() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
                         >
                             {/* CONSISTENCY CHECKER */}
-                            <div className="md:col-span-2 bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
+                            <div className="lg:col-span-2 bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-xl font-bold flex items-center gap-3">
+                                    <h3 className="text-lg md:text-xl font-bold flex items-center gap-3">
                                         <Calendar className="text-pink-500" />
                                         Practice Consistency
                                     </h3>
-                                    <div className="flex items-center gap-2 text-sm text-slate-400 font-medium">
-                                        <span className="w-3 h-3 rounded-full bg-green-400"></span> Practice
-                                        <span className="w-3 h-3 rounded-full bg-slate-200"></span> Rest
+                                    <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 font-medium">
+                                        <span className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-green-400"></span> Practice
+                                        <span className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-slate-200"></span> Rest
                                     </div>
                                 </div>
 
-                                {/* Mock Calendar Grid */}
-                                <div className="grid grid-cols-7 gap-3 mb-4">
-                                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
-                                        <div key={d} className="text-center text-xs font-black text-slate-300 uppercase">{d}</div>
+                                {/* Calendar Grid */}
+                                <div className="grid grid-cols-7 gap-2 md:gap-3 mb-4">
+                                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                                        <div key={i} className="text-center text-[10px] md:text-xs font-black text-slate-300 uppercase">{d}</div>
                                     ))}
-                                    {Array.from({ length: 28 }).map((_, i) => (
-                                        <div
-                                            key={i}
-                                            className={`aspect-square rounded-xl flex items-center justify-center text-sm font-bold transition-all
-                        ${[2, 3, 5, 8, 9, 10, 12, 15, 16, 17, 18, 20, 22, 23, 24, 25].includes(i)
-                                                    ? 'bg-green-100 text-green-600 border-2 border-green-200 shadow-sm scale-100'
-                                                    : 'bg-slate-50 text-slate-300 scale-90'
-                                                }`}
-                                        >
-                                            {i + 1}
-                                        </div>
-                                    ))}
+                                    {calendarGrid.map((date, i) => {
+                                        const dateStr = date.toISOString().split('T')[0];
+                                        const isActive = activityDays.has(dateStr);
+                                        const isToday = new Date().toISOString().split('T')[0] === dateStr;
+
+                                        return (
+                                            <div
+                                                key={dateStr}
+                                                className={`aspect-square rounded-lg md:rounded-xl flex items-center justify-center text-xs md:text-sm font-bold transition-all border-2
+                                                ${isActive
+                                                        ? 'bg-green-100 text-green-600 border-green-200 shadow-sm scale-100'
+                                                        : 'bg-slate-50 text-slate-300 border-transparent scale-90'
+                                                    } ${isToday ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`}
+                                            >
+                                                {date.getDate()}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                                 <div className="p-4 bg-indigo-50 rounded-2xl flex items-center gap-4">
-                                    <div className="p-3 bg-white rounded-xl shadow-sm text-indigo-500">
-                                        <TrendingUp size={24} />
+                                    <div className="p-2 md:p-3 bg-white rounded-xl shadow-sm text-indigo-500">
+                                        <TrendingUp size={20} />
                                     </div>
                                     <div>
                                         <div className="text-sm font-bold text-indigo-900">Current Streak</div>
@@ -208,10 +254,10 @@ export default function UserProfile() {
 
                             {/* QUICK STATS */}
                             <div className="space-y-6">
-                                <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
+                                <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden">
                                     <div className="relative z-10">
                                         <div className="option font-black text-white/50 text-xs uppercase tracking-widest mb-2">Total Points</div>
-                                        <div className="text-5xl font-black mb-1">{ninjaStats?.powerPoints || 0}</div>
+                                        <div className="text-4xl md:text-5xl font-black mb-1">{ninjaStats?.powerPoints || 0}</div>
                                         <div className="text-sm font-medium text-white/80">Flow Points Earned</div>
                                     </div>
 
@@ -220,10 +266,10 @@ export default function UserProfile() {
                                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full blur-xl -ml-10 -mb-10"></div>
                                 </div>
 
-                                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
+                                <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
                                     <h3 className="font-bold text-slate-900 mb-4">Missions Completed</h3>
                                     <div className="flex items-end gap-2">
-                                        <div className="text-4xl font-black text-slate-900">{ninjaStats?.completedMissions || 0}</div>
+                                        <div className="text-3xl md:text-4xl font-black text-slate-900">{ninjaStats?.completedMissions || 0}</div>
                                         <div className="text-slate-400 font-medium mb-1">missions</div>
                                     </div>
                                 </div>
@@ -235,10 +281,10 @@ export default function UserProfile() {
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
-                            className="grid grid-cols-1 md:grid-cols-2 gap-8"
+                            className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8"
                         >
                             {/* ACADEMIC PREFERENCES */}
-                            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 space-y-8">
+                            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 space-y-6 md:space-y-8">
                                 <div className="flex items-center gap-3 pb-6 border-b border-slate-100">
                                     <div className="p-2 bg-blue-50 rounded-xl text-blue-500"><BookOpen size={20} /></div>
                                     <h3 className="text-lg font-bold">Academic Preferences</h3>
@@ -247,8 +293,8 @@ export default function UserProfile() {
                                 {/* Grade Selection */}
                                 <div>
                                     <label className="block text-sm font-bold text-slate-500 mb-3">CURRENT CLASS</label>
-                                    <div className="grid grid-cols-4 gap-3">
-                                        {['6', '7', '8', '9'].map(g => (
+                                    <div className="grid grid-cols-4 gap-2 md:gap-3">
+                                        {['2', '3', '4', '5', '6', '7', '8', '9'].map(g => (
                                             <button
                                                 key={g}
                                                 onClick={() => setFormData({ ...formData, grade: g })}
@@ -291,7 +337,7 @@ export default function UserProfile() {
 
                             {/* MISSION & APP SETTINGS */}
                             <div className="space-y-6">
-                                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 space-y-8">
+                                <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 space-y-6 md:space-y-8">
                                     <div className="flex items-center gap-3 pb-6 border-b border-slate-100">
                                         <div className="p-2 bg-purple-50 rounded-xl text-purple-500"><Settings size={20} /></div>
                                         <h3 className="text-lg font-bold">Mission Config</h3>
@@ -343,7 +389,7 @@ export default function UserProfile() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 space-y-6">
+                                <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 space-y-6">
                                     <h3 className="text-sm font-bold text-slate-500 mb-4">THEME PREFERENCE</h3>
                                     <div className="flex gap-4">
                                         {[

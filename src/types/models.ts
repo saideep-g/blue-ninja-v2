@@ -11,7 +11,7 @@ export interface User {
 }
 
 export interface UserProfile {
-    class: 6 | 7 | 8;
+    class: 2 | 3 | 4 | 5 | 6 | 7 | 8;
     theme: "light" | "dark";
     dailyQuestionCount: number; // 1-15
     diagnosticQuestionCount: number; // 1-30
@@ -75,6 +75,7 @@ export interface NinjaStats {
     currentQuest: string;
     streakCount: number;
     lastMissionDate: string | null;
+    activityLog?: string[]; // Array of YYYY-MM-DD strings indicating active practice days
 }
 
 export interface QuestionLog {

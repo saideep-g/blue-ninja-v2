@@ -10,7 +10,7 @@ import { useNinja } from '../../context/NinjaContext';
  */
 function ConceptPowerMap({ masteryData }) {
     const [modules, setModules] = useState([]);
-    const { ninjaStats } = useNinja();
+    const { ninjaStats } = useNinja(); // user not needed if stats has profile
 
     // Load modules to build the map structure
     useEffect(() => {
@@ -32,10 +32,26 @@ function ConceptPowerMap({ masteryData }) {
                 return acc;
             }, {});
 
-            setModules(Object.values(grouped).sort((a, b) => a.id.localeCompare(b.id)));
+            let sortedModules = Object.values(grouped).sort((a: any, b: any) => a.id.localeCompare(b.id));
+
+            // FILTER BASED ON GRADE
+            // Default to 7 if missing (Full Curriculum)
+            const stats = ninjaStats as any;
+            const pGrade = parseInt(stats?.profile?.grade || stats?.profile?.class || '7');
+
+            if (pGrade <= 3) {
+                // Grades 2-3: Fundamentals Only (Demonstration: M1-M4)
+                sortedModules = sortedModules.filter((m: any) => ['M1', 'M2', 'M3', 'M4'].includes(m.id));
+            } else if (pGrade <= 5) {
+                // Grades 4-5: Intermediate
+                sortedModules = sortedModules.filter((m: any) => ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7'].includes(m.id));
+            }
+            // Grades 6+: All Modules (M1-M13+)
+
+            setModules(sortedModules as any);
         };
         fetchModules();
-    }, []);
+    }, [ninjaStats]);
 
     return (
         <div className="space-y-8 pb-10">

@@ -11,7 +11,8 @@ import {
     query,
     orderBy,
     limit,
-    getDocs
+    getDocs,
+    arrayUnion
 } from 'firebase/firestore';
 // import { syncOfflineData } from '../services/sync'; // Unused and not exported
 import { User as FirebaseUser } from 'firebase/auth';
@@ -193,9 +194,31 @@ export function NinjaProvider({ children }: { children: ReactNode }) {
             const currentStats = statsRef.current;
             // Only update stats if we're syncing the main buffer or force final
             if (!overrideLogs || isFinal) {
-                batch.update(userRef, {
-                    ...currentStats
-                });
+                const todayStr = new Date().toISOString().split('T')[0];
+                const updatePayload: any = { ...currentStats };
+
+                // "Smart Update": Only attempt to write activityLog if we haven't seen it in local state today
+                // This minimizes Firestore write costs/merges for high-frequency users.
+                const alreadyLoggedToday = currentStats.activityLog && currentStats.activityLog.includes(todayStr);
+
+                if (!alreadyLoggedToday) {
+                    console.log(`📅 Logging new activity day: ${todayStr}`);
+                    updatePayload.activityLog = arrayUnion(todayStr);
+
+                    // Optimistic Local Update (so we don't try again this session)
+                    setNinjaStats(prev => ({
+                        ...prev,
+                        activityLog: [...(prev.activityLog || []), todayStr]
+                    }));
+                } else {
+                    // STRICT OPTIMIZATION:
+                    // If we already logged today, we explicitly DELETE this field from the payload.
+                    // This prevents us from re-sending the entire array (if it was copied from currentStats)
+                    // or performing any redundant operations on this field.
+                    delete updatePayload.activityLog;
+                }
+
+                batch.update(userRef, updatePayload);
             }
 
             await batch.commit();
