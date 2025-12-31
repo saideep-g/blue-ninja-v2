@@ -510,55 +510,6 @@
       }
     },
     {
-      "template_id": "MCQ_BRANCHING",
-      "name": "Branching MCQ (Diagnostic Flow)",
-      "status": "core",
-      "best_for": [
-        "diagnostic checks",
-        "misconception repair",
-        "adaptive scaffolding"
-      ],
-      "avoid_when": [
-        "simple fact recall"
-      ],
-      "evidence_targets": [],
-      "ui_defaults": {
-        "input_mode": "choice",
-        "components": [
-          "prompt",
-          "options",
-          "branch_logic"
-        ],
-        "show_scratchpad": false,
-        "check_after_each_part": true,
-        "shuffle_choices": false,
-        "onboarding_tip": "Follow the path."
-      },
-      "grading_defaults": {
-        "model": "template_defined",
-        "supports_partial_credit": false,
-        "typical_partial_credit_rule": null
-      },
-      "data_contract": {
-        "required_fields": [
-          "flow",
-          "stages"
-        ],
-        "optional_fields": [],
-        "answer_format": "varies",
-        "notes": "Validates item.data payload; item root fields are validated by Assessment Guide base schema."
-      },
-      "feedback": {
-        "include": []
-      },
-      "telemetry_contract": {
-        "required_events": [],
-        "core_tags": [],
-        "derived_metrics": [],
-        "notes": "Do not duplicate telemetry tags in every item; derive from template + runtime."
-      }
-    },
-    {
       "template_id": "MULTI_STEP_WORD",
       "name": "Multi-step Word Problem (structured entry)",
       "status": "core",
@@ -848,8 +799,398 @@
         "notes": "Validates item.data payload; item root fields are validated by Assessment Guide base schema."
       },
       "feedback": {
-        "immediate": "incorrect order highlight",
-        "after_submit": "correct sequence"
+        "after_submit": "show minimal swaps to fix"
+      },
+      "telemetry_contract": {
+        "required_events": [],
+        "core_tags": [],
+        "derived_metrics": [],
+        "notes": "Do not duplicate telemetry tags in every item; derive from template + runtime."
+      }
+    },
+    {
+      "template_id": "SPINNER_PROB",
+      "name": "Probability Spinner",
+      "status": "optional",
+      "best_for": [
+        "fractions->probability",
+        "angles as fractions of 360",
+        "ratio intuition"
+      ],
+      "avoid_when": [
+        "student not yet comfortable with fractions/angles"
+      ],
+      "evidence_targets": [],
+      "ui_defaults": {
+        "input_mode": null,
+        "components": [],
+        "show_scratchpad": false,
+        "check_after_each_part": false,
+        "shuffle_choices": false,
+        "onboarding_tip": "Short tip shown once per template to teach interaction."
+      },
+      "grading_defaults": {
+        "model": "template_defined",
+        "supports_partial_credit": false,
+        "typical_partial_credit_rule": null
+      },
+      "data_contract": {
+        "required_fields": [
+          "prompt",
+          "target_probability"
+        ],
+        "optional_fields": [
+          "degrees",
+          "solution_steps"
+        ],
+        "answer_format": "interactive_probability",
+        "notes": "Validates item.data payload; item root fields are validated by Assessment Guide base schema."
+      },
+      "feedback": {
+        "after_submit": "connect 1/8 to 45 degrees"
+      },
+      "telemetry_contract": {
+        "required_events": [],
+        "core_tags": [],
+        "derived_metrics": [],
+        "notes": "Do not duplicate telemetry tags in every item; derive from template + runtime."
+      }
+    },
+    {
+      "template_id": "STEP_BUILDER",
+      "name": "Step Builder (Reasoned Solution)",
+      "status": "optional",
+      "best_for": [
+        "multi-step problems",
+        "show-your-work",
+        "Olympiad reasoning"
+      ],
+      "avoid_when": [
+        "pure recall facts"
+      ],
+      "evidence_targets": [],
+      "ui_defaults": {
+        "input_mode": null,
+        "components": [],
+        "show_scratchpad": false,
+        "check_after_each_part": false,
+        "shuffle_choices": false,
+        "onboarding_tip": "Short tip shown once per template to teach interaction."
+      },
+      "grading_defaults": {
+        "model": "template_defined",
+        "supports_partial_credit": false,
+        "typical_partial_credit_rule": null
+      },
+      "data_contract": {
+        "required_fields": [
+          "prompt",
+          "steps_schema",
+          "expected_steps"
+        ],
+        "optional_fields": [
+          "solution_steps",
+          "hints"
+        ],
+        "answer_format": "structured_steps",
+        "notes": "Validates item.data payload; item root fields are validated by Assessment Guide base schema."
+      },
+      "feedback": {
+        "immediate": "per-step nudges",
+        "after_submit": "compare with optimal path"
+      },
+      "telemetry_contract": {
+        "required_events": [],
+        "core_tags": [],
+        "derived_metrics": [],
+        "notes": "Do not duplicate telemetry tags in every item; derive from template + runtime."
+      }
+    },
+    {
+      "template_id": "STEP_ORDER",
+      "name": "Order the Steps",
+      "status": "core",
+      "best_for": [
+        "procedural understanding",
+        "equations",
+        "multi-step problems"
+      ],
+      "avoid_when": [],
+      "evidence_targets": [],
+      "ui_defaults": {
+        "input_mode": "drag",
+        "components": [
+          "step_cards",
+          "drag_reorder"
+        ],
+        "show_scratchpad": false,
+        "check_after_each_part": false,
+        "shuffle_choices": false,
+        "onboarding_tip": "Short tip shown once per template to teach interaction."
+      },
+      "grading_defaults": {
+        "model": "template_defined",
+        "supports_partial_credit": false,
+        "typical_partial_credit_rule": null
+      },
+      "data_contract": {
+        "required_fields": [],
+        "optional_fields": [],
+        "answer_format": "varies",
+        "notes": "Validates item.data payload; item root fields are validated by Assessment Guide base schema."
+      },
+      "feedback": {
+        "include": [
+          "first incorrect position",
+          "why order matters"
+        ]
+      },
+      "telemetry_contract": {
+        "required_events": [],
+        "core_tags": [],
+        "derived_metrics": [],
+        "notes": "Do not duplicate telemetry tags in every item; derive from template + runtime."
+      }
+    },
+    {
+      "template_id": "TABLE_FILL",
+      "name": "Fill the Table",
+      "status": "optional",
+      "best_for": [
+        "patterns",
+        "proportions",
+        "data",
+        "function tables"
+      ],
+      "avoid_when": [
+        "answers too open-ended without clear schema"
+      ],
+      "evidence_targets": [],
+      "ui_defaults": {
+        "input_mode": null,
+        "components": [],
+        "show_scratchpad": false,
+        "check_after_each_part": false,
+        "shuffle_choices": false,
+        "onboarding_tip": "Short tip shown once per template to teach interaction."
+      },
+      "grading_defaults": {
+        "model": "template_defined",
+        "supports_partial_credit": false,
+        "typical_partial_credit_rule": null
+      },
+      "data_contract": {
+        "required_fields": [
+          "prompt",
+          "table_schema",
+          "correct_cells"
+        ],
+        "optional_fields": [
+          "solution_steps"
+        ],
+        "answer_format": "tabular_entry",
+        "notes": "Validates item.data payload; item root fields are validated by Assessment Guide base schema."
+      },
+      "feedback": {
+        "after_submit": "show how table encodes the rule"
+      },
+      "telemetry_contract": {
+        "required_events": [],
+        "core_tags": [],
+        "derived_metrics": [],
+        "notes": "Do not duplicate telemetry tags in every item; derive from template + runtime."
+      }
+    },
+    {
+      "template_id": "TRANSFER_MINI",
+      "name": "Transfer Mini (same idea, different wrapper)",
+      "status": "core",
+      "best_for": [
+        "retention",
+        "generalization"
+      ],
+      "avoid_when": [],
+      "evidence_targets": [],
+      "ui_defaults": {
+        "input_mode": "varies",
+        "components": [],
+        "show_scratchpad": false,
+        "check_after_each_part": false,
+        "shuffle_choices": false,
+        "onboarding_tip": "Short tip shown once per template to teach interaction."
+      },
+      "grading_defaults": {
+        "model": "template_defined",
+        "supports_partial_credit": false,
+        "typical_partial_credit_rule": null
+      },
+      "data_contract": {
+        "required_fields": [
+          "scenario",
+          "question",
+          "correct_answer"
+        ],
+        "optional_fields": [
+          "solution_steps",
+          "reflection_prompt"
+        ],
+        "answer_format": "transfer_short",
+        "notes": "Validates item.data payload; item root fields are validated by Assessment Guide base schema."
+      },
+      "feedback": {
+        "include": [
+          "connect back to core idea"
+        ]
+      },
+      "telemetry_contract": {
+        "required_events": [],
+        "core_tags": [],
+        "derived_metrics": [],
+        "notes": "Do not duplicate telemetry tags in every item; derive from template + runtime."
+      }
+    },
+    {
+      "template_id": "TWO_TIER",
+      "name": "Two-tier (Answer + Reason)",
+      "status": "core",
+      "best_for": [
+        "reduce guessing",
+        "concept + justification"
+      ],
+      "avoid_when": [],
+      "evidence_targets": [],
+      "ui_defaults": {
+        "input_mode": "choice",
+        "components": [
+          "answer_options",
+          "reason_options"
+        ],
+        "show_scratchpad": false,
+        "check_after_each_part": false,
+        "shuffle_choices": true,
+        "onboarding_tip": "Short tip shown once per template to teach interaction."
+      },
+      "grading_defaults": {
+        "model": "template_defined",
+        "supports_partial_credit": false,
+        "typical_partial_credit_rule": null
+      },
+      "data_contract": {
+        "required_fields": [
+          "stem",
+          "tier1_options",
+          "tier2_reason_options",
+          "correct_tier1_id",
+          "correct_tier2_id"
+        ],
+        "optional_fields": [
+          "misconception_reason_map",
+          "solution_steps"
+        ],
+        "answer_format": "two_stage_choice",
+        "notes": "Validates item.data payload; item root fields are validated by Assessment Guide base schema."
+      },
+      "feedback": {
+        "include": [
+          "which tier failed",
+          "targeted hint"
+        ],
+        "recommended_followup": "ERROR_ANALYSIS"
+      },
+      "telemetry_contract": {
+        "required_events": [],
+        "core_tags": [],
+        "derived_metrics": [],
+        "notes": "Do not duplicate telemetry tags in every item; derive from template + runtime."
+      }
+    },
+    {
+      "template_id": "WORKED_EXAMPLE_COMPLETE",
+      "name": "Worked Example Completion (fill blanks)",
+      "status": "core",
+      "best_for": [
+        "scaffolded learning",
+        "procedures",
+        "reducing cognitive load"
+      ],
+      "avoid_when": [],
+      "evidence_targets": [],
+      "ui_defaults": {
+        "input_mode": "fill",
+        "components": [
+          "partially_solved_steps",
+          "blanks"
+        ],
+        "show_scratchpad": false,
+        "check_after_each_part": true,
+        "shuffle_choices": false,
+        "onboarding_tip": "Short tip shown once per template to teach interaction."
+      },
+      "grading_defaults": {
+        "model": "template_defined",
+        "supports_partial_credit": false,
+        "typical_partial_credit_rule": null
+      },
+      "data_contract": {
+        "required_fields": [],
+        "optional_fields": [],
+        "answer_format": "varies",
+        "notes": "Validates item.data payload; item root fields are validated by Assessment Guide base schema."
+      },
+      "feedback": {
+        "include": [
+          "step-level feedback"
+        ],
+        "recommended_followup": "NUMERIC_INPUT"
+      },
+      "telemetry_contract": {
+        "required_events": [],
+        "core_tags": [],
+        "derived_metrics": [],
+        "notes": "Do not duplicate telemetry tags in every item; derive from template + runtime."
+      }
+    },
+    {
+      "template_id": "MCQ_BRANCHING",
+      "name": "Branching MCQ (Diagnostic Flow)",
+      "status": "core",
+      "best_for": [
+        "diagnostic checks",
+        "misconception repair",
+        "adaptive scaffolding"
+      ],
+      "avoid_when": [
+        "simple fact recall"
+      ],
+      "evidence_targets": [],
+      "ui_defaults": {
+        "input_mode": "choice",
+        "components": [
+          "prompt",
+          "options",
+          "branch_logic"
+        ],
+        "show_scratchpad": false,
+        "check_after_each_part": true,
+        "shuffle_choices": false,
+        "onboarding_tip": "Follow the path."
+      },
+      "grading_defaults": {
+        "model": "template_defined",
+        "supports_partial_credit": false,
+        "typical_partial_credit_rule": null
+      },
+      "data_contract": {
+        "required_fields": [
+          "flow",
+          "stages"
+        ],
+        "optional_fields": [],
+        "answer_format": "varies",
+        "notes": "Validates item.data payload; item root fields are validated by Assessment Guide base schema."
+      },
+      "feedback": {
+        "include": []
       },
       "telemetry_contract": {
         "required_events": [],
