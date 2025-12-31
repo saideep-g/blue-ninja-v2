@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { CheckCircle2, XCircle, Lightbulb, AlertCircle } from 'lucide-react';
+// @ts-nocheck
+import React, { useState, useRef, useEffect } from 'react';
+import { CheckCircle2, XCircle, Lightbulb, AlertCircle, Loader2, ArrowRightCircle } from 'lucide-react';
 import { Question } from '../../types';
+import { useProfileStore } from '../../store/profile';
+import { getRandomPraise } from '../../utils/feedbackUtils';
 
 interface MCQTemplateProps {
   question: Question;
@@ -24,19 +27,35 @@ interface Feedback {
  * - No anxiety-inducing metadata
  */
 export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplateProps) {
+  const { autoAdvance } = useProfileStore();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
-  // FORCE RESET when question ID changes (fixes daily flight persistence)
+  // New State for Control Flow
+  const [result, setResult] = useState<any>(null);
+  const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // FORCE RESET when question ID changes
   React.useEffect(() => {
     setSelectedIndex(null);
     setSubmitted(false);
     setFeedback(null);
+    setResult(null);
+    setIsAutoAdvancing(false);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     console.log(`[MCQTemplate] Mounted/Reset for Question: ${question.id}`);
   }, [question.id]);
 
-  // Safe typed access (Supports V2 ContentWrapper, V3 Stages, and V2 Flat)
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  // Safe typed access
   const stage0 = (question as any).stages?.[0];
   const interactionConfig =
     stage0?.interaction?.config ||
@@ -46,13 +65,22 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
 
   const options = (interactionConfig.options || []) as { text: string; id?: string }[];
 
-  // Resolve correct index (V3 uses IDs, V2 uses Index)
-  let correctIndex = question.answerKey?.correctOptionIndex as number;
-  if (stage0?.answer_key?.correct_option_id) {
-    correctIndex = options.findIndex(o => o.id === stage0.answer_key.correct_option_id);
-  } else if ((question as any).correctOptionId) {
-    correctIndex = options.findIndex(o => o.id === (question as any).correctOptionId);
+  // Resolve correct index
+  let correctIndex = -1;
+  const correctOptionId = stage0?.answer_key?.correct_option_id || (question as any).correctOptionId || question.answerKey?.correctOptionId;
+
+  if (correctOptionId) {
+    // String comparison for safety
+    correctIndex = options.findIndex(o => String(o.id) === String(correctOptionId));
   }
+
+  // Fallback to index if ID lookup failed but we have a direct index
+  if (correctIndex === -1 && question.answerKey?.correctOptionIndex !== undefined) {
+    correctIndex = question.answerKey.correctOptionIndex as number;
+  }
+
+  // Debug if needed
+  // console.log('Correct Index:', correctIndex, 'ID:', correctOptionId);
 
   // Robust Prompt Extraction
   const getPromptText = (q: any) => {
@@ -74,25 +102,45 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
     }
   };
 
+  const handleContinue = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (result && onAnswer) {
+      onAnswer(result);
+    }
+  };
+
   const handleSubmit = async () => {
-    if (selectedIndex === null || isSubmitting) return;
+    if (selectedIndex === null || isSubmitting || submitted) return;
 
     const isCorrect = selectedIndex === correctIndex;
-    const result = {
+
+    // Gen Z Praise Logic
+    const selectedPraise = isCorrect ? getRandomPraise() : undefined;
+    const feedbackText = isCorrect
+      ? selectedPraise!
+      : feedbackMap.onIncorrectAttempt1 || '✗ Not quite. Try thinking about it differently.';
+
+    const resultData = {
       isCorrect,
       selectedIndex,
-      feedback: isCorrect
-        ? feedbackMap.onCorrect || '✓ Excellent! That\'s correct!'
-        : feedbackMap.onIncorrectAttempt1 || '✗ Not quite. Try thinking about it differently.',
+      feedback: feedbackText,
     };
 
-    setFeedback(result);
+    setFeedback(resultData);
     setSubmitted(true);
-    onAnswer(result);
+    setResult(resultData);
+
+    // Auto Advance Logic
+    if (isCorrect && autoAdvance !== false) {
+      setIsAutoAdvancing(true);
+      timeoutRef.current = setTimeout(() => {
+        onAnswer(resultData);
+      }, 2000);
+    }
   };
 
   return (
-    <div className="w-full space-y-8 flex flex-col">
+    <div className="w-full space-y-8 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* ========== QUESTION PROMPT (HERO) ========== */}
       <div className="space-y-3">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight whitespace-pre-wrap">
@@ -104,7 +152,7 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
           </p>
         )}
 
-        {/* DEBUGGING AID: Only show if content failed to load */}
+        {/* DEBUGGING AID */}
         {prompt === 'What is your answer?' && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-900 font-mono overflow-auto">
             <div className="font-bold mb-2 flex items-center gap-2">
@@ -130,54 +178,71 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
         {options.map((option, index) => {
           const isSelected = selectedIndex === index;
           const isCorrectOption = index === correctIndex;
+
+          // Logic for AFTER submission
           const isWrongSelected = submitted && isSelected && !isCorrectOption;
-          const isCorrectSelected = submitted && isCorrectOption;
+          const shouldHighlightCorrect = submitted && isCorrectOption;
+
+          // Highlight logic
+          let borderClass = 'border-gray-200';
+          let bgClass = 'bg-white';
+          let textClass = 'text-gray-900';
+          let shadowClass = '';
+
+          if (!submitted) {
+            if (isSelected) {
+              borderClass = 'border-blue-500';
+              bgClass = 'bg-blue-50';
+              shadowClass = 'shadow-md';
+            } else {
+              // Hover state handled in main className
+            }
+          } else {
+            // Submitted State
+            if (shouldHighlightCorrect) {
+              // ALWAYS Highlight the correct answer in Green
+              borderClass = 'border-green-500';
+              bgClass = 'bg-green-50';
+              textClass = 'text-green-900';
+              shadowClass = 'shadow-md';
+            } else if (isWrongSelected) {
+              // Highlight selected wrong answer in Red
+              borderClass = 'border-red-500';
+              bgClass = 'bg-red-50';
+              textClass = 'text-red-900';
+              shadowClass = 'shadow-md';
+            } else {
+              // Grey out everything else
+              bgClass = 'bg-gray-50';
+              textClass = 'text-gray-400';
+            }
+          }
 
           return (
             <button
               key={index}
               onClick={() => handleSelect(index)}
               disabled={submitted || isSubmitting}
-              className={`w-full p-5 md:p-6 rounded-xl border-2 text-left transition-all duration-200 font-medium text-base md:text-lg ${
-                // Before submission
-                !submitted
-                  ? isSelected
-                    ? 'border-blue-500 bg-blue-50 text-gray-900 shadow-md'
-                    : 'border-gray-200 bg-white text-gray-900 hover:border-blue-300 hover:bg-blue-50'
-                  : // After submission
-                  isCorrectSelected
-                    ? 'border-green-500 bg-green-50 text-green-900 shadow-md'
-                    : isWrongSelected
-                      ? 'border-red-500 bg-red-50 text-red-900 shadow-md'
-                      : 'border-gray-200 bg-gray-50 text-gray-600'
-                } ${submitted || isSubmitting ? 'cursor-default' : 'cursor-pointer'}`}
+              className={`w-full p-5 md:p-6 rounded-xl border-2 text-left transition-all duration-200 font-medium text-base md:text-lg 
+                ${borderClass} ${bgClass} ${textClass} ${shadowClass}
+                ${!submitted && !isSelected ? 'hover:border-blue-300 hover:bg-blue-50' : ''}
+                ${submitted || isSubmitting ? 'cursor-default' : 'cursor-pointer'}
+              `}
             >
               <div className="flex items-center gap-4">
                 {/* Radio button indicator */}
                 <div
-                  className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${!submitted
-                    ? isSelected
-                      ? 'border-blue-500 bg-blue-500'
-                      : 'border-gray-300 bg-white'
-                    : isCorrectSelected
-                      ? 'border-green-500 bg-green-500'
-                      : isWrongSelected
-                        ? 'border-red-500 bg-red-500'
-                        : 'border-gray-300 bg-gray-100'
+                  className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all 
+                    ${!submitted
+                      ? (isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300 bg-white')
+                      : (shouldHighlightCorrect ? 'border-green-500 bg-green-500' : (isWrongSelected ? 'border-red-500 bg-red-500' : 'border-gray-300 bg-gray-100'))
                     }`}
                 >
-                  {isSelected && !submitted && (
-                    <div className="w-2 h-2 bg-white rounded-full" />
-                  )}
-                  {submitted && isCorrectSelected && (
-                    <CheckCircle2 className="w-5 h-5 text-white" />
-                  )}
-                  {submitted && isWrongSelected && (
-                    <XCircle className="w-5 h-5 text-white" />
-                  )}
+                  {isSelected && !submitted && <div className="w-2 h-2 bg-white rounded-full" />}
+                  {submitted && shouldHighlightCorrect && <CheckCircle2 className="w-5 h-5 text-white" />}
+                  {submitted && isWrongSelected && <XCircle className="w-5 h-5 text-white" />}
                 </div>
 
-                {/* Option text */}
                 <span className="flex-1">{option.text}</span>
               </div>
             </button>
@@ -185,8 +250,8 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
         })}
       </div>
 
-      {/* ========== ACTION BUTTON ========== */}
-      {!submitted ? (
+      {/* ========== ACTION BUTTON (BEFORE SUBMIT) ========== */}
+      {!submitted && (
         <button
           onClick={handleSubmit}
           disabled={selectedIndex === null || isSubmitting}
@@ -194,34 +259,66 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
         >
           {isSubmitting ? 'Checking...' : 'Check Answer'}
         </button>
-      ) : null}
+      )}
 
-      {/* ========== FEEDBACK (ENCOURAGING) ========== */}
+      {/* ========== FEEDBACK & NEXT SECTION ========== */}
       {submitted && feedback && (
-        <div
-          className={`p-5 md:p-6 rounded-xl flex gap-4 items-start ${feedback.isCorrect
-            ? 'bg-green-50 border-2 border-green-200'
-            : 'bg-blue-50 border-2 border-blue-200'
-            }`}
-        >
-          {feedback.isCorrect ? (
-            <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
-          ) : (
-            <Lightbulb className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
-          )}
-          <div>
-            <p
-              className={`text-base md:text-lg font-semibold ${feedback.isCorrect ? 'text-green-900' : 'text-blue-900'
-                }`}
-            >
-              {feedback.feedback}
-            </p>
-            {!feedback.isCorrect && (
-              <p className="text-sm text-blue-700 mt-2">
-                The correct answer is: <strong>{options[correctIndex]?.text}</strong>
-              </p>
-            )}
+        <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+          <div
+            className={`p-6 rounded-2xl flex gap-4 items-start ${feedback.isCorrect
+              ? 'bg-green-50 border-2 border-green-200'
+              : 'bg-red-50 border-2 border-red-200'
+              }`}
+          >
+            <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${feedback.isCorrect ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}`}>
+              {feedback.isCorrect ? <CheckCircle2 className="w-6 h-6" /> : <Lightbulb className="w-6 h-6" />}
+            </div>
+
+            <div className="flex-1 space-y-1 pt-1">
+              <h4 className={`font-bold text-lg ${feedback.isCorrect ? 'text-green-800' : 'text-red-800'}`}>
+                {feedback.isCorrect ? (
+                  <span className="flex items-center gap-2">
+                    {feedback.feedback}
+                    {isAutoAdvancing && <Loader2 className="w-4 h-4 animate-spin opacity-50" />}
+                  </span>
+                ) : 'Correct Answer:'}
+              </h4>
+
+              {/* Show explanation text if INCORRECT */}
+              {!feedback.isCorrect && (
+                <div className="space-y-2">
+                  <p className="text-xl font-bold text-green-700">
+                    {options[correctIndex]?.text}
+                  </p>
+                  <p className="text-base text-red-700">
+                    {feedback.feedback}
+                  </p>
+                </div>
+              )}
+
+              {/* Progress Bar for Auto Advance */}
+              {isAutoAdvancing && (
+                <div className="w-full h-1 bg-green-200 mt-3 rounded-full overflow-hidden">
+                  <div className="h-full bg-green-500 animate-[progress_2s_linear_forward]" style={{ width: '100%' }}></div>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* CONTINUE BUTTON */}
+          <button
+            autoFocus
+            onClick={handleContinue}
+            className={`w-full py-4 rounded-xl font-extrabold text-lg shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 ${feedback.isCorrect
+              ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'
+              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20 text-white'
+              }`}
+          >
+            {feedback.isCorrect ? 'Finish & Next Question' : 'Got it, Next Question'} <ArrowRightCircle size={24} />
+          </button>
+          <p className="text-center text-xs text-slate-400 font-medium pb-4">
+            Press Enter or Click to continue
+          </p>
         </div>
       )}
 

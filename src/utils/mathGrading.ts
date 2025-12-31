@@ -14,6 +14,12 @@ export const evaluateMathResponse = (userInput: string, expectedAnswer: string):
     const input = normalize(userInput);
     const expected = normalize(expectedAnswer);
 
+    // 0. Strict Whitespace-Insensitive Match
+    // Handles algebraic variations: "x=5" vs "x = 5"
+    if (input.replace(/\s/g, '') === expected.replace(/\s/g, '')) {
+        return { isCorrect: true };
+    }
+
     // 1. Exact / Substring Match (The Basics)
     // We check if the 'core' of the answer is present.
     if (input === expected || input.includes(expected)) {

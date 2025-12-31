@@ -1,8 +1,10 @@
+
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, XCircle, Lightbulb, Calculator, ArrowRight, ArrowRightCircle, Loader2 } from 'lucide-react';
 import { Question } from '../../types';
 import { useProfileStore } from '../../store/profile';
+import { getRandomPraise } from '../../utils/feedbackUtils';
 
 interface NumericInputTemplateProps {
     question: Question;
@@ -16,29 +18,6 @@ interface Feedback {
     value: string;
     feedback: string;
 }
-
-const GEN_Z_PRAISES = [
-    "Slay! 🔥",
-    "Periodt. 💅",
-    "Main Character Energy ✨",
-    "No crumbs left 🍪",
-    "It's giving genius 🧠",
-    "High key brilliant 🔑",
-    "Big W 🏆",
-    "Big brain moment 🤯",
-    "ATE 🍽️",
-    "Go off! 🚀",
-    "Sheesh! 🥶",
-    "Vibe check passed ✅",
-    "Iconic behavior 🌟",
-    "CEO of Math 💼",
-    "Understood the assignment 📝",
-    "Flex on 'em 💪",
-    "Pure Gold 🥇",
-    "Unmatched 🚫",
-    "Straight Fire 🔥",
-    "Zero Misses 🎯"
-];
 
 /**
  * NUMERIC INPUT TEMPLATE
@@ -101,10 +80,6 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
 
     const feedbackMap = (question as any).feedbackMap || {};
 
-    const getRandomPraise = () => {
-        return GEN_Z_PRAISES[Math.floor(Math.random() * GEN_Z_PRAISES.length)];
-    };
-
     const handleCreateFeedback = (isCorrect: boolean, selectedPraise?: string) => {
         if (isCorrect) {
             return selectedPraise || feedbackMap.onCorrect || getRandomPraise();
@@ -150,7 +125,7 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
                     const resultData = {
                         isCorrect: false,
                         value: inputValue,
-                        feedback: `Your answer is correct roughly, but not in simplest form. Please simplify ${inputValue}.`
+                        feedback: `Your answer is correct roughly, but not in simplest form.Please simplify ${inputValue}.`
                     };
                     setFeedback(resultData);
                     setSubmitted(true);
@@ -236,7 +211,7 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
                                 : 'border-red-300 ring-4 ring-red-100'
                             : 'border-slate-200 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100 hover:border-blue-300'
                         }
-          `}>
+`}>
                         {/* Input Field */}
                         <input
                             type="text" // Using text to allow negative signs easily, but validated as number
