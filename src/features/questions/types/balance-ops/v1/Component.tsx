@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RotateCcw, CheckCircle2, Lightbulb, Loader2, ArrowRightCircle } from 'lucide-react';
 import { BalanceOpsDataV1 } from './schema';
-import { RawInteractionLog } from '../../../../domain';
+import { RawInteractionLog } from '../../../domain';
 import { useProfileStore } from '../../../../../store/profile';
 import { getRandomPraise } from '../../../../../utils/feedbackUtils';
 

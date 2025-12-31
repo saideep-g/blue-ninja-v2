@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
-import { Check, Sparkles, GripVertical } from 'lucide-react';
+import { Check, Sparkles, ArrowRightCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { useProfileStore } from '../../store/profile';
+import { getRandomPraise } from '../../utils/feedbackUtils';
 
 interface MatchingTemplateProps {
     question: any;
@@ -35,6 +37,8 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
     onAnswer,
     readOnly = false
 }) => {
+    const { autoAdvance } = useProfileStore();
+
     // --- State ---
     const [leftItems, setLeftItems] = useState<MatchItem[]>([]);
     const [rightItems, setRightItems] = useState<MatchItem[]>([]);
@@ -43,6 +47,11 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
     const [connections, setConnections] = useState<Connection[]>([]);
     const [isComplete, setIsComplete] = useState(false);
     const [mistakes, setMistakes] = useState(0);
+
+    // Feedback State
+    const [feedback, setFeedback] = useState<{ isCorrect: boolean; feedback: string } | null>(null);
+    const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Layout Refs
     const containerRef = useRef<HTMLDivElement>(null);
@@ -56,20 +65,21 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
     useEffect(() => {
         if (!question) return;
 
+        // Reset State
+        setFeedback(null);
+        setIsAutoAdvancing(false);
+        setIsComplete(false);
+        setMistakes(0);
+        setConnections([]);
+        setLines([]);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
         let lItems: MatchItem[] = [];
         let rItems: MatchItem[] = [];
 
         // ROBUST CONFIG LOOKUP
         const interaction = question.content?.interaction || question.interaction || {};
         const config = interaction.config || {};
-
-        // Debugging Metadata (Visible in UI for troubleshooting)
-        const debugData = {
-            hasContent: !!question.content,
-            hasInteraction: !!interaction,
-            keys: Object.keys(config)
-        };
-        console.log('[MatchingTemplate] Init', question, config);
 
         if (config.left && config.right) {
             lItems = config.left.map((item: any) => ({
@@ -98,10 +108,11 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
 
         setLeftItems(lItems);
         setRightItems(shuffledRight);
-        setConnections([]);
-        setMistakes(0);
-        setIsComplete(false);
-    }, [question.id, question.item_id]);
+
+        return () => {
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        };
+    }, [question.id]);
 
     // --- 2. Line Calculation ---
     const updateLines = useCallback(() => {
@@ -216,17 +227,43 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
                 if (correctCount === leftItems.length) {
                     setIsComplete(true);
 
-                    // METRIC: Submit results with recovery stats
-                    onAnswer({
+                    // Trigger "Gen Z" Feedback Flow
+                    const praise = getRandomPraise();
+                    setFeedback({ isCorrect: true, feedback: praise });
+
+                    const resultData = {
                         isCorrect: true,
                         matches: nextConns,
-                        attempts: mistakes + 1,        // Total logical attempts
-                        mistakes: mistakes,            // Explicit error count
-                        isRecovered: mistakes > 0      // "Recovered" if they failed at least once
-                    });
+                        attempts: mistakes + 1,
+                        mistakes: mistakes,
+                        isRecovered: mistakes > 0
+                    };
+
+                    if (autoAdvance !== false) {
+                        setIsAutoAdvancing(true);
+                        timeoutRef.current = setTimeout(() => {
+                            onAnswer(resultData);
+                        }, 2000);
+                    } else {
+                        // Just prepare data, wait for manual click
+                    }
                 }
             }
         }
+    };
+
+    // Manual Continue
+    const handleContinue = () => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+        const resultData = {
+            isCorrect: true,
+            matches: connections,
+            attempts: mistakes + 1,
+            mistakes: mistakes,
+            isRecovered: mistakes > 0
+        };
+        onAnswer(resultData);
     };
 
 
@@ -242,7 +279,7 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
     };
 
     return (
-        <div className="w-full max-w-5xl mx-auto p-6 md:p-12">
+        <div className="w-full max-w-5xl mx-auto p-6 md:p-12 pb-32">
             <div className="text-center mb-10">
                 <h2 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
                     {question.content?.prompt?.text || (typeof question.prompt === 'string' ? question.prompt : question.prompt?.text) || "Match the pairs"}
@@ -334,11 +371,37 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
 
             </div>
 
-            {isComplete && (
-                <div className="mt-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <div className="inline-flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-full shadow-2xl hover:scale-105 transition-transform cursor-default">
-                        <Sparkles className="text-yellow-400 w-6 h-6 animate-pulse" />
-                        <span className="font-bold text-lg tracking-wide">All Pairs Matched!</span>
+            {/* ========== FEEDBACK & NEXT SECTION ========== */}
+            {feedback && (
+                <div className="fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-white/90 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 animate-in slide-in-from-bottom-full duration-500">
+                    <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
+
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                                <CheckCircle2 className="w-7 h-7 text-green-600" />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="text-xl font-black text-slate-800 flex items-center gap-3">
+                                    {feedback.feedback}
+                                    {isAutoAdvancing && <Loader2 className="w-5 h-5 animate-spin text-slate-400" />}
+                                </h4>
+                                {isAutoAdvancing && <p className="text-sm text-slate-500 font-medium">Advancing in 2s...</p>}
+                            </div>
+                        </div>
+
+                        {/* Progress Bar for Auto Advance */}
+                        {isAutoAdvancing && (
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-green-100">
+                                <div className="h-full bg-green-500 animate-[progress_2s_linear_forward]" style={{ width: '100%' }}></div>
+                            </div>
+                        )}
+
+                        <button
+                            onClick={handleContinue}
+                            className="w-full md:w-auto px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-lg shadow-xl shadow-slate-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                            Next Question <ArrowRightCircle size={20} />
+                        </button>
                     </div>
                 </div>
             )}
