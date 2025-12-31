@@ -594,8 +594,13 @@ export default function AdminQuestionsPanel() {
     items.forEach((item: any) => {
       let prompt = item.prompt?.text || item.content?.prompt?.text || '';
       // Support V3 Stages if top-level prompt is effectively empty
-      if (prompt.trim().length === 0 && item.stages && Array.isArray(item.stages) && item.stages.length > 0) {
-        prompt = item.stages[0].prompt?.text || '';
+      // Deep Dive for V3 structure
+      if (prompt.trim().length === 0) {
+        if (item.stages && Array.isArray(item.stages) && item.stages.length > 0) {
+          prompt = item.stages[0].prompt?.text || '';
+        } else if (item.content?.stages && Array.isArray(item.content.stages) && item.content.stages.length > 0) {
+          prompt = item.content.stages[0].prompt?.text || '';
+        }
       }
 
       // Debug specific difficult items

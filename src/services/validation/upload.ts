@@ -88,9 +88,16 @@ export async function runFullValidationSuite(
 
         // Gen Signature
         let prompt = item.prompt?.text || item.content?.prompt?.text || '';
-        if (prompt.trim().length === 0 && item.stages && Array.isArray(item.stages) && item.stages.length > 0) {
-            prompt = item.stages[0].prompt?.text || '';
+
+        // Deep Dive for V3 structure
+        if (prompt.trim().length === 0) {
+            if (item.stages && Array.isArray(item.stages) && item.stages.length > 0) {
+                prompt = item.stages[0].prompt?.text || '';
+            } else if (item.content?.stages && Array.isArray(item.content.stages) && item.content.stages.length > 0) {
+                prompt = item.content.stages[0].prompt?.text || '';
+            }
         }
+
         const sig = prompt.length > 10 ? prompt.toLowerCase().trim().replace(/[^a-z0-9]/g, '') : null;
 
 

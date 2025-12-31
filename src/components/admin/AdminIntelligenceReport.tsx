@@ -119,7 +119,17 @@ export const AdminIntelligenceReport: React.FC = () => {
         items.forEach((item: any) => {
             // Create Signature: Template + Prompt Text
             // We ignore whitespace and case to catch near-duplicates
-            const prompt = item.prompt?.text || item.content?.prompt?.text || '';
+            let prompt = item.prompt?.text || item.content?.prompt?.text || '';
+
+            // Deep Dive for V3 structure
+            if (prompt.trim().length === 0) {
+                if (item.stages && Array.isArray(item.stages) && item.stages.length > 0) {
+                    prompt = item.stages[0].prompt?.text || '';
+                } else if (item.content?.stages && Array.isArray(item.content.stages) && item.content.stages.length > 0) {
+                    prompt = item.content.stages[0].prompt?.text || '';
+                }
+            }
+
             if (prompt.length < 10) return; // Skip very short prompts to avoid false positives on 'Solve this'
 
             const sig = prompt.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
