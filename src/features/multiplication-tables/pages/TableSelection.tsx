@@ -33,6 +33,30 @@ export default function TableSelection() {
         fetchSettings();
     }, [user]);
 
+    // Back Button - Exit App Confirmation
+    useEffect(() => {
+        window.history.pushState(null, '', window.location.pathname);
+
+        const handlePopState = () => {
+            const confirmExit = window.confirm("Do you want to exit the app?");
+            if (confirmExit) {
+                // Try to close tab (works if opened by script, otherwise browser security blocks it)
+                window.close();
+                // Fallback for PWA/Mobile wrappers:
+                // In some mobile browsers, navigating to 'about:blank' or triggering a specific bridge event might be needed.
+                // For standard web, effectively 'stopping' here or redirecting to a 'goodbye' page is standard practice.
+                // If this is a standalone PWA, standard window.close might be ignored.
+                // We will try to replace with a blank page as a "close" proxy for standard web.
+                window.location.href = "about:blank";
+            } else {
+                window.history.pushState(null, '', window.location.pathname);
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
+
     const startSession = () => {
         if (assignedTables.length === 0) return;
         navigate('/tables/practice', { state: { tables: assignedTables } });

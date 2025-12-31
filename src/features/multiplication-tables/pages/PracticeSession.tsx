@@ -76,9 +76,33 @@ export default function PracticeSession() {
             [newQuestions[i], newQuestions[j]] = [newQuestions[j], newQuestions[i]];
         }
 
+
         // Slice for session length (e.g., 20 questions)
         setQuestions(newQuestions.slice(0, 20));
     }, [selectedTables]);
+
+    // Intercept Back Button
+    useEffect(() => {
+        // Push a state so we can intercept the first "back" action
+        window.history.pushState(null, '', window.location.pathname);
+
+        const handlePopState = (event: PopStateEvent) => {
+            // Prevent default back navigation logic by immediately pushing state again if they stay
+            const confirmExit = window.confirm("Do you want to exit the practice session? Progress may be lost (except saved answers).");
+            if (confirmExit) {
+                navigate('/tables'); // Or wherever you want them to go "out" to
+            } else {
+                // User wants to stay. Restore the "forward" history entry so back button works again next time
+                window.history.pushState(null, '', window.location.pathname);
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, [navigate]);
 
     const currentQuestion = questions[currentIndex];
 
