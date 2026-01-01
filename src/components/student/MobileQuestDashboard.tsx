@@ -306,19 +306,29 @@ export default function MobileQuestDashboard() {
         }
     };
 
+    const handleNext = () => {
+        setFeedback(null);
+        setSelectedAnswer(null);
+        if (currentQIndex < questions.length - 1) {
+            setCurrentQIndex(q => q + 1);
+        } else {
+            finishQuiz(score); // Score already updated in handleAnswer if correct
+        }
+    };
+
     const handleAnswer = (answerId: string, isCorrect: boolean) => {
+        if (selectedAnswer) return; // Prevent double taps
         setSelectedAnswer(answerId);
         const currentQ = questions[currentQIndex];
 
-        // Play Feedback Sound
         playFeedbackSound(isCorrect ? 'correct' : 'wrong');
-
         setFeedback(isCorrect ? 'correct' : 'wrong');
-        if (isCorrect) setScore(s => s + 1);
 
-        // Find text for logging (optional but good)
+        if (isCorrect) {
+            setScore(s => s + 1);
+        }
+
         const ansText = currentQ.options.find(o => o.id === answerId)?.text || answerId;
-
         logQuestionResult({
             questionId: currentQ.id as string,
             studentAnswer: ansText,
@@ -326,16 +336,21 @@ export default function MobileQuestDashboard() {
             timestamp: new Date()
         });
 
-        setTimeout(() => {
-            setFeedback(null);
-            setSelectedAnswer(null);
-            if (currentQIndex < questions.length - 1) {
-                setCurrentQIndex(q => q + 1);
-            } else {
-                finishQuiz(score + (isCorrect ? 1 : 0));
-            }
-        }, 1000);
+        // Auto-advance only if correct, otherwise wait for user to read explanation
+        if (isCorrect) {
+            setTimeout(() => {
+                handleNext();
+            }, 1500);
+        }
     };
+
+    // ... finishQuiz remains same ...
+
+    // --- RENDER ---
+    // ...
+
+    {/* Options Grid */ }
+
 
     const finishQuiz = (finalScore: number) => {
         const sessionQuestions = questions.length;
@@ -456,11 +471,19 @@ export default function MobileQuestDashboard() {
                         {/* Options Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-8">
                             {questions[currentQIndex]?.options.map((opt) => {
-                                let btnColor = "bg-white text-indigo-900 hover:bg-indigo-50 border-white/50";
-                                if (selectedAnswer === opt.id) {
-                                    btnColor = feedback === 'correct'
-                                        ? "bg-emerald-500 text-white border-emerald-400 ring-4 ring-emerald-200"
-                                        : "bg-rose-500 text-white border-rose-400 ring-4 ring-rose-200";
+                                let btnClass = "bg-white text-indigo-900 border-white/50 hover:bg-indigo-50";
+
+                                if (feedback) {
+                                    if (opt.isCorrect) {
+                                        // Always highlight correct answer
+                                        btnClass = "bg-emerald-500 text-white border-emerald-400 ring-4 ring-emerald-200 scale-105";
+                                    } else if (selectedAnswer === opt.id) {
+                                        // Highlight wrong selection
+                                        btnClass = "bg-rose-500 text-white border-rose-400 ring-4 ring-rose-200 opacity-100";
+                                    } else {
+                                        // Dim others
+                                        btnClass = "bg-white/50 text-indigo-900/40 border-transparent opacity-50 cursor-not-allowed";
+                                    }
                                 }
 
                                 return (
@@ -471,14 +494,32 @@ export default function MobileQuestDashboard() {
                                         className={`
                                             p-6 rounded-2xl font-black text-xl shadow-lg border-b-4 transition-all
                                             transform active:scale-95 disabled:active:scale-100 disabled:cursor-not-allowed
-                                            ${btnColor}
+                                            ${btnClass}
                                         `}
                                     >
                                         {renderLatexContent(opt.text)}
+                                        {feedback && opt.isCorrect && <span className="ml-2 absolute right-4">✅</span>}
+                                        {feedback && selectedAnswer === opt.id && !opt.isCorrect && <span className="ml-2 absolute right-4">❌</span>}
                                     </button>
                                 );
                             })}
                         </div>
+
+                        {/* Explanation / Feedback Overlay */}
+                        {feedback === 'wrong' && (
+                            <div className="mt-8 bg-white/90 backdrop-blur-md rounded-3xl p-6 border-l-8 border-rose-500 shadow-2xl animate-in slide-in-from-bottom-4 w-full text-left relative">
+                                <h3 className="text-rose-600 font-extrabold text-lg uppercase tracking-wider mb-2">Not Quite...</h3>
+                                <p className="text-slate-700 font-medium text-lg leading-relaxed mb-6">
+                                    {renderLatexContent(questions[currentQIndex]?.explanation || "The correct answer is highlighted in green.")}
+                                </p>
+                                <button
+                                    onClick={handleNext}
+                                    className="w-full py-4 bg-rose-500 text-white rounded-2xl font-black text-xl shadow-lg shadow-rose-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                >
+                                    Got it! Next <ArrowLeft className="rotate-180" size={24} />
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Back Button */}
