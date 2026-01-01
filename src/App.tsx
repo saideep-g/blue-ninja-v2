@@ -9,6 +9,8 @@ import StudentApp from './components/student/StudentApp';
 import CurriculumViewer from './components/curriculum/CurriculumViewer';
 import TemplateWorkbench from './components/templates/TemplateWorkbench';
 import UserProfile from './components/profile/UserProfile';
+import MobileQuestDashboard from './components/student/MobileQuestDashboard';
+
 // Routes
 import AdminRoutes from './routes/AdminRoutes';
 import TablesFeature from './features/multiplication-tables/TablesFeature';
@@ -22,7 +24,7 @@ import assessmentGuide from './data/cbse7_assessment_guide_v3.json';
  * Validates role and Redirects to appropriate dashboard.
  */
 function RootRedirector() {
-  const { user, userRole, loading } = useNinja();
+  const { user, userRole, loading, ninjaStats } = useNinja(); // Destructure ninjaStats
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-blue-50">
@@ -46,7 +48,13 @@ function RootRedirector() {
   if (userRole === 'TEACHER') return <Navigate to="/admin/analytics" replace />;
   if (userRole === 'PARENT') return <Navigate to="/admin/users" replace />;
 
-  if (userRole === 'STUDENT') return <StudentApp />;
+  if (userRole === 'STUDENT') {
+    // Check for assigned layout
+    if (ninjaStats?.layout === 'mobile-quest-v1') {
+      return <MobileQuestDashboard />;
+    }
+    return <StudentApp />;
+  }
 
   console.warn('Unknown role:', userRole);
   return <div className="p-8 text-center text-red-600">Unknown User Role: {userRole}</div>;

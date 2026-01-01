@@ -143,6 +143,12 @@ export default function TableSelection() {
 
                 <div className={`mt-8 pt-8 border-t ${isAdvanced ? 'border-slate-700' : 'border-slate-100'}`}>
                     <button
+                        onClick={() => navigate('/')}
+                        className={`text-sm font-bold mb-4 flex items-center justify-center gap-2 w-full py-2 rounded-xl transition-colors ${isAdvanced ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                    >
+                        ← Back to Dashboard
+                    </button>
+                    <button
                         onClick={() => navigate('/tables/parent')}
                         className={`text-sm font-medium hover:underline ${isAdvanced ? 'text-slate-500 hover:text-cyan-400' : 'text-slate-400 hover:text-slate-600'}`}
                     >

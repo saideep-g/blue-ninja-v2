@@ -109,6 +109,17 @@ export function NinjaProvider({ children }: { children: ReactNode }) {
                     console.log('✅ Remote data received');
                     const remoteData = userDoc.data();
 
+                    // SELF-HEAL: Sync Auth Metadata to Firestore if missing or changed
+                    // This allows Admin Search to find users by name/email
+                    if ((remoteData as any).email !== user.email || (remoteData as any).username !== user.displayName) {
+                        console.log('♻️ Syncing Auth Metadata to Firestore...');
+                        updateDoc(getStudentRef(user.uid), {
+                            email: user.email,
+                            username: user.displayName,
+                            updatedAt: serverTimestamp()
+                        }).catch(e => console.error("Metadata sync failed", e));
+                    }
+
                     // Merge remote data into state
                     // We prioritize remote for Profile/Class, but keep local for transient session stuff if needed
                     setNinjaStats(prev => {
@@ -131,7 +142,14 @@ export function NinjaProvider({ children }: { children: ReactNode }) {
                             completedMissions: 0,
                             currentQuest: 'DIAGNOSTIC',
                             streakCount: 0,
-                            lastMissionDate: null
+                            lastMissionDate: null,
+                            // Auth Metadata
+                            // @ts-ignore
+                            email: user.email,
+                            // @ts-ignore
+                            username: user.displayName,
+                            role: 'STUDENT',
+                            createdAt: serverTimestamp()
                         };
                         await setDoc(getStudentRef(user.uid), initialStats);
                         setNinjaStats(initialStats);

@@ -16,6 +16,8 @@ export interface UserProfile {
     dailyQuestionCount: number; // 1-15
     diagnosticQuestionCount: number; // 1-30
     excludedChapters: string[];
+    layout?: "default" | "mobile-quest-v1";
+    enrolledSubjects?: string[]; // IDs like 'math', 'science'
 }
 
 export interface QuestionOption {
@@ -76,6 +78,10 @@ export interface NinjaStats {
     streakCount: number;
     lastMissionDate: string | null;
     activityLog?: string[]; // Array of YYYY-MM-DD strings indicating active practice days
+
+    // Configuration
+    layout?: "default" | "mobile-quest-v1";
+    enrolledSubjects?: string[]; // IDs like 'math', 'science'
 }
 
 export interface QuestionLog {

@@ -1,172 +1,365 @@
 import React, { useState, useEffect } from 'react';
-import { db, auth } from "../../services/db/firebase";
-// Added getDoc and doc to the imports as they are used in fetchStudentStats logic
-import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
+import { db } from "../../services/db/firebase";
+import { collection, query, limit, getDocs, updateDoc, doc, getDoc, orderBy } from 'firebase/firestore';
+import { Search, User, Check, Smartphone, BookOpen, AlertCircle, Save, X, RefreshCw } from 'lucide-react';
+import { User as UserType } from '../../types/models';
 
-export default function ParentDashboard() {
-    const [linkedStudents, setLinkedStudents] = useState([]);
-    const [selectedStudent, setSelectedStudent] = useState(null);
-    const [studentStats, setStudentStats] = useState(null);
-    const [inviteCode, setInviteCode] = useState('');
-    const [loading, setLoading] = useState(true);
+const SUBJECTS = [
+    { id: 'math', name: 'Math' },
+    { id: 'science', name: 'Science' },
+    { id: 'tables', name: 'Tables' },
+    { id: 'vocabulary', name: 'Vocabulary' },
+    { id: 'gk', name: 'General Knowledge' },
+];
 
+export default function UserManagementDashboard() {
+    // Search & List State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]); // Use any because students doc shape is loose
+    const [loading, setLoading] = useState(false);
+
+    // Edit State
+    const [editingUser, setEditingUser] = useState<any | null>(null);
+    const [editForm, setEditForm] = useState<{
+        layout: "default" | "mobile-quest-v1";
+        enrolledSubjects: string[];
+    }>({ layout: 'default', enrolledSubjects: [] });
+
+    const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    // Initial load: Fetch recent users or empty
     useEffect(() => {
-        fetchLinkedStudents();
+        searchUsers('');
     }, []);
 
-    const fetchLinkedStudents = async () => {
+    const searchUsers = async (term: string) => {
+        setLoading(true);
         try {
-            const parentId = auth.currentUser?.uid;
-            const q = query(
-                collection(db, 'parentStudent'),
-                where('parentId', '==', parentId)
-            );
-            const snapshot = await getDocs(q);
-            const students = snapshot.docs.map(doc => doc.data());
-            setLinkedStudents(students);
+            // QUERY 'students' collection, not 'users'
+            const studentsRef = collection(db, 'students');
+            let docs = [];
 
-            /**
-             * BUG FIX: Initial Student Selection
-             * Previously, the code passed the entire 'students' array into setSelectedStudent 
-             * and tried to access '.studentId' on the array itself.
-             * Now we correctly target the first student in the list for initial hydration.
-             */
-            if (students.length > 0) {
-                const firstStudent = students[0];
-                setSelectedStudent(firstStudent);
-                await fetchStudentStats(firstStudent.studentId);
+            if (term.trim() === '') {
+                // Default: fetch last 50 (trying to use recent if possible, though 'students' might not have timestamps on root)
+                // We'll just fetch a batch.
+                const q = query(studentsRef, limit(50));
+                const snapshot = await getDocs(q);
+                docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } else {
+                // Client-side filtering because Firestore doesn't support substring search
+                // and we might be missing fields on some docs.
+                // We'll fetch a larger batch? No, scanning entire DB is bad.
+                // But for this project scale (assumed smallish), we fetch what we can.
+                // Or we can try to fetch by ID if term looks like ID.
+
+                // For now, let's fetch strictly where we can, OR fetch 'recent' and filter.
+                // Given the user complaint "it's not bringing anything", we should cast a wide net.
+                // Fetch 100 docs and filter in memory.
+                const q = query(studentsRef, limit(100)); // Simple fetch
+                const snapshot = await getDocs(q);
+                const allDocs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                const lowerTerm = term.toLowerCase();
+                docs = allDocs.filter((u: any) =>
+                    (u.email && u.email.toLowerCase().includes(lowerTerm)) ||
+                    (u.username && u.username.toLowerCase().includes(lowerTerm)) ||
+                    u.id.includes(lowerTerm)
+                );
             }
-            setLoading(false);
+
+            setSearchResults(docs);
         } catch (error) {
-            console.error('Error fetching students:', error);
+            console.error("Error searching users:", error);
+        } finally {
             setLoading(false);
         }
     };
 
-    const fetchStudentStats = async (studentId) => {
+    const handleEditClick = async (user: any) => {
         try {
-            // Logic: Retrieves the full student profile from the 'users' collection 
-            // to display specific stats like accuracy, hero level, and hurdles.
-            const userDoc = await getDoc(doc(db, 'users', studentId));
-            if (userDoc.exists()) {
-                setStudentStats(userDoc.data());
+            // We already have the data in 'user' mainly, but good to refresh
+            const studentRef = doc(db, 'students', user.id);
+            const studentSnap = await getDoc(studentRef);
+
+            let layout: any = 'default';
+            let enrolledSubjects: string[] = [];
+            let fullData = user;
+
+            if (studentSnap.exists()) {
+                const data = studentSnap.data();
+                fullData = { id: user.id, ...data };
+                layout = data.layout || 'default';
+                enrolledSubjects = data.enrolledSubjects || [];
+                // Check deep profile if not on root
+                if (!data.layout && data.profile?.layout) layout = data.profile.layout;
+                if (!data.enrolledSubjects && data.profile?.enrolledSubjects) enrolledSubjects = data.profile.enrolledSubjects;
             }
-        } catch (error) {
-            console.error('Error fetching student stats:', error);
+
+            setEditingUser(fullData);
+            setEditForm({
+                layout,
+                enrolledSubjects
+            });
+            setMessage(null);
+        } catch (e) {
+            console.error("Error fetching student details", e);
+            alert("Could not load student details.");
         }
     };
 
-    if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    const toggleSubject = (subId: string) => {
+        setEditForm(prev => {
+            const current = prev.enrolledSubjects;
+            if (current.includes(subId)) {
+                return { ...prev, enrolledSubjects: current.filter(id => id !== subId) };
+            } else {
+                return { ...prev, enrolledSubjects: [...current, subId] };
+            }
+        });
+    };
+
+    const handleSave = async () => {
+        if (!editingUser) return;
+        setSaving(true);
+        setMessage(null);
+
+        try {
+            const studentRef = doc(db, 'students', editingUser.id);
+
+            // Update root level config (NinjaStats model in models.ts)
+            await updateDoc(studentRef, {
+                layout: editForm.layout,
+                enrolledSubjects: editForm.enrolledSubjects,
+                // Also update profile nested object just in case user Service reads from there
+                'profile.layout': editForm.layout,
+                'profile.enrolledSubjects': editForm.enrolledSubjects
+            });
+
+            setMessage({ type: 'success', text: `Successfully updated ${editingUser.username || 'User'}!` });
+
+            // Refresh local list
+            setSearchResults(prev => prev.map(u => {
+                if (u.id === editingUser.id) {
+                    return {
+                        ...u,
+                        layout: editForm.layout,
+                        enrolledSubjects: editForm.enrolledSubjects
+                    };
+                }
+                return u;
+            }));
+
+        } catch (error) {
+            console.error("Error saving user:", error);
+            setMessage({ type: 'error', text: "Failed to save changes. Check console." });
+        } finally {
+            setSaving(false);
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-6">
-            {/* Header */}
-            <header className="max-w-6xl mx-auto mb-8">
-                <h1 className="text-4xl font-black text-purple-900 mb-2">Parent Dashboard</h1>
-                <p className="text-purple-600 font-medium">Monitor your child's learning progress</p>
+        <div className="min-h-screen bg-slate-50 p-6 font-sans text-slate-900">
+            <header className="max-w-6xl mx-auto mb-8 flex flex-col md:flex-row md:justify-between md:items-center">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-800">User Management</h1>
+                    <p className="text-slate-500 font-medium">Manage student layouts and subject enrollment</p>
+                </div>
+
+                {/* Search Bar */}
+                <div className="mt-4 md:mt-0 relative w-full md:w-96 flex gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Search by ID, name or email..."
+                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                            }}
+                            onKeyDown={(e) => e.key === 'Enter' && searchUsers(searchQuery)}
+                        />
+                    </div>
+                    <button onClick={() => searchUsers(searchQuery)} className="p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-500">
+                        <RefreshCw size={20} />
+                    </button>
+                </div>
             </header>
 
-            <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Students List Sidebar */}
-                <div className="lg:col-span-1">
-                    <div className="bg-white rounded-2xl shadow-md p-6">
-                        <h2 className="font-black text-purple-900 mb-4">Your Students</h2>
+            <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                        {linkedStudents.map(student => (
-                            <button
-                                key={student.studentId}
-                                onClick={() => {
-                                    setSelectedStudent(student);
-                                    fetchStudentStats(student.studentId);
-                                }}
-                                className={`w-full text-left p-4 rounded-xl mb-3 transition-all ${selectedStudent?.studentId === student.studentId
-                                    ? 'bg-purple-100 border-2 border-purple-500'
-                                    : 'bg-gray-50 border-2 border-gray-200 hover:border-purple-200'
-                                    }`}
-                            >
-                                <p className="font-bold text-gray-900">{student.studentName}</p>
-                                <p className="text-[10px] text-gray-600 uppercase tracking-wider">Grade {student.grade}</p>
-                            </button>
-                        ))}
+                {/* User List Columns */}
+                <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-[600px] flex flex-col">
+                    <div className="p-4 border-b border-slate-100 bg-slate-50">
+                        <h2 className="font-bold text-slate-700">Student List ({searchResults.length})</h2>
+                        <p className="text-xs text-slate-400 mt-1">Source: 'students' collection</p>
+                    </div>
+                    <div className="overflow-y-auto flex-1 p-2 space-y-2">
+                        {loading && <div className="text-center p-4 text-slate-400">Loading users...</div>}
 
-                        <button
-                            onClick={() => setInviteCode(Math.random().toString(36).substr(2, 9).toUpperCase())}
-                            className="w-full mt-4 p-3 bg-purple-500 text-white rounded-xl font-bold hover:bg-purple-600"
-                        >
-                            + Add Student
-                        </button>
+                        {!loading && searchResults.length === 0 && (
+                            <div className="text-center p-8 text-slate-400 flex flex-col items-center">
+                                <User size={32} className="mb-2 opacity-50" />
+                                <p>No students found.</p>
+                                <p className="text-xs mt-2">Make sure users have logged in at least once.</p>
+                            </div>
+                        )}
+
+                        {searchResults.map(user => {
+                            // Fallback display logic
+                            const displayName = user.username || user.profile?.name || 'Unknown User';
+                            const displayEmail = user.email || user.profile?.email || `ID: ${user.id.substring(0, 8)}...`;
+                            const initial = displayName.charAt(0).toUpperCase();
+
+                            return (
+                                <button
+                                    key={user.id}
+                                    onClick={() => handleEditClick(user)}
+                                    className={`w-full text-left p-3 rounded-xl transition-all flex items-center gap-3
+                                        ${editingUser?.id === user.id
+                                            ? 'bg-purple-100 border border-purple-300 shadow-sm'
+                                            : 'hover:bg-slate-50 border border-transparent hover:border-slate-100'
+                                        }`}
+                                >
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold
+                                        ${editingUser?.id === user.id ? 'bg-purple-500 text-white' : 'bg-slate-200 text-slate-500'}
+                                    `}>
+                                        {initial}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`font-bold truncate ${editingUser?.id === user.id ? 'text-purple-900' : 'text-slate-800'}`}>
+                                            {displayName}
+                                        </p>
+                                        <p className="text-xs text-slate-500 truncate">{displayEmail}</p>
+                                    </div>
+                                    {(!user.username && !user.email) && <AlertCircle size={14} className="text-amber-500" title="Missing metadata" />}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
-                {/* Main Stats Panel */}
-                {selectedStudent && studentStats && (
-                    <div className="lg:col-span-3 space-y-6">
-                        {/* Overview Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="bg-white rounded-2xl shadow-md p-6">
-                                <p className="text-[10px] font-black text-purple-400 uppercase tracking-wider mb-2">This Week</p>
-                                <p className="text-4xl font-black text-purple-900">{studentStats.thisWeekMissions || 0}</p>
-                                <p className="text-sm text-gray-600 mt-2">Missions Completed</p>
+                {/* Edit Panel */}
+                <div className="lg:col-span-2">
+                    {editingUser ? (
+                        <div className="bg-white rounded-2xl shadow-xl border border-purple-100 overflow-hidden relative">
+                            {/* Header */}
+                            <div className="bg-slate-900 p-6 text-white flex justify-between items-start">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-3xl font-black">
+                                        {(editingUser.username || editingUser.id).charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black">{editingUser.username || 'Unknown User'}</h2>
+                                        <p className="text-slate-400 text-sm font-mono">{editingUser.id}</p>
+                                        <p className="text-slate-500 text-xs">{editingUser.email || 'No email synced'}</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setEditingUser(null)} className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                                    <X size={20} />
+                                </button>
                             </div>
 
-                            <div className="bg-white rounded-2xl shadow-md p-6">
-                                <p className="text-[10px] font-black text-pink-400 uppercase tracking-wider mb-2">Accuracy</p>
-                                <p className="text-4xl font-black text-pink-600">{studentStats.overallAccuracy || 0}%</p>
-                                <p className="text-sm text-gray-600 mt-2">Overall Performance</p>
-                            </div>
+                            <div className="p-8 space-y-8">
+                                {/* Success/Error Message */}
+                                {message && (
+                                    <div className={`p-4 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-2
+                                        ${message.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}
+                                    `}>
+                                        {message.type === 'success' ? <Check size={20} /> : <AlertCircle size={20} />}
+                                        <p className="font-bold">{message.text}</p>
+                                    </div>
+                                )}
 
-                            <div className="bg-white rounded-2xl shadow-md p-6">
-                                <p className="text-[10px] font-black text-blue-400 uppercase tracking-wider mb-2">Growth</p>
-                                <p className="text-4xl font-black text-blue-600">📈</p>
-                                <p className="text-sm text-gray-600 mt-2">Level {studentStats.heroLevel || 1}</p>
-                            </div>
-                        </div>
+                                {!editingUser.username && (
+                                    <div className="bg-amber-50 text-amber-800 p-4 rounded-xl text-sm border border-amber-200">
+                                        ⚠️ This user hasn't logged in recently. Their name/email might be missing until they login again. You can still set their layout.
+                                    </div>
+                                )}
 
-                        {/* Challenges & Strengths */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="bg-white rounded-2xl shadow-md p-6">
-                                <h3 className="font-black text-purple-900 mb-4">Top Challenges</h3>
-                                <div className="space-y-3">
-                                    {(studentStats.topHurdles || []).map((hurdle, i) => (
-                                        <div key={i} className="flex items-center justify-between p-3 bg-red-50 rounded-xl">
-                                            <span className="font-bold text-gray-900">{hurdle.name}</span>
-                                            <span className="text-[10px] font-black text-red-600">{hurdle.count} errors</span>
-                                        </div>
-                                    ))}
+                                {/* LAYOUT SELECTOR */}
+                                <section>
+                                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <Smartphone size={16} /> Interface Layout
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button
+                                            onClick={() => setEditForm(p => ({ ...p, layout: 'default' }))}
+                                            className={`p-4 rounded-xl border-2 text-left transition-all
+                                                ${editForm.layout === 'default'
+                                                    ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200 ring-offset-2'
+                                                    : 'border-slate-100 hover:border-slate-200'}`}
+                                        >
+                                            <div className="font-black text-slate-800 mb-1">Default Dashboard</div>
+                                            <p className="text-xs text-slate-500 leading-relaxed">Standard rich web layout. Best for desktop/tablet/laptop use.</p>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setEditForm(p => ({ ...p, layout: 'mobile-quest-v1' }))}
+                                            className={`p-4 rounded-xl border-2 text-left transition-all
+                                                ${editForm.layout === 'mobile-quest-v1'
+                                                    ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200 ring-offset-2'
+                                                    : 'border-slate-100 hover:border-slate-200'}`}
+                                        >
+                                            <div className="font-black text-slate-800 mb-1">Mobile Quest v1</div>
+                                            <p className="text-xs text-slate-500 leading-relaxed">Simplified, engaging mobile-first UI for younger students.</p>
+                                        </button>
+                                    </div>
+                                </section>
+
+                                {/* SUBJECT SELECTOR */}
+                                <section>
+                                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <BookOpen size={16} /> Enrolled Subjects
+                                    </h3>
+                                    <div className="flex flex-wrap gap-3">
+                                        {SUBJECTS.map(sub => {
+                                            const isActive = editForm.enrolledSubjects.includes(sub.id);
+                                            return (
+                                                <button
+                                                    key={sub.id}
+                                                    onClick={() => toggleSubject(sub.id)}
+                                                    className={`px-4 py-2 rounded-full font-bold text-sm border-2 transition-all
+                                                        ${isActive
+                                                            ? 'bg-slate-800 text-white border-slate-800'
+                                                            : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
+                                                >
+                                                    {sub.name}
+                                                    {isActive && <Check size={14} className="inline ml-2 -mt-0.5" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-3 font-medium">
+                                        * Selecting zero subjects serves ALL valid subjects by default.
+                                    </p>
+                                </section>
+
+                                {/* Actions */}
+                                <div className="pt-6 border-t border-slate-100 flex justify-end">
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={saving}
+                                        className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg shadow-purple-200 transition-all active:scale-95 disabled:opacity-70 flex items-center gap-2"
+                                    >
+                                        {saving ? 'Saving...' : (
+                                            <>
+                                                <Save size={20} /> Save Changes
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
                             </div>
-
-                            <div className="bg-white rounded-2xl shadow-md p-6">
-                                <h3 className="font-black text-purple-900 mb-4">Strengths</h3>
-                                <div className="space-y-3">
-                                    {(studentStats.strengths || []).map((strength, i) => (
-                                        <div key={i} className="flex items-center justify-between p-3 bg-green-50 rounded-xl">
-                                            <span className="font-bold text-gray-900">{strength.name}</span>
-                                            <span className="text-[10px] font-black text-green-600">⭐ Mastered</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
                         </div>
-
-                        {/* Action Items for Parent */}
-                        <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl shadow-md p-6 text-white">
-                            <h3 className="font-black text-lg mb-3">💡 Recommendations for You</h3>
-                            <ul className="space-y-2 text-sm">
-                                <li>✓ Encourage 10-15 min daily practice (set a reminder)</li>
-                                /**
-                                * SYNTAX FIX: Double Optional Chaining Error
-                                * Error was: ?.?. which is invalid syntax.
-                                * Logic: Since topHurdles is an array, we access the first element [0]
-                                * and then safely access '.name' using standard optional chaining.
-                                */
-                                <li>✓ Help with "{studentStats.topHurdles?.[0]?.name || 'math'}" - offer real-world examples</li>
-                                <li>✓ Celebrate wins! Your child is improving 📚</li>
-                            </ul>
+                    ) : (
+                        <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-slate-400 p-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                            <User size={64} className="mb-4 opacity-20" />
+                            <p className="font-medium text-lg">Select a student to manage details</p>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
+            </main>
         </div>
     );
 }
