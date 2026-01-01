@@ -68,6 +68,13 @@ export default function MobileQuestDashboard() {
     const [loadingQuestions, setLoadingQuestions] = useState(false);
 
     // --- EFFECTS ---
+
+    // Reset selection on question change
+    useEffect(() => {
+        setSelectedAnswer(null);
+        setFeedback(null);
+    }, [currentQIndex]);
+
     useEffect(() => {
         if (user?.uid) {
             const fetchProgress = async () => {
