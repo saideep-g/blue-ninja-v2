@@ -455,21 +455,16 @@ export default function MobileQuestDashboard() {
                 <div className="flex flex-col h-full relative z-10">
                     <div className="flex-1 flex flex-col justify-center items-center px-6 max-w-xl mx-auto w-full">
                         {/* Question Card */}
-                        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-xl w-full border-4 border-indigo-100 min-h-[300px] flex flex-col justify-center items-center text-center relative overflow-hidden">
+                        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 shadow-xl w-full border-4 border-indigo-100 min-h-[200px] flex flex-col justify-center items-center text-center relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400" />
 
-                            {/* Decorative Icon */}
-                            <div className="mb-6 bg-indigo-50 p-4 rounded-full">
-                                <Sparkles className="text-indigo-400 w-8 h-8" />
-                            </div>
-
-                            <h2 className="text-2xl md:text-3xl font-black text-indigo-900 leading-snug mb-2">
+                            <h2 className="text-xl md:text-2xl font-black text-indigo-900 leading-snug">
                                 {renderLatexContent(questions[currentQIndex]?.question_text)}
                             </h2>
                         </div>
 
                         {/* Options Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full mt-4">
                             {questions[currentQIndex]?.options.map((opt) => {
                                 let btnClass = "bg-white text-indigo-900 border-white/50 hover:bg-indigo-50";
 
@@ -492,7 +487,7 @@ export default function MobileQuestDashboard() {
                                         onClick={() => handleAnswer(opt.id, opt.isCorrect)}
                                         disabled={!!selectedAnswer}
                                         className={`
-                                            p-6 rounded-2xl font-black text-xl shadow-lg border-b-4 transition-all
+                                            p-4 rounded-2xl font-black text-lg shadow-lg border-b-4 transition-all
                                             transform active:scale-95 disabled:active:scale-100 disabled:cursor-not-allowed
                                             ${btnClass}
                                         `}

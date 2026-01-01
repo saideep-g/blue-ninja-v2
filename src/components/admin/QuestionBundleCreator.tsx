@@ -14,8 +14,8 @@ import {
 const SUBJECTS = [
     { id: 'math', name: 'Math' },
     { id: 'science', name: 'Science' },
-    { id: 'english', name: 'English' },
-    { id: 'gk', name: 'General Knowledge' },
+    { id: 'words', name: 'Words (English)' },
+    { id: 'world', name: 'World (Geography/GK)' },
     { id: 'logic', name: 'Logic & Reasoning' }
 ];
 
