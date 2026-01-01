@@ -233,7 +233,7 @@ export default function UserManagementDashboard() {
                                         </p>
                                         <p className="text-xs text-slate-500 truncate">{displayEmail}</p>
                                     </div>
-                                    {(!user.username && !user.email) && <AlertCircle size={14} className="text-amber-500" title="Missing metadata" />}
+                                    {(!user.username && !user.email) && <span title="Missing metadata"><AlertCircle size={14} className="text-amber-500" /></span>}
                                 </button>
                             );
                         })}
