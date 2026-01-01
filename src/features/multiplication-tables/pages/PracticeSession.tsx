@@ -377,34 +377,34 @@ export default function PracticeSession() {
                 </AnimatePresence>
 
                 {/* Numpad */}
-                <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
+                <div className="grid grid-cols-3 gap-3 md:gap-8 w-full max-w-xs md:max-w-3xl">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                         <button
                             key={num}
                             onClick={() => handleInput(num)}
-                            className={`h-16 rounded-xl shadow-sm border-b-4 active:border-b-0 active:translate-y-1 text-2xl font-bold transition-all font-mono ${theme.numpadBg}`}
+                            className={`h-16 md:h-24 rounded-xl shadow-sm border-b-4 active:border-b-0 active:translate-y-1 text-2xl md:text-5xl font-bold transition-all font-mono ${theme.numpadBg}`}
                         >
                             {num}
                         </button>
                     ))}
                     <button
                         onClick={handleBackspace}
-                        className={`h-16 rounded-xl shadow-sm border-b-4 active:border-b-0 active:translate-y-1 font-bold transition-all flex items-center justify-center ${theme.secondaryButton}`}
+                        className={`h-16 md:h-24 rounded-xl shadow-sm border-b-4 active:border-b-0 active:translate-y-1 font-bold transition-all flex items-center justify-center ${theme.secondaryButton}`}
                     >
-                        ⌫
+                        <span className="text-xl md:text-4xl">⌫</span>
                     </button>
                     <button
                         onClick={() => handleInput(0)}
-                        className={`h-16 rounded-xl shadow-sm border-b-4 active:border-b-0 active:translate-y-1 text-2xl font-bold transition-all font-mono ${theme.numpadBg}`}
+                        className={`h-16 md:h-24 rounded-xl shadow-sm border-b-4 active:border-b-0 active:translate-y-1 text-2xl md:text-5xl font-bold transition-all font-mono ${theme.numpadBg}`}
                     >
                         0
                     </button>
                     <button
                         onClick={handleSubmit}
-                        className={`h-16 rounded-xl border-b-4 active:border-b-0 active:translate-y-1 font-bold transition-all flex items-center justify-center bg-transparent ${theme.button}`}
+                        className={`h-16 md:h-24 rounded-xl border-b-4 active:border-b-0 active:translate-y-1 font-bold transition-all flex items-center justify-center ${theme.button}`}
                         style={{ borderBottomColor: 'rgba(0,0,0,0.2)' }}
                     >
-                        <Send className="w-6 h-6" />
+                        <Send className="w-6 h-6 md:w-10 md:h-10" />
                     </button>
                 </div>
 
