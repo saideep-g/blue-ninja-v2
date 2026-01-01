@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { SimplifiedQuestion } from '../../types/bundle';
 import { Check, X, Clock, ArrowRight, RefreshCw, Trophy } from 'lucide-react';
 import 'katex/dist/katex.min.css';
-import BlockMath from 'react-katex';
+import { InlineMath } from 'react-katex';
+
 
 interface SimplifiedMCQPlayerProps {
     title: string;
@@ -14,16 +15,15 @@ interface SimplifiedMCQPlayerProps {
 export default function SimplifiedMCQPlayer({ title, questions, onComplete, onExit }: SimplifiedMCQPlayerProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
-    const [streak, setStreak] = useState(0); // For motivational messages
+    const [streak, setStreak] = useState(0);
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
-    const [timeLeft, setTimeLeft] = useState(0); // Counts UP (Time Taken)
+    const [timeLeft, setTimeLeft] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
 
     const currentQ = questions[currentIndex];
 
     useEffect(() => {
-        // Reset state for new question
         setSelectedOption(null);
         setFeedback(null);
         setIsPaused(false);
@@ -37,10 +37,10 @@ export default function SimplifiedMCQPlayer({ title, questions, onComplete, onEx
     }, [isPaused]);
 
     const handleAnswer = (option: string) => {
-        if (selectedOption) return; // Prevent double click
+        if (selectedOption) return;
 
         setSelectedOption(option);
-        setIsPaused(true); // Stop timer
+        setIsPaused(true);
 
         const isCorrect = option === currentQ.answer;
 
@@ -49,19 +49,15 @@ export default function SimplifiedMCQPlayer({ title, questions, onComplete, onEx
             setStreak(prev => prev + 1);
             setFeedback('correct');
 
-            // Auto advance
             setTimeout(() => {
                 nextQuestion();
             }, 2000);
         } else {
             setStreak(0);
             setFeedback('wrong');
-            // Wait for user to proceed manually or auto after longer delay?
-            // User requested "proceed to next in two seconds" for wrong too?
-            // "if they have given wrong answer... proceed to the next question in two seconds"
             setTimeout(() => {
                 nextQuestion();
-            }, 3000); // 3s allowing to read correction
+            }, 3000);
         }
     };
 
@@ -73,7 +69,6 @@ export default function SimplifiedMCQPlayer({ title, questions, onComplete, onEx
         }
     };
 
-    // Render helpers
     const getMotivationalMessage = () => {
         if (streak > 2) return "You're on fire! 🔥";
         if (streak > 0) return "Great job! Keep it up!";
@@ -82,13 +77,13 @@ export default function SimplifiedMCQPlayer({ title, questions, onComplete, onEx
 
     if (!currentQ) return <div className="p-8 text-center">Loading Quiz...</div>;
 
-    // Detect if content needs LaTeX rendering (contains $)
     const renderContent = (text: string) => {
+        if (!text) return '';
         const parts = text.split('$');
         return (
             <span>
                 {parts.map((part, i) =>
-                    i % 2 === 1 ? <BlockMath key={i}>{part}</BlockMath> : <span key={i}>{part}</span>
+                    i % 2 === 1 ? <InlineMath key={i} math={part} /> : <span key={i}>{part}</span>
                 )}
             </span>
         );
