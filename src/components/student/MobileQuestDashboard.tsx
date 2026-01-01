@@ -19,10 +19,14 @@ import {
     Settings,
     Calendar,
     Zap,
-    Medal
+    Medal,
+    Pencil,
+    Check,
+    X
 } from 'lucide-react';
 import { useNinja } from '../../context/NinjaContext';
-import { collection, query, where, limit, getDocs } from 'firebase/firestore';
+import { collection, query, where, limit, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
 import { db } from '../../services/db/firebase';
 import { Question } from '../../types';
 import { getStudentTableStats } from '../../features/multiplication-tables/services/tablesFirestore';
@@ -47,6 +51,11 @@ const BADGES = [
     { id: 6, name: 'Global Scout', icon: '🌍', earned: false, desc: 'Perfect World GK.' },
 ];
 
+const GIRL_AVATAR_SEEDS = [
+    'Mimi', 'Bella', 'Daisy', 'Lola', 'Coco', 'Ruby',
+    'Luna', 'Sophie', 'Mia', 'Chloe', 'Zoe', 'Lily'
+];
+
 export default function MobileQuestDashboard() {
     const { ninjaStats, user, updatePower, logQuestionResult } = useNinja();
     const navigate = useNavigate();
@@ -68,6 +77,36 @@ export default function MobileQuestDashboard() {
     const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
     const [loadingQuestions, setLoadingQuestions] = useState(false);
 
+    // Profile Editing State
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editName, setEditName] = useState('');
+    const [selectedAvatarSeed, setSelectedAvatarSeed] = useState('');
+
+    const handleSaveName = async () => {
+        if (!user || !editName.trim()) return;
+        try {
+            const avatarUrl = selectedAvatarSeed
+                ? `https://api.dicebear.com/7.x/adventurer/svg?seed=${selectedAvatarSeed}`
+                : user.photoURL;
+
+            await updateProfile(user, {
+                displayName: editName,
+                photoURL: avatarUrl
+            });
+
+            const studentRef = doc(db, 'students', user.uid);
+            await updateDoc(studentRef, {
+                username: editName,
+                'profile.name': editName,
+                'profile.avatar': avatarUrl
+            });
+            setIsEditingName(false);
+            // Optional: User might need reload to see persistent changes depending on context sync
+        } catch (e) {
+            console.error("Name update failed", e);
+        }
+    };
+
     // Determine Enrolled Subjects
     const enrolledSubjectIds = ninjaStats.enrolledSubjects && ninjaStats.enrolledSubjects.length > 0
         ? ninjaStats.enrolledSubjects
@@ -80,6 +119,10 @@ export default function MobileQuestDashboard() {
 
     const completedCount = visibleSubjects.filter(s => progress[s.id] === 100).length;
     const totalSubjects = visibleSubjects.length;
+
+    // Resolve Name Logic for Header
+    const rawName = user?.displayName || (ninjaStats as any)?.username || user?.email?.split('@')[0] || 'Explorer';
+    const displayFirstName = rawName.split(' ')[0].charAt(0).toUpperCase() + rawName.split(' ')[0].slice(1);
 
     useEffect(() => {
         if (user?.uid) {
@@ -199,10 +242,10 @@ export default function MobileQuestDashboard() {
                 <header className="px-6 pt-8 pb-4 flex justify-between items-center animate-in fade-in duration-500">
                     <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-400 border-2 border-white shadow-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
-                            <img src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.displayName || 'Mimi'}`} alt="Avatar" className="w-full h-full scale-110" />
+                            <img src={user?.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.displayName || 'Mimi'}`} alt="Avatar" className="w-full h-full scale-110" />
                         </div>
                         <div>
-                            <h1 className="text-lg font-black text-purple-900 leading-none">{user?.displayName?.split(' ')[0] || "Explorer"}'s Quest</h1>
+                            <h1 className="text-lg font-black text-purple-900 leading-none">{displayFirstName}'s Quest</h1>
                             <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mt-1">Explorer Rank: Gold</p>
                         </div>
                     </div>
@@ -315,14 +358,73 @@ export default function MobileQuestDashboard() {
                         <div className="relative">
                             <div className="w-28 h-28 rounded-[2.5rem] bg-gradient-to-tr from-purple-400 to-pink-500 p-1 shadow-2xl">
                                 <div className="w-full h-full bg-white rounded-[2.3rem] overflow-hidden">
-                                    <img src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.displayName || 'Mimi'}`} alt="Avatar" className="w-full h-full scale-125 translate-y-3" />
+                                    <img
+                                        src={isEditingName && selectedAvatarSeed
+                                            ? `https://api.dicebear.com/7.x/adventurer/svg?seed=${selectedAvatarSeed}`
+                                            : (user?.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.displayName || 'Mimi'}`)}
+                                        alt="Avatar"
+                                        className="w-full h-full scale-125 translate-y-3"
+                                    />
                                 </div>
                             </div>
-                            <button className="absolute -bottom-2 -right-2 bg-white p-2.5 rounded-2xl shadow-lg border border-purple-100">
-                                <Settings size={20} className="text-purple-600" />
+                            <button
+                                onClick={() => {
+                                    setEditName(user?.displayName || '');
+                                    setSelectedAvatarSeed('');
+                                    setIsEditingName(true);
+                                }}
+                                className="absolute -bottom-2 -right-2 bg-white p-2.5 rounded-2xl shadow-lg border border-purple-100 hover:bg-purple-50 transition-colors"
+                            >
+                                <Pencil size={20} className="text-purple-600" />
                             </button>
                         </div>
-                        <h2 className="mt-6 text-3xl font-black text-purple-900 leading-none">{user?.displayName || "Explorer"}</h2>
+
+                        {isEditingName ? (
+                            <div className="mt-6 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-2 w-full">
+                                {/* Name Edit */}
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        autoFocus
+                                        className="text-2xl font-black text-purple-900 bg-purple-50 border-b-2 border-purple-300 outline-none w-48 text-center"
+                                        value={editName}
+                                        onChange={e => setEditName(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleSaveName()}
+                                    />
+                                    <button onClick={handleSaveName} className="p-2 bg-emerald-100 rounded-full text-emerald-600 hover:bg-emerald-200">
+                                        <Check size={20} />
+                                    </button>
+                                    <button onClick={() => setIsEditingName(false)} className="p-2 bg-red-100 rounded-full text-red-600 hover:bg-red-200">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                {/* Avatar Selection */}
+                                <div className="w-full overflow-x-auto pb-4 px-4 scrollbar-hide">
+                                    <p className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Choose your Look</p>
+                                    <div className="flex gap-3 justify-center">
+                                        {GIRL_AVATAR_SEEDS.map(seed => (
+                                            <button
+                                                key={seed}
+                                                onClick={() => setSelectedAvatarSeed(seed)}
+                                                className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all flex-shrink-0
+                                                    ${selectedAvatarSeed === seed ? 'border-purple-500 scale-110 shadow-lg' : 'border-slate-100 opacity-60 hover:opacity-100'}
+                                                `}
+                                            >
+                                                <img
+                                                    src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}`}
+                                                    alt={seed}
+                                                    className="w-full h-full scale-125 translate-y-2"
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <h2 className="mt-6 text-3xl font-black text-purple-900 leading-none text-center px-4">
+                                {user?.displayName || "Explorer"}
+                            </h2>
+                        )}
                         <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mt-3">Adventurer since 2024</p>
                     </div>
 
