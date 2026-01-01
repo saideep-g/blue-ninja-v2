@@ -153,6 +153,23 @@ export default function QuestionBundleCreator() {
 
     const commitToFirestore = async () => {
         if (!selectedBundle || parsedQuestions.length === 0) return;
+
+        // Calculate potential duplicates
+        const existingIds = new Set(existingQuestions.filter(q => q.id).map(q => q.id));
+        const duplicates = parsedQuestions.filter(q => q.id && existingIds.has(q.id));
+
+        // Confirmation if overwriting
+        if (duplicates.length > 0) {
+            const confirmed = window.confirm(
+                `⚠️ DUPLICATE ID WARNING\n\n` +
+                `Found ${duplicates.length} questions with IDs that already exist in this bundle.\n` +
+                `(Example: ${duplicates[0].id})\n\n` +
+                `These will be UPDATED, not added as new questions.\n` +
+                `Do you want to proceed?`
+            );
+            if (!confirmed) return;
+        }
+
         setUploading(true);
 
         try {
@@ -176,9 +193,12 @@ export default function QuestionBundleCreator() {
             batch.set(dataDocRef, { questions: questionsMap }, { merge: true });
 
             // 2. Update Parent Bundle Metadata (in the original collection)
+            // Only increment by the number of NEW questions (total - duplicates)
+            const newQuestionsCount = parsedQuestions.length - duplicates.length;
+
             const parentRef = doc(db, 'question_bundles', selectedBundle.id);
             batch.update(parentRef, {
-                questionCount: increment(parsedQuestions.length),
+                questionCount: increment(newQuestionsCount),
                 updatedAt: serverTimestamp()
             });
 
