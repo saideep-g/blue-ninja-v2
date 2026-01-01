@@ -13,7 +13,8 @@ import {
     Package,
     FlaskConical,
     Library,
-    GitPullRequest
+    GitPullRequest,
+    Layers
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -22,6 +23,7 @@ export default function AdminSidebar() {
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', to: '/admin', end: true },
         { icon: UploadCloud, label: 'Questions', to: '/admin/questions' },
+        { icon: Layers, label: 'Creator Studio', to: '/admin/question-bundles' },
         { icon: Library, label: 'Schemas (QLMS)', to: '/admin/templates' },
         { icon: GitPullRequest, label: 'Migration', to: '/admin/migration' },
         { icon: Package, label: 'Bundles', to: '/admin/bundles' },

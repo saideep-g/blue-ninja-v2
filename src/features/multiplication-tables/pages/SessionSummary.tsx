@@ -83,7 +83,7 @@ export default function SessionSummary() {
                         Practice Again
                     </button>
                     <button
-                        onClick={() => navigate('/tables')}
+                        onClick={() => navigate('/')}
                         className="w-full py-4 text-slate-400 hover:text-slate-600 font-bold flex items-center justify-center gap-2"
                     >
                         <Home className="w-5 h-5" />

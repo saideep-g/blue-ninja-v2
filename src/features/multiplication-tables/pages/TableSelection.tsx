@@ -61,21 +61,9 @@ export default function TableSelection() {
         fetchSettings();
     }, [user]);
 
-    // Back Button - Exit App Confirmation
-    useEffect(() => {
-        window.history.pushState(null, '', window.location.pathname);
-        const handlePopState = () => {
-            const confirmExit = window.confirm("Do you want to exit the app?");
-            if (confirmExit) {
-                window.close();
-                window.location.href = "about:blank";
-            } else {
-                window.history.pushState(null, '', window.location.pathname);
-            }
-        };
-        window.addEventListener('popstate', handlePopState);
-        return () => window.removeEventListener('popstate', handlePopState);
-    }, []);
+    // Back Button Logic Removed to prevent app exit on navigation.
+    // user will naturally navigate back using browser or on-screen buttons.
+
 
     const startSession = () => {
         if (assignedTables.length === 0) return;
