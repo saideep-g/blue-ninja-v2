@@ -117,7 +117,43 @@ export async function deleteQuestionFromBundle(bundleId: string, questionId: str
   console.log(`[Firestore] Deleted question ${questionId} from bundle ${bundleId}`);
 }
 
+/**
+ * Updates a specific question within a bundle.
+ */
+export async function updateQuestionInBundle(bundleId: string, questionId: string, newItemData: any): Promise<void> {
+  const docRef = doc(questionBundlesCollection, bundleId);
+  const snapshot = await getDoc(docRef);
+
+  if (!snapshot.exists()) throw new Error(`Bundle ${bundleId} not found`);
+
+  const data = snapshot.data();
+  if (!data.items || !Array.isArray(data.items)) throw new Error("Bundle has no valid items array");
+
+  const originalLength = data.items.length;
+  // Replace the item
+  let found = false;
+  const newItems = data.items.map((item: any) => {
+    const iId = item.item_id || item.id;
+    if (iId === questionId) {
+      found = true;
+      return newItemData;
+    }
+    return item;
+  });
+
+  if (!found) {
+    throw new Error(`Question ${questionId} not found in bundle ${bundleId}`);
+  }
+
+  await updateDoc(docRef, {
+    items: newItems,
+    updated_at: new Date().toISOString()
+  });
+  console.log(`[Firestore] Updated question ${questionId} in bundle ${bundleId}`);
+}
+
 export default {
   publishBundleToFirestore,
-  deleteQuestionFromBundle
+  deleteQuestionFromBundle,
+  updateQuestionInBundle
 };

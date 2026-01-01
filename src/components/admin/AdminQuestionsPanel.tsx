@@ -13,10 +13,10 @@
  * - Bundle Publishing
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Save, Edit3, Trash2, Database, Play, Loader, FileJson, ArrowRight, X, Eye, RefreshCw,
-  CheckCircle, AlertTriangle, AlertCircle, XCircle, Search, Upload, FileUp, Download
+  CheckCircle, AlertTriangle, AlertCircle, XCircle, Search, Upload, FileUp, Download, Copy
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
@@ -26,7 +26,7 @@ import MissionCard from '../diagnostic/MissionCard';
 
 import { useIndexedDB } from '../../hooks/useIndexedDB';
 import { runFullValidationSuite, ValidatedItem, ValidationIssue, ValidationSummary } from "../../services/validation/upload";
-import { publishBundleToFirestore, deleteQuestionFromBundle } from "../../services/questions/firestore";
+import { publishBundleToFirestore, deleteQuestionFromBundle, updateQuestionInBundle } from "../../services/questions/firestore";
 import { AdminIntelligenceReport } from './AdminIntelligenceReport';
 import { ConceptVitalityDetail } from './ConceptVitalityDetail';
 import { TemplateDiversityReport } from './TemplateDiversityReport';
@@ -37,6 +37,7 @@ const PreviewModal = ({
   onClose,
   onNext,
   onPrev,
+  onSave, // NEW: Handle saving changes
   hasNext,
   hasPrev
 }: {
@@ -44,21 +45,72 @@ const PreviewModal = ({
   onClose: () => void,
   onNext?: () => void,
   onPrev?: () => void,
+  onSave?: (newItem: any) => Promise<void>,
   hasNext?: boolean,
   hasPrev?: boolean
 }) => {
   const [mode, setMode] = useState<'PREVIEW' | 'JSON'>('PREVIEW');
+  const [jsonText, setJsonText] = useState(JSON.stringify(item, null, 2));
+  const [isSaving, setIsSaving] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const gutterRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleScroll = () => {
+    if (gutterRef.current && textareaRef.current) {
+      gutterRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
+  };
+
+  // Sync state if item changes externally (e.g. Next/Prev)
+  useEffect(() => {
+    setJsonText(JSON.stringify(item, null, 2));
+  }, [item]);
+
+  const isDirty = jsonText !== JSON.stringify(item, null, 2);
 
   // Keyboard Navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Disable nav if editing to avoid conflicts
+      if (mode === 'JSON' && isDirty) return;
+
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowRight' && onNext) onNext();
       if (e.key === 'ArrowLeft' && onPrev) onPrev();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, onNext, onPrev]);
+  }, [onClose, onNext, onPrev, mode, isDirty]);
+
+  const handleCopyJson = () => {
+    navigator.clipboard.writeText(jsonText);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
+  };
+
+  const handleSave = async () => {
+    try {
+      const parsed = JSON.parse(jsonText);
+      setIsSaving(true);
+      if (onSave) {
+        await onSave(parsed);
+      }
+      setIsSaving(false);
+      // Auto-cancel is implicit: parent updates 'item', useEffect resets jsonText
+    } catch (e: any) {
+      setIsSaving(false);
+      alert(`Invalid JSON: ${e.message}`);
+    }
+  };
+
+  const handleCancel = () => {
+    const confirm = window.confirm("Discard unsaved changes?");
+    if (confirm) {
+      setJsonText(JSON.stringify(item, null, 2));
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -75,7 +127,8 @@ const PreviewModal = ({
             <div className="flex bg-slate-800 rounded-lg p-1 gap-1">
               <button
                 onClick={() => setMode('PREVIEW')}
-                className={`px-3 py-1 text-xs font-bold rounded-md transition ${mode === 'PREVIEW' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                disabled={isDirty} // Prevent leaving if dirty
+                className={`px-3 py-1 text-xs font-bold rounded-md transition ${mode === 'PREVIEW' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white disabled:opacity-50'}`}
               >
                 👁️ Preview
               </button>
@@ -87,10 +140,43 @@ const PreviewModal = ({
               </button>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full transition"><X className="w-5 h-5" /></button>
+          <div className="flex items-center gap-2">
+            {mode === 'JSON' && (
+              <>
+                <button
+                  onClick={handleCopyJson}
+                  className={`p-2 rounded-full transition ${copySuccess ? 'text-green-400 bg-green-900/30' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                  title="Copy JSON to Clipboard"
+                >
+                  {copySuccess ? <CheckCircle className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                </button>
+
+                {isDirty && (
+                  <>
+                    <button
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                      className="px-3 py-1.5 text-slate-300 hover:text-white text-xs font-bold rounded-md transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-md flex items-center gap-2 shadow-lg shadow-green-900/20 transition"
+                    >
+                      {isSaving ? <Loader className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                      Save Changes
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+            {!isDirty && <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full transition"><X className="w-5 h-5" /></button>}
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center bg-[var(--color-surface)] relative">
+        <div className={`flex-1 p-4 md:p-8 flex justify-center bg-[var(--color-surface)] relative ${mode === 'PREVIEW' ? 'overflow-y-auto' : 'overflow-hidden'}`}>
           {mode === 'PREVIEW' ? (
             <div className="w-full max-w-5xl">
               {/* Use MissionCard exactly as Student sees it, but with Dummy Callbacks */}
@@ -102,13 +188,35 @@ const PreviewModal = ({
               />
             </div>
           ) : (
-            <div className="w-full max-w-5xl bg-white rounded-xl shadow-sm border border-slate-300 overflow-hidden">
-              <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 text-xs font-mono text-slate-500 uppercase tracking-wider">
-                Raw Object Inspector
+            <div className="w-full max-w-5xl bg-white rounded-xl shadow-sm border border-slate-300 overflow-hidden flex flex-col h-full max-h-[75vh]">
+              <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex justify-between items-center">
+                <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">
+                  {isDirty ? 'Unsaved Changes' : 'Raw Object Inspector'}
+                </span>
+                <span className="text-[10px] text-slate-400">{jsonText.length} chars</span>
               </div>
-              <pre className="p-4 text-xs font-mono text-slate-800 overflow-auto max-h-[70vh]">
-                {JSON.stringify(item, null, 2)}
-              </pre>
+              <div className="flex-1 relative h-full overflow-hidden">
+                {/* Line Numbers Gutter */}
+                <div
+                  ref={gutterRef}
+                  className="absolute left-0 top-0 bottom-0 w-14 bg-slate-50 border-r border-slate-200 py-4 px-2 text-right select-none overflow-hidden"
+                >
+                  {jsonText.split('\n').map((_, i) => (
+                    <div key={i} className="text-[10px] text-slate-300 font-mono leading-[20px] h-[20px]">
+                      {i + 1}
+                    </div>
+                  ))}
+                </div>
+                {/* Editor Area */}
+                <textarea
+                  ref={textareaRef}
+                  onScroll={handleScroll}
+                  value={jsonText}
+                  onChange={(e) => setJsonText(e.target.value)}
+                  className="absolute inset-0 w-full h-full pl-16 p-4 text-xs font-mono text-slate-800 focus:outline-none resize-none leading-[20px] overflow-auto whitespace-pre"
+                  spellCheck={false}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -899,7 +1007,19 @@ export default function AdminQuestionsPanel() {
                       {displayPrompt || "No prompt text found..."}
                     </p>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-slate-200 group-hover:text-blue-500 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition" />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleResolveDelete(item.item_id || item.id, "");
+                      }}
+                      className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition opacity-0 group-hover:opacity-100"
+                      title="Delete Question"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    <ArrowRight className="w-5 h-5 text-slate-200 group-hover:text-blue-500 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition" />
+                  </div>
                 </div>
               );
             })}
@@ -1184,6 +1304,36 @@ export default function AdminQuestionsPanel() {
           }}
           hasNext={step === 'REVIEW' ? (items.findIndex(i => i.data.item_id === previewItem.item_id) < items.length - 1) : hasNextPreview}
           hasPrev={step === 'REVIEW' ? (items.findIndex(i => i.data.item_id === previewItem.item_id) > 0) : hasPrevPreview}
+          onSave={async (newItem) => {
+            // 1. Determine if this is a Firestore item or a Local Draft item
+            const isFirestore = !!previewItem._bundleId;
+
+            if (isFirestore) {
+              // Update Firestore
+              await updateQuestionInBundle(previewItem._bundleId, previewItem.item_id || previewItem.id, newItem);
+
+              // Update Browser Cache Logic (Quick patch locally to avoid full reload)
+              setBrowserQuestions(prev => prev.map(q => {
+                if ((q.item_id || q.id) === (newItem.item_id || newItem.id)) {
+                  return { ...newItem, _bundleId: previewItem._bundleId };
+                }
+                return q;
+              }));
+              // Update current preview item to reflect saved state's metadata if needed, 
+              // but mostly we just need to keep the UI in sync
+              setPreviewItem({ ...newItem, _bundleId: previewItem._bundleId });
+            } else {
+              // Update Local Draft
+              // Find index
+              const idx = items.findIndex(i => i.data.item_id === (previewItem.item_id || previewItem.id));
+              if (idx !== -1) {
+                handleUpdateItem(newItem); // This updates the 'items' state and recalculates validation
+                setPreviewItem(newItem); // Keep preview in sync
+              } else {
+                alert("Could not find item in local drafts to update.");
+              }
+            }
+          }}
         />
       )}
     </div>
