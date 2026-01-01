@@ -193,7 +193,7 @@ export default function MobileQuestDashboard() {
                                 id: String(i + 1),
                                 text: o,
                                 isCorrect: o === sq.answer
-                            })),
+                            })).sort(() => 0.5 - Math.random()),
                             correct_answer: sq.answer,
                             type: 'MCQ',
                             subject: subject,
@@ -218,7 +218,11 @@ export default function MobileQuestDashboard() {
             // Construct probable IDs based on Subject first letter + Index+1
             // Math -> m1, Science -> s1, Words -> w1, World -> g1/w1? 
             // Let's use first char lowercased.
-            const shortCode = subject.charAt(0).toLowerCase();
+            // Construct probable IDs
+            // Math -> m, Science -> s, Words -> w, World -> g
+            let shortCode = subject.charAt(0).toLowerCase();
+            if (subject === 'World') shortCode = 'g';
+
             const targetId = `${shortCode}${chapterIndex + 1}`;
 
             const relevantQuestions = (questionCache.current[subject] || []).filter((q: any) => {
