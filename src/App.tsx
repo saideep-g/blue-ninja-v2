@@ -9,7 +9,7 @@ import StudentApp from './components/student/StudentApp';
 import CurriculumViewer from './components/curriculum/CurriculumViewer';
 import TemplateWorkbench from './components/templates/TemplateWorkbench';
 import UserProfile from './components/profile/UserProfile';
-import MobileQuestDashboard from './components/student/MobileQuestDashboard';
+import MobileQuestDashboard from './components/student/dashboard/MobileQuestDashboard';
 import StudyEraDashboard from './components/student/dashboard/StudyEraDashboard';
 import StudyEraProfile from './components/profile/StudyEraProfile';
 

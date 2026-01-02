@@ -1,46 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trophy, Play, User, Sparkles } from 'lucide-react'; // Basic icons
-import { useNinja } from '../../context/NinjaContext';
+import { useNinja } from '../../../context/NinjaContext';
 import { collection, query, where, limit, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
-import { db } from '../../services/db/firebase';
-import { Question } from '../../types';
-import { getStudentTableStats } from '../../features/multiplication-tables/services/tablesFirestore';
-import { CHAPTERS } from '../../constants/chapters';
+import { db } from '../../../services/db/firebase';
+import { Question } from '../../../types';
+import { getStudentTableStats } from '../../../features/multiplication-tables/services/tablesFirestore';
+import { CHAPTERS } from '../../../constants/chapters';
 
-// LaTeX Support
+// Support
 import 'katex/dist/katex.min.css';
-import { InlineMath } from 'react-katex';
 
-// New Components
-import { StudentHeader } from './dashboard/StudentHeader';
-import { HomeView } from './dashboard/HomeView';
-import { AwardsView } from './dashboard/AwardsView';
-import { ProfileView } from './dashboard/ProfileView';
-import { MobileChallengeArena } from './challenges/MobileChallengeArena';
-import { Zap } from 'lucide-react';
+// Components
+import { StudentHeader } from './StudentHeader';
+import { HomeView } from './HomeView';
+import { AwardsView } from './AwardsView';
+import { ProfileView } from './ProfileView';
+import { MobileChallengeArena } from '../challenges/MobileChallengeArena';
 
-// ... (existing code)
+// Quest Components
+import { QuestQuizView } from './quest/QuestQuizView';
+import { QuestResultsView } from './quest/QuestResultsView';
+import { QuestBottomNav } from './quest/QuestBottomNav';
 
-// Helper for LaTeX
-const renderLatexContent = (text: string) => {
-    if (!text) return '';
-    // Split by $...$ to find math segments
-    const parts = text.split(/\$(.*?)\$/);
-    return parts.map((part, index) => {
-        // Odd indices match the captured group (the math content)
-        return index % 2 === 1 ?
-            <InlineMath key={index} math={part} /> :
-            <span key={index}>{part}</span>;
-    });
-};
-
-// ... (inside Render for Quiz)
-// <h2 ...>{renderLatexContent(questions[currentQIndex]?.question_text)}</h2>
-// ...
-// {questions[currentQIndex]?.options.map(...
-//    ... {renderLatexContent(opt.text)} ...
 
 export default function MobileQuestDashboard() {
     const { ninjaStats, user, updatePower, logQuestionResult } = useNinja();
@@ -281,9 +263,6 @@ export default function MobileQuestDashboard() {
             const chapterIndex = subjChapters.findIndex(c => c.n === topic);
 
             // Construct probable IDs based on Subject first letter + Index+1
-            // Math -> m1, Science -> s1, Words -> w1, World -> g1/w1? 
-            // Let's use first char lowercased.
-            // Construct probable IDs
             // Math -> m, Science -> s, Words -> w, World -> g
             let shortCode = subject.charAt(0).toLowerCase();
             if (subject === 'World') shortCode = 'g';
@@ -334,43 +313,6 @@ export default function MobileQuestDashboard() {
         }
     };
 
-    // Sound Feedback Helper using Web Audio API
-    const playFeedbackSound = (type: 'correct' | 'wrong') => {
-        try {
-            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-            if (!AudioContext) return;
-
-            const ctx = new AudioContext();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-
-            if (type === 'correct') {
-                // Pleasant "Ding"
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(600, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.5);
-            } else {
-                // Gentle "Oops"
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(200, ctx.currentTime);
-                osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.2);
-            }
-        } catch (e) {
-            console.error("Audio playback failed", e);
-        }
-    };
-
     const handleNext = () => {
         setFeedback(null);
         setSelectedAnswer(null);
@@ -386,7 +328,7 @@ export default function MobileQuestDashboard() {
         setSelectedAnswer(answerId);
         const currentQ = questions[currentQIndex];
 
-        playFeedbackSound(isCorrect ? 'correct' : 'wrong');
+        // Sound played in view component wrapper now
         setFeedback(isCorrect ? 'correct' : 'wrong');
 
         if (isCorrect) {
@@ -408,14 +350,6 @@ export default function MobileQuestDashboard() {
             }, 1500);
         }
     };
-
-    // ... finishQuiz remains same ...
-
-    // --- RENDER ---
-    // ...
-
-    {/* Options Grid */ }
-
 
     const finishQuiz = (finalScore: number) => {
         const sessionQuestions = questions.length;
@@ -461,10 +395,6 @@ export default function MobileQuestDashboard() {
 
                 if (user?.uid) {
                     const studentRef = doc(db, 'students', user.uid);
-                    // Note: Flattening nested updates for Firestore dot notation requires care or just merging 'mastery' field map? 
-                    // To properly update a MAP field key without overwriting the whole map, we need 'mastery.chapterName'.
-                    // newState[activeChapter.n] ... this assumes 'mastery' is a flat map of ChapterNames.
-                    // Ideally structure is students/{id}/progress/{chapterId} but here we store in student doc.
                     updateDoc(studentRef, {
                         [`mastery.${activeChapter.n}`]: newState[activeChapter.n],
                         [`daily.${activePathSubject}`]: newDailyTotal,
@@ -517,103 +447,22 @@ export default function MobileQuestDashboard() {
             {/* Quiz & Results Overlays */}
             {/* --- QUIZ view --- */}
             {view === 'quiz' && (
-                <div className="flex flex-col h-full relative z-10">
-                    <div className="flex-1 flex flex-col justify-center items-center px-3 max-w-xl mx-auto w-full">
-
-                        {/* Question Card */}
-                        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-5 shadow-xl w-full border-4 border-indigo-100 min-h-[200px] flex flex-col justify-center items-center text-center relative overflow-hidden">
-                            {/* Integrated Progress Bar */}
-                            <div
-                                className="absolute top-0 left-0 h-2 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 transition-all duration-500 ease-out"
-                                style={{ width: `${Math.min(100, ((currentQIndex + 1) / questions.length) * 100)}%` }}
-                            />
-
-                            <h2 className="text-xl md:text-2xl font-black text-indigo-900 leading-snug">
-                                {renderLatexContent(questions[currentQIndex]?.question_text)}
-                            </h2>
-                        </div>
-
-                        {/* Options Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full mt-4">
-                            {questions[currentQIndex]?.options.map((opt) => {
-                                let btnClass = "bg-white text-indigo-900 border-white/50 hover:bg-indigo-50";
-
-                                if (feedback) {
-                                    if (opt.isCorrect) {
-                                        // Always highlight correct answer
-                                        btnClass = "bg-emerald-500 text-white border-emerald-400 ring-4 ring-emerald-200 scale-105";
-                                    } else if (selectedAnswer === opt.id) {
-                                        // Highlight wrong selection
-                                        btnClass = "bg-rose-500 text-white border-rose-400 ring-4 ring-rose-200 opacity-100";
-                                    } else {
-                                        // Dim others
-                                        btnClass = "bg-white/50 text-indigo-900/40 border-transparent opacity-50 cursor-not-allowed";
-                                    }
-                                }
-
-                                return (
-                                    <button
-                                        key={opt.id}
-                                        onClick={() => handleAnswer(opt.id, opt.isCorrect)}
-                                        disabled={!!selectedAnswer}
-                                        className={`
-                                            p-4 rounded-2xl font-black text-lg shadow-lg border-b-4 transition-all
-                                            transform active:scale-95 disabled:active:scale-100 disabled:cursor-not-allowed
-                                            ${btnClass}
-                                        `}
-                                    >
-                                        {renderLatexContent(opt.text)}
-                                        {feedback && opt.isCorrect && <span className="ml-2 absolute right-4">✅</span>}
-                                        {feedback && selectedAnswer === opt.id && !opt.isCorrect && <span className="ml-2 absolute right-4">❌</span>}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Explanation / Feedback Overlay */}
-                        {feedback === 'wrong' && (
-                            <div className="mt-8 bg-white/90 backdrop-blur-md rounded-3xl p-6 border-l-8 border-rose-500 shadow-2xl animate-in slide-in-from-bottom-4 w-full text-left relative">
-                                <h3 className="text-rose-600 font-extrabold text-lg uppercase tracking-wider mb-2">Not Quite...</h3>
-                                <p className="text-slate-700 font-medium text-lg leading-relaxed mb-6">
-                                    {renderLatexContent(questions[currentQIndex]?.explanation || "The correct answer is highlighted in green.")}
-                                </p>
-                                <button
-                                    onClick={handleNext}
-                                    className="w-full py-4 bg-rose-500 text-white rounded-2xl font-black text-xl shadow-lg shadow-rose-200 active:scale-95 transition-all flex items-center justify-center gap-2"
-                                >
-                                    Got it! Next <ArrowLeft className="rotate-180" size={24} />
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Back Button */}
-                    <div className="p-4 flex justify-center pb-8">
-                        <button onClick={() => window.history.back()} className="flex items-center gap-2 text-white/80 font-bold hover:text-white hover:bg-white/10 px-6 py-3 rounded-full transition-all">
-                            <ArrowLeft size={18} /> Quit Mission
-                        </button>
-                    </div>
-                </div>
+                <QuestQuizView
+                    questions={questions}
+                    currentQIndex={currentQIndex}
+                    selectedAnswer={selectedAnswer}
+                    feedback={feedback}
+                    onAnswer={handleAnswer}
+                    onNext={handleNext}
+                    onBack={() => window.history.back()}
+                />
             )}
 
             {view === 'results' && (
-                <div className="fixed inset-0 bg-purple-600 z-[70] flex flex-col items-center justify-center p-8 text-white text-center animate-in zoom-in-95 duration-500">
-                    <div className="relative mb-8">
-                        <Sparkles className="w-28 h-28 text-yellow-300 animate-pulse" />
-                        <Trophy size={40} className="absolute inset-0 m-auto text-white" />
-                    </div>
-                    <h2 className="text-4xl font-black mb-3">Excellent Work!</h2>
-                    <p className="text-purple-100 text-lg mb-10 leading-snug max-w-xs mx-auto">
-                        You earned {score * 20} Power Points!
-                    </p>
-
-                    <button
-                        onClick={() => { setView('home'); window.scrollTo(0, 0); }}
-                        className="w-full max-w-xs bg-white text-purple-700 py-6 rounded-[2.5rem] text-xl font-black shadow-2xl active:scale-95 transition-all"
-                    >
-                        Collect & Continue
-                    </button>
-                </div>
+                <QuestResultsView
+                    score={score}
+                    onContinue={() => { setView('home'); window.scrollTo(0, 0); }}
+                />
             )}
 
 
@@ -627,35 +476,7 @@ export default function MobileQuestDashboard() {
             {/* Bottom Nav */}
             {
                 ['home', 'awards', 'profile', 'challenges'].includes(view) && (
-                    <nav className="fixed bottom-0 left-0 right-0 h-24 bg-white/80 backdrop-blur-2xl border-t border-purple-50 px-6 flex items-center justify-between pb-6 z-50">
-                        <button onClick={() => { setView('home'); window.scrollTo(0, 0); }} className={`flex flex-col items-center gap-1.5 transition-all ${view === 'home' ? 'text-purple-600 scale-110' : 'text-slate-300'}`}>
-                            <div className={`p-2.5 rounded-2xl transition-colors ${view === 'home' ? 'bg-purple-100' : ''}`}>
-                                <Play size={24} fill={view === 'home' ? "currentColor" : "none"} />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest">Play</span>
-                        </button>
-
-                        <button onClick={() => { setView('awards'); window.scrollTo(0, 0); }} className={`flex flex-col items-center gap-1.5 transition-all ${view === 'awards' ? 'text-amber-500 scale-110' : 'text-slate-300'}`}>
-                            <div className={`p-2.5 rounded-2xl transition-colors ${view === 'awards' ? 'bg-amber-100' : ''}`}>
-                                <Trophy size={24} fill={view === 'awards' ? "currentColor" : "none"} />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest">Map</span>
-                        </button>
-
-                        <button onClick={() => { setView('challenges'); }} className={`flex flex-col items-center gap-1.5 transition-all ${view === 'challenges' ? 'text-pink-500 scale-110' : 'text-slate-300'}`}>
-                            <div className={`p-2.5 rounded-2xl transition-colors ${view === 'challenges' ? 'bg-pink-100' : ''}`}>
-                                <Zap size={24} fill={view === 'challenges' ? "currentColor" : "none"} />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest">Arena</span>
-                        </button>
-
-                        <button onClick={() => { setView('profile'); window.scrollTo(0, 0); }} className={`flex flex-col items-center gap-1.5 transition-all ${view === 'profile' ? 'text-indigo-600 scale-110' : 'text-slate-300'}`}>
-                            <div className={`p-2.5 rounded-2xl transition-colors ${view === 'profile' ? 'bg-indigo-100' : ''}`}>
-                                <User size={24} fill={view === 'profile' ? "currentColor" : "none"} />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest">Me</span>
-                        </button>
-                    </nav>
+                    <QuestBottomNav currentView={view} setView={setView} />
                 )
             }
 
