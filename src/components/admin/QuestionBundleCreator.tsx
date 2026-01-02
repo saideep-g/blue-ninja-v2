@@ -14,7 +14,8 @@ import {
 const SUBJECTS = [
     { id: 'math', name: 'Math' },
     { id: 'science', name: 'Science' },
-    { id: 'words', name: 'Words (English)' },
+    { id: 'vocabulary', name: 'Vocabulary (Words)' },
+    { id: 'english', name: 'English (Grammar)' },
     { id: 'world', name: 'World (Geography/GK)' },
     { id: 'logic', name: 'Logic & Reasoning' }
 ];
@@ -478,8 +479,8 @@ export default function QuestionBundleCreator() {
                             <button
                                 onClick={() => toggleBundleTag('challenge')}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all ${selectedBundle.tags?.includes('challenge')
-                                        ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-900/50'
-                                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20'
+                                    ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-900/50'
+                                    : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20'
                                     }`}
                             >
                                 {selectedBundle.tags?.includes('challenge') ? (
