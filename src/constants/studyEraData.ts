@@ -21,6 +21,29 @@ export const VOCAB_CHAPTERS = [
     { "id": "w20", "n": "Persuasion & Debate", "e": "⚖️", "details": "Consequently, fundamentally, nevertheless." }
 ];
 
+export const SCIENCE_CHAPTERS = [
+    { "id": "s1", "n": "Nutrition in Plants", "e": "🌱", "details": "Autotrophic and heterotrophic nutrition; photosynthesis process; saprotrophs and symbiosis." },
+    { "id": "s2", "n": "Nutrition in Animals", "e": "🦁", "details": "Human digestive system (alimentary canal); digestion in grass-eating animals; feeding in Amoeba." },
+    { "id": "s3", "n": "Heat and Its Effects", "e": "🌡️", "details": "Clinical and laboratory thermometers; conduction, convection, and radiation; sea breeze and land breeze." },
+    { "id": "s4", "n": "Acids, Bases, and Salts", "e": "🧪", "details": "Natural indicators (litmus, turmeric, China rose); neutralization in everyday life; pH scale basics." },
+    { "id": "s5", "n": "Physical and Chemical Changes", "e": "⚗️", "details": "Rusting of iron; crystallization; identifying chemical reactions via gas evolution or color change." },
+    { "id": "s6", "n": "Respiration in Organisms", "e": "🫁", "details": "Aerobic vs. anaerobic respiration; human respiratory system; breathing in cockroaches, earthworms, and fish." },
+    { "id": "s7", "n": "Transportation in Animals & Plants", "e": "🩸", "details": "Human circulatory system (heart, blood vessels); excretory system (kidneys); xylem and phloem in plants." },
+    { "id": "s8", "n": "Reproduction in Plants", "e": "🌻", "details": "Asexual (budding, fragmentation) vs. sexual reproduction; parts of a flower; pollination and fertilization." },
+    { "id": "s9", "n": "Motion and Time", "e": "⏱️", "details": "Uniform vs. non-uniform motion; speed calculations; simple pendulum and oscillatory motion; distance-time graphs." },
+    { "id": "s10", "n": "Electric Current and Its Effects", "e": "⚡", "details": "Circuit symbols; heating effect (fuses, heaters); magnetic effect (electromagnets); electric bells." },
+    { "id": "s11", "n": "Light: Reflection and Refraction", "e": "🪞", "details": "Spherical mirrors (concave/convex); lenses (magnifying glass); rainbow formation and Newton’s disc." },
+    { "id": "s12", "n": "Forests: Our Lifeline", "e": "🌳", "details": "Structure of a forest (canopy, understorey); decomposers and food chains; importance of forests in oxygen/water cycles." },
+    { "id": "s13", "n": "Wastewater Story", "e": "🚰", "details": "Sewage treatment plants (WWTP); sanitation and disease; alternative arrangements for sewage disposal." },
+    { "id": "s14", "n": "Fibre to Fabric (Animal Fibres)", "e": "🧶", "details": "Wool (sheep, goat, yak); silk life cycle (silkworm); processing fibres into finished fabric." },
+    { "id": "s15", "n": "Weather, Climate & Adaptation", "e": "❄️", "details": "Elements of weather; difference between weather and climate; adaptations in polar regions and tropical rainforests." },
+    { "id": "s16", "n": "Winds, Storms, and Cyclones", "e": "🌪️", "details": "Air pressure and its effects; high-speed winds and reduced air pressure; formation of thunderstorms and cyclones." },
+    { "id": "s17", "n": "Soil: The Soul of Earth", "e": "🌍", "details": "Soil profile (horizons); soil types (sandy, clayey, loamy); rate of percolation and moisture in soil." },
+    { "id": "s18", "n": "Water: A Precious Resource", "e": "💧", "details": "Water cycle; groundwater as an important source; depletion of water table; water management (drip irrigation)." },
+    { "id": "s19", "n": "Human Health and Disease", "e": "🏥", "details": "Communicable vs. non-communicable diseases; vectors (mosquitoes, flies); importance of vaccination and hygiene." },
+    { "id": "s20", "n": "Sustainable Science Practices", "e": "♻️", "details": "The 5 R's (Refuse, Reduce, Reuse, Repurpose, Recycle); vermicomposting; solar-powered energy applications." }
+];
+
 export const SUBJECT_TEMPLATE = [
     {
         id: 'science',

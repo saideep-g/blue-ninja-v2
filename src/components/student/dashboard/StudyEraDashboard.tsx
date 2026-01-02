@@ -6,7 +6,7 @@ import coreCurriculum from '../../../data/cbse7_core_curriculum_v3.json';
 import { collection, query, where, getDocs, onSnapshot, orderBy, doc, getDoc, limit } from 'firebase/firestore';
 import { db } from '../../../services/db/firebase';
 import { Bundle, Challenge, User as UserModel, Question } from '../../../types/models';
-import { SUBJECT_TEMPLATE, VOCAB_CHAPTERS, GEN_Z_GREETINGS } from '../../../constants/studyEraData';
+import { SUBJECT_TEMPLATE, VOCAB_CHAPTERS, GEN_Z_GREETINGS, SCIENCE_CHAPTERS } from '../../../constants/studyEraData';
 import MissionCard from '../../dashboard/MissionCard';
 import { X } from 'lucide-react';
 import { useDailyMission } from '../../../hooks/useDailyMission';
@@ -298,10 +298,34 @@ const StudyEraDashboard = () => {
             });
         }
 
+        // Science Logic
+        if (enrolled.includes('science') || enrolled.length === 0) {
+            const scienceModules = SCIENCE_CHAPTERS.map(ch => ({
+                id: ch.id,
+                name: `${ch.e} ${ch.n}`,
+                mastery: 0,
+                status: 'New',
+                description: ch.details,
+                atoms: []
+            }));
+
+            activeSubjects.push({
+                id: 'science',
+                name: 'Science Era',
+                icon: '🌸',
+                color: 'from-[#E0C3FC] to-[#8EC5FC]',
+                accent: '#A18CD1',
+                hasAtoms: false,
+                completedToday: false,
+                modules: scienceModules
+            });
+        }
+
         // Other Subjects
         SUBJECT_TEMPLATE.forEach(tpl => {
             // Filter duplicate/conflicting IDs
             if (tpl.id === 'vocabulary') return;
+            if (tpl.id === 'science') return;
 
             if (enrolled.includes(tpl.id) || enrolled.length === 0) {
                 activeSubjects.push(tpl);
