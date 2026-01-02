@@ -8,7 +8,7 @@ import { QuestionBundleMetadata, SimplifiedQuestion } from '../../types/bundle';
 import {
     Plus, Upload, FileJson, Save, Trash2,
     BookOpen, Layers, Clock, CheckCircle, AlertCircle,
-    Search, Filter, Download, Check
+    Search, Filter, Download, Check, Edit, X
 } from 'lucide-react';
 
 const SUBJECTS = [
@@ -49,6 +49,11 @@ export default function QuestionBundleCreator() {
     const [existingQuestions, setExistingQuestions] = useState<SimplifiedQuestion[]>([]);
     const [uploading, setUploading] = useState(false);
 
+    // Validation State
+    const [invalidQuestionIds, setInvalidQuestionIds] = useState<Set<string>>(new Set());
+    const [showInvalidOnly, setShowInvalidOnly] = useState(false);
+    const [editingQuestion, setEditingQuestion] = useState<SimplifiedQuestion | null>(null);
+
     // --- Effects ---
     useEffect(() => {
         fetchBundles();
@@ -61,6 +66,21 @@ export default function QuestionBundleCreator() {
     }, [view, selectedBundle]);
 
     // --- Actions ---
+
+    const validateQuestions = (questions: SimplifiedQuestion[]) => {
+        const invalidSet = new Set<string>();
+        questions.forEach((q, index) => {
+            const id = q.id || `temp_${index}`;
+            // Check if answer exists in options (trim and case-insensitive for robustness)
+            const normalizedAnswer = q.answer?.toString().trim().toLowerCase();
+            const hasMatch = q.options?.some(opt => opt.toString().trim().toLowerCase() === normalizedAnswer);
+
+            if (!hasMatch) {
+                invalidSet.add(id);
+            }
+        });
+        return invalidSet;
+    };
 
     // Architecture Note: We use a "Parallel Collection" pattern.
     // 'question_bundles' stores metadata (Title, Grade) -> Optimized for fast List Views.
@@ -75,6 +95,10 @@ export default function QuestionBundleCreator() {
                     // Convert Map to Array for display
                     const qList = Object.values(data.questions) as SimplifiedQuestion[];
                     setExistingQuestions(qList);
+
+                    // Run Validation
+                    const invalid = validateQuestions(qList);
+                    setInvalidQuestionIds(invalid);
                 }
             } else {
                 setExistingQuestions([]);
@@ -144,6 +168,9 @@ export default function QuestionBundleCreator() {
 
                 if (questionsArray.length > 0) {
                     setParsedQuestions(questionsArray);
+
+                    // Validate uploaded JSON immediately (optional, or just rely on existing list logic if these are separate)
+                    // But user asked for validation of LOADED bundles mostly. Let's validate the parsed ones too if needed.
                 } else {
                     alert("JSON must contain a 'questions' array or be an array of questions.");
                 }
@@ -272,6 +299,33 @@ export default function QuestionBundleCreator() {
             // Revert on failure
             setSelectedBundle({ ...selectedBundle, tags: currentTags });
             alert("Failed to update setting");
+        }
+    };
+
+    const handleUpdateQuestion = async (updatedQ: SimplifiedQuestion) => {
+        if (!selectedBundle || !updatedQ.id) return;
+
+        try {
+            // 1. Update Firestore
+            const bundleRef = doc(db, 'question_bundle_data', selectedBundle.id);
+            // Updating a specific key in the 'questions' map
+            await updateDoc(bundleRef, {
+                [`questions.${updatedQ.id}`]: updatedQ
+            });
+
+            // 2. Update Local State
+            const updatedList = existingQuestions.map(q => q.id === updatedQ.id ? updatedQ : q);
+            setExistingQuestions(updatedList);
+
+            // 3. Re-validate
+            const invalid = validateQuestions(updatedList);
+            setInvalidQuestionIds(invalid);
+
+            // 4. Close Modal
+            setEditingQuestion(null);
+        } catch (e) {
+            console.error("Update failed", e);
+            alert("Failed to update question. Check console.");
         }
     };
 
@@ -547,36 +601,187 @@ export default function QuestionBundleCreator() {
                                     Existing Questions ({existingQuestions.length})
                                 </h3>
 
+                                {/* Validation Summary */}
+                                <div className="mb-6 flex items-center gap-4">
+                                    {invalidQuestionIds.size === 0 ? (
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg font-bold text-sm border border-emerald-100">
+                                            <CheckCircle size={18} />
+                                            <span>All questions validated! Answers match options.</span>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => setShowInvalidOnly(!showInvalidOnly)}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm border transition-all
+                                            ${showInvalidOnly
+                                                    ? 'bg-red-600 text-white border-red-600 shadow-md transform scale-105'
+                                                    : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                                                }`}
+                                        >
+                                            <AlertCircle size={18} />
+                                            <span>{invalidQuestionIds.size} Invalid Questions Found</span>
+                                            {showInvalidOnly ? <span className="text-xs opacity-80">(Showing All)</span> : <span className="text-xs underline ml-1">Filter</span>}
+                                        </button>
+                                    )}
+                                </div>
+
                                 {existingQuestions.length === 0 ? (
                                     <div className="text-center p-8 bg-slate-50 rounded-2xl text-slate-400 font-bold">
                                         No questions uploaded yet.
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
-                                        {existingQuestions.map((q, i) => (
-                                            <div key={i} className="bg-white border border-slate-200 p-4 rounded-xl flex gap-4 items-start shadow-sm">
-                                                <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-xs font-mono font-bold">
-                                                    {q.id || `#${i + 1}`}
-                                                </span>
-                                                <div className="flex-1">
-                                                    <p className="font-bold text-slate-800 text-sm mb-1">{q.question}</p>
-                                                    <div className="flex gap-2 text-xs">
-                                                        <span className="text-emerald-600 font-bold">Ans: {q.answer}</span>
-                                                        <span className="text-slate-400">•</span>
-                                                        <span className="text-slate-500">{q.options?.join(', ')}</span>
-                                                        {q.chapter_id && (
-                                                            <>
+                                        {existingQuestions
+                                            .filter(q => !showInvalidOnly || invalidQuestionIds.has(q.id || ''))
+                                            .map((q, i) => {
+                                                const isInvalid = invalidQuestionIds.has(q.id || '');
+                                                return (
+                                                    <div
+                                                        key={i}
+                                                        className={`bg-white border p-4 rounded-xl flex gap-4 items-start shadow-sm transition-all
+                                                    ${isInvalid ? 'border-red-300 bg-red-50/30 ring-2 ring-red-100' : 'border-slate-200'}
+                                                    `}
+                                                    >
+                                                        <span className={`px-2 py-1 rounded-md text-xs font-mono font-bold ${isInvalid ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                            {q.id || `#${i + 1}`}
+                                                        </span>
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between items-start">
+                                                                <p className="font-bold text-slate-800 text-sm mb-1">{q.question}</p>
+                                                                <div className="flex items-center gap-2">
+                                                                    {isInvalid && (
+                                                                        <span className="text-[10px] font-bold bg-red-600 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                                            Invalid Answer
+                                                                        </span>
+                                                                    )}
+                                                                    <button
+                                                                        onClick={() => setEditingQuestion(q)}
+                                                                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-purple-600 transition-colors"
+                                                                        title="Edit Question"
+                                                                    >
+                                                                        <Edit size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex gap-2 text-xs flex-wrap">
+                                                                <span className={`${isInvalid ? 'text-red-600 border-b-2 border-red-200' : 'text-emerald-600'} font-bold`}>
+                                                                    Ans: {q.answer}
+                                                                </span>
                                                                 <span className="text-slate-400">•</span>
-                                                                <span className="text-purple-500 font-bold uppercase">{q.chapter_id}</span>
-                                                            </>
-                                                        )}
+                                                                <span className="text-slate-500">
+                                                                    {q.options?.map(opt => {
+                                                                        const isMatch = opt.toString().trim().toLowerCase() === q.answer?.toString().trim().toLowerCase();
+                                                                        return isMatch ? <b key={opt} className="text-emerald-600 underline decoration-2">{opt}</b> : <span key={opt} className="mr-1">{opt},</span>;
+                                                                    })}
+                                                                </span>
+                                                                {q.chapter_id && (
+                                                                    <>
+                                                                        <span className="text-slate-400">•</span>
+                                                                        <span className="text-purple-500 font-bold uppercase">{q.chapter_id}</span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                            {q.explanation && (
+                                                                <p className="text-xs text-slate-500 mt-1 italic border-l-2 border-purple-200 pl-2">
+                                                                    {q.explanation}
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        ))}
+                                                );
+                                            })}
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* --- EDIT MODAL --- */}
+            {editingQuestion && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="bg-slate-900 p-6 flex justify-between items-center text-white">
+                            <h3 className="text-xl font-black">Edit Question</h3>
+                            <button onClick={() => setEditingQuestion(null)} className="hover:bg-white/10 p-2 rounded-full"><X size={20} /></button>
+                        </div>
+                        <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                            <div>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Question Text</label>
+                                <textarea
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-purple-400 outline-none"
+                                    rows={3}
+                                    value={editingQuestion.question}
+                                    onChange={e => setEditingQuestion({ ...editingQuestion, question: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Answer (Must match an option exactly)</label>
+                                <input
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-600 focus:ring-2 focus:ring-emerald-400 outline-none"
+                                    value={editingQuestion.answer}
+                                    onChange={e => setEditingQuestion({ ...editingQuestion, answer: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Explanation</label>
+                                <textarea
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-purple-400 outline-none"
+                                    rows={2}
+                                    value={editingQuestion.explanation || ''}
+                                    onChange={e => setEditingQuestion({ ...editingQuestion, explanation: e.target.value })}
+                                    placeholder="Explain why the answer is correct..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Options</label>
+                                <div className="space-y-2">
+                                    {editingQuestion.options?.map((opt, idx) => (
+                                        <div key={idx} className="flex gap-2">
+                                            <input
+                                                className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-400 outline-none"
+                                                value={opt}
+                                                onChange={e => {
+                                                    const newOpts = [...(editingQuestion.options || [])];
+                                                    newOpts[idx] = e.target.value;
+                                                    setEditingQuestion({ ...editingQuestion, options: newOpts });
+                                                }}
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    // Quick Action: Set as Answer
+                                                    setEditingQuestion({ ...editingQuestion, answer: opt });
+                                                }}
+                                                className="px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-lg hover:bg-emerald-100"
+                                                title="Set as Correct Answer"
+                                            >
+                                                Set Ans
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Chapter ID</label>
+                                <input
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm focus:ring-2 focus:ring-purple-400 outline-none"
+                                    value={editingQuestion.chapter_id || ''}
+                                    onChange={e => setEditingQuestion({ ...editingQuestion, chapter_id: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="p-6 border-t border-slate-100 flex justify-end gap-4">
+                            <button
+                                onClick={() => setEditingQuestion(null)}
+                                className="px-6 py-3 font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => handleUpdateQuestion(editingQuestion)}
+                                className="px-6 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                            >
+                                <Save size={18} /> Save Changes
+                            </button>
                         </div>
                     </div>
                 </div>
