@@ -9,6 +9,7 @@ import { Bundle, Challenge, User as UserModel, Question } from '../../../types/m
 import { SUBJECT_TEMPLATE } from '../../../constants/studyEraData';
 import MissionCard from '../../dashboard/MissionCard';
 import { X } from 'lucide-react';
+import { useDailyMission } from '../../../hooks/useDailyMission';
 
 // Components
 import { EraHeader } from './era/EraHeader';
@@ -27,6 +28,9 @@ const StudyEraDashboard = () => {
     const [selectedSubject, setSelectedSubject] = useState<any>(null);
     const [greeting, setGreeting] = useState("Loading vibes...");
     const [quizSubject, setQuizSubject] = useState<string | null>(null);
+
+    // Math Mission Hook
+    const dailyMission = useDailyMission();
 
     // Quiz State
     const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
@@ -105,11 +109,19 @@ const StudyEraDashboard = () => {
         if (!selectedSubject) return;
 
         console.log(`🚀 Manual Start Quiz for: ${selectedSubject.id}`);
+
+        // Math Special Case: Use Daily Mission
+        if (selectedSubject.id === 'math' || selectedSubject.id === 'mathematics') {
+            setQuizSubject('math');
+            setCurrentView('quiz');
+            return;
+        }
+
         await fetchQuestions(selectedSubject.id);
 
         setCurrentQuestionIndex(0);
         setQuizScore(0);
-        setQuizSubject(selectedSubject.id); // Set logic routing (Math -> MissionCard)
+        setQuizSubject(selectedSubject.id);
         setCurrentView('quiz');
     };
 
@@ -125,15 +137,23 @@ const StudyEraDashboard = () => {
         // 2. Parallel: Fetch Data AND Wait for Animation
         // This removes the "dead time" between animation end and data load
         const targetId = subject.id || 'science';
+        const isMath = targetId === 'math' || targetId === 'mathematics';
 
-        await Promise.all([
-            fetchQuestions(targetId),
-            new Promise(resolve => setTimeout(resolve, 800)) // Wait at least 800ms for the animation to feel complete
-        ]);
+        if (isMath) {
+            // Math relies on background useDailyMission hook
+            setQuizSubject('math');
+            await new Promise(resolve => setTimeout(resolve, 800));
+        } else {
+            await Promise.all([
+                fetchQuestions(targetId),
+                new Promise(resolve => setTimeout(resolve, 800)) // Wait at least 800ms for the animation to feel complete
+            ]);
+            setQuizSubject(targetId);
+            setCurrentQuestionIndex(0);
+            setQuizScore(0);
+        }
 
         // 3. Smooth Handoff
-        setCurrentQuestionIndex(0);
-        setQuizScore(0);
         setCurrentView('quiz');
 
         // 4. Fade out overlay
@@ -212,6 +232,23 @@ const StudyEraDashboard = () => {
 
     // 1. Build Subjects
     useEffect(() => {
+        const enrolled = ninjaStats?.enrolledSubjects || [];
+        let activeSubjects: any[] = [];
+        // ... (rest of function) ...
+
+        // Math Completion Listener
+        useEffect(() => {
+            if (quizSubject === 'math' && dailyMission.isComplete) {
+                setTimeout(() => {
+                    setCurrentView('dashboard');
+                }, 2000);
+            }
+        }, [dailyMission.isComplete, quizSubject]);
+
+        // 1. Build Subjects logic continuation...
+        /* The chunk above is tricky because 'useEffect' loops. 
+           Let's insert the new useEffect BEFORE the subjects useEffect. 
+        */
         const enrolled = ninjaStats?.enrolledSubjects || [];
         let activeSubjects: any[] = [];
 
@@ -438,10 +475,20 @@ const StudyEraDashboard = () => {
                     (quizSubject === 'math' || quizSubject === 'mathematics') ? (
                         <div className="fixed inset-0 z-50 bg-white">
                             <MissionCard
-                                question={quizQuestions[currentQuestionIndex]}
-                                currentIndex={currentQuestionIndex}
-                                totalQuestions={quizQuestions.length}
-                                onSubmit={handleMissionSubmit}
+                                question={dailyMission.currentQuestion}
+                                currentIndex={dailyMission.currentIndex}
+                                totalQuestions={dailyMission.totalQuestions}
+                                onSubmit={async (answer, timeSpent, speedRating) => {
+                                    // Adapt MissionCard submit to useDailyMission hook
+                                    await dailyMission.submitDailyAnswer(
+                                        answer.isCorrect,
+                                        answer.selectedIndex, // Or logic to exact value
+                                        false, // isRecovered
+                                        'mission_card',
+                                        timeSpent,
+                                        speedRating || 'NORMAL'
+                                    );
+                                }}
                             />
                             {/* Close Button Overlay */}
                             <button
