@@ -7,6 +7,8 @@ import { collection, query, where, getDocs, onSnapshot, orderBy, doc, getDoc, li
 import { db } from '../../../services/db/firebase';
 import { Bundle, Challenge, User as UserModel, Question } from '../../../types/models';
 import { SUBJECT_TEMPLATE } from '../../../constants/studyEraData';
+import MissionCard from '../../dashboard/MissionCard';
+import { X } from 'lucide-react';
 
 // Components
 import { EraHeader } from './era/EraHeader';
@@ -24,6 +26,7 @@ const StudyEraDashboard = () => {
     const [arenaSubView, setArenaSubView] = useState<'create' | 'active' | 'history'>('create');
     const [selectedSubject, setSelectedSubject] = useState<any>(null);
     const [greeting, setGreeting] = useState("Loading vibes...");
+    const [quizSubject, setQuizSubject] = useState<string | null>(null);
 
     // Quiz State
     const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
@@ -95,6 +98,7 @@ const StudyEraDashboard = () => {
 
         const shuffled = foundQuestions.sort(() => Math.random() - 0.5);
         setQuizQuestions(shuffled);
+        setQuizSubject(querySubject);
     };
 
     const handleStartQuiz = async () => {
@@ -105,6 +109,7 @@ const StudyEraDashboard = () => {
 
         setCurrentQuestionIndex(0);
         setQuizScore(0);
+        setQuizSubject(selectedSubject.id); // Set logic routing (Math -> MissionCard)
         setCurrentView('quiz');
     };
 
@@ -137,17 +142,32 @@ const StudyEraDashboard = () => {
     };
 
     const handleQuizAnswer = (result: any) => {
-        if (result.isCorrect) setQuizScore(prev => prev + 1);
+        const isCorrect = result.isCorrect;
+        if (isCorrect) setQuizScore(s => s + 10);
 
         if (currentQuestionIndex < quizQuestions.length - 1) {
-            setTimeout(() => setCurrentQuestionIndex(prev => prev + 1), 1500);
+            setCurrentQuestionIndex(i => i + 1);
         } else {
-            // End of Quiz
+            // Finish
             setTimeout(() => {
-                alert(`Era Completed! Score: ${quizScore + (result.isCorrect ? 1 : 0)}/${quizQuestions.length}`);
                 setCurrentView('dashboard');
             }, 2000);
         }
+    };
+
+    const handleMissionSubmit = async (result: any) => {
+        // MissionCard (old functionality) submit handler
+        const isCorrect = result.isCorrect;
+        if (isCorrect) setQuizScore(s => s + 10);
+
+        if (currentQuestionIndex < quizQuestions.length - 1) {
+            setCurrentQuestionIndex(i => i + 1);
+        } else {
+            setTimeout(() => {
+                setCurrentView('dashboard');
+            }, 2000);
+        }
+        return true;
     };
 
     const handleEnterArena = async (challenge: Challenge) => {
@@ -413,12 +433,32 @@ const StudyEraDashboard = () => {
 
                 {/* CONTENT SWITCHER */}
                 {currentView === 'quiz' ? (
-                    <EraQuizView
-                        questions={quizQuestions}
-                        currentQuestionIndex={currentQuestionIndex}
-                        onAnswer={handleQuizAnswer}
-                        onClose={() => setCurrentView('dashboard')}
-                    />
+                    // Logic: If Subject is Math, use the "Old/Classic" MissionCard
+                    // Otherwise, use the new Gen Z EraQuizView
+                    (quizSubject === 'math' || quizSubject === 'mathematics') ? (
+                        <div className="fixed inset-0 z-50 bg-white">
+                            <MissionCard
+                                question={quizQuestions[currentQuestionIndex]}
+                                currentIndex={currentQuestionIndex}
+                                totalQuestions={quizQuestions.length}
+                                onSubmit={handleMissionSubmit}
+                            />
+                            {/* Close Button Overlay */}
+                            <button
+                                onClick={() => setCurrentView('dashboard')}
+                                className="absolute top-4 right-4 z-[60] bg-gray-100 p-2 rounded-full hover:bg-gray-200"
+                            >
+                                <X size={24} className="text-gray-600" />
+                            </button>
+                        </div>
+                    ) : (
+                        <EraQuizView
+                            questions={quizQuestions}
+                            currentQuestionIndex={currentQuestionIndex}
+                            onAnswer={handleQuizAnswer}
+                            onClose={() => setCurrentView('dashboard')}
+                        />
+                    )
                 ) : currentView === 'dashboard' ? (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-500">
                         <EraSubjectGrid
