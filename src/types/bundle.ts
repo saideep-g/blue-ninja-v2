@@ -22,6 +22,8 @@ export interface QuestionBundleMetadata {
     createdAt: any; // Firestore Timestamp
     updatedAt: any; // Firestore Timestamp
     isActive: boolean;
+    icon?: string;
+    tags?: string[];
 }
 
 export interface QuestionBundle {

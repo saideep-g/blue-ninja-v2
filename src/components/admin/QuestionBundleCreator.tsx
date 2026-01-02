@@ -8,7 +8,7 @@ import { QuestionBundleMetadata, SimplifiedQuestion } from '../../types/bundle';
 import {
     Plus, Upload, FileJson, Save, Trash2,
     BookOpen, Layers, Clock, CheckCircle, AlertCircle,
-    Search, Filter, Download
+    Search, Filter, Download, Check
 } from 'lucide-react';
 
 const SUBJECTS = [
@@ -36,7 +36,9 @@ export default function QuestionBundleCreator() {
         title: '',
         description: '',
         subject: 'math',
-        grade: 2
+        grade: 2,
+        icon: '📦', // Default emoji
+        tags: [] as string[]
     });
 
     // Upload State
@@ -110,7 +112,7 @@ export default function QuestionBundleCreator() {
             });
             await fetchBundles();
             setView('list');
-            setNewBundle({ title: '', description: '', subject: 'math', grade: 2 });
+            setNewBundle({ title: '', description: '', subject: 'math', grade: 2, icon: '📦', tags: [] });
         } catch (e) {
             console.error("Create failed", e);
             alert("Failed to create bundle");
@@ -246,6 +248,32 @@ export default function QuestionBundleCreator() {
         a.click();
     };
 
+    const toggleBundleTag = async (tag: string) => {
+        if (!selectedBundle) return;
+
+        const currentTags = selectedBundle.tags || [];
+        const hasTag = currentTags.includes(tag);
+        const newTags = hasTag
+            ? currentTags.filter(t => t !== tag)
+            : [...currentTags, tag];
+
+        // Optimistic UI Update
+        setSelectedBundle({ ...selectedBundle, tags: newTags });
+
+        // Update Firestore
+        try {
+            const ref = doc(db, 'question_bundles', selectedBundle.id);
+            await updateDoc(ref, { tags: newTags, updatedAt: serverTimestamp() });
+            // Also update the main list so if we go back it's fresh
+            setBundles(prev => prev.map(b => b.id === selectedBundle.id ? { ...b, tags: newTags } : b));
+        } catch (e) {
+            console.error("Failed to update tags", e);
+            // Revert on failure
+            setSelectedBundle({ ...selectedBundle, tags: currentTags });
+            alert("Failed to update setting");
+        }
+    };
+
     // --- Render Helpers ---
 
     const filteredBundles = bundles.filter(b => {
@@ -306,6 +334,11 @@ export default function QuestionBundleCreator() {
                                         ${b.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                                         {b.subject}
                                     </span>
+                                    {b.tags?.includes('challenge') && (
+                                        <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1">
+                                            ⚠️ Arena
+                                        </span>
+                                    )}
                                 </div>
                                 <h3 className="text-xl font-black text-slate-800 mb-2">{b.title}</h3>
                                 <p className="text-sm text-slate-500 mb-6 line-clamp-2">{b.description || "No description provided."}</p>
@@ -335,12 +368,24 @@ export default function QuestionBundleCreator() {
                     <div className="space-y-6">
                         <div>
                             <label className="block text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Bundle Title</label>
-                            <input
-                                className="w-full text-lg font-bold p-4 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-purple-400"
-                                placeholder="e.g. Algebra Basics - Level 1"
-                                value={newBundle.title}
-                                onChange={e => setNewBundle({ ...newBundle, title: e.target.value })}
-                            />
+                            <div className="flex gap-4">
+                                <div className="w-24">
+                                    <input
+                                        className="w-full text-center text-2xl p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-purple-400"
+                                        placeholder="📦"
+                                        maxLength={2}
+                                        value={newBundle.icon || ''}
+                                        onChange={e => setNewBundle({ ...newBundle, icon: e.target.value })}
+                                        title="Paste an emoji here"
+                                    />
+                                </div>
+                                <input
+                                    className="flex-1 text-lg font-bold p-4 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-purple-400"
+                                    placeholder="e.g. Algebra Basics - Level 1"
+                                    value={newBundle.title}
+                                    onChange={e => setNewBundle({ ...newBundle, title: e.target.value })}
+                                />
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -376,6 +421,24 @@ export default function QuestionBundleCreator() {
                             />
                         </div>
 
+                        {/* Challenge Toggle */}
+                        <div
+                            className="flex items-center gap-3 bg-purple-50 p-4 rounded-xl border border-purple-100 cursor-pointer hover:bg-purple-100 transition-colors"
+                            onClick={() => {
+                                const hasTag = newBundle.tags.includes('challenge');
+                                const newTags = hasTag ? newBundle.tags.filter(t => t !== 'challenge') : [...newBundle.tags, 'challenge'];
+                                setNewBundle({ ...newBundle, tags: newTags });
+                            }}
+                        >
+                            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${newBundle.tags.includes('challenge') ? 'bg-purple-600 border-purple-600' : 'border-slate-300 bg-white'}`}>
+                                {newBundle.tags.includes('challenge') && <Check size={16} className="text-white" />}
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-slate-700">Challenge Arena Ready?</h4>
+                                <p className="text-xs text-slate-500">Mark this bundle for use in Challenge Arena battles.</p>
+                            </div>
+                        </div>
+
                         <div className="flex gap-4 pt-4">
                             <button
                                 onClick={() => setView('list')}
@@ -400,15 +463,32 @@ export default function QuestionBundleCreator() {
                     <button onClick={() => setView('list')} className="mb-6 font-bold text-slate-400 hover:text-slate-600">← Back to Bundles</button>
 
                     <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
-                        <div className="bg-slate-900 p-8 text-white">
-                            <h2 className="text-3xl font-black mb-2">{selectedBundle.title}</h2>
-                            <div className="flex gap-4 opacity-80 font-mono text-sm">
-                                <span>Grade {selectedBundle.grade}</span>
-                                <span>•</span>
-                                <span className="uppercase">{selectedBundle.subject}</span>
-                                <span>•</span>
-                                <span>{selectedBundle.questionCount} Questions</span>
+                        <div className="bg-slate-900 p-8 text-white flex justify-between items-start">
+                            <div>
+                                <h2 className="text-3xl font-black mb-2">{selectedBundle.title}</h2>
+                                <div className="flex gap-4 opacity-80 font-mono text-sm">
+                                    <span>Grade {selectedBundle.grade}</span>
+                                    <span>•</span>
+                                    <span className="uppercase">{selectedBundle.subject}</span>
+                                    <span>•</span>
+                                    <span>{selectedBundle.questionCount} Questions</span>
+                                </div>
                             </div>
+
+                            <button
+                                onClick={() => toggleBundleTag('challenge')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all ${selectedBundle.tags?.includes('challenge')
+                                        ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-900/50'
+                                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20'
+                                    }`}
+                            >
+                                {selectedBundle.tags?.includes('challenge') ? (
+                                    <div className="bg-white text-purple-600 rounded-full p-0.5"><Check size={12} /></div>
+                                ) : (
+                                    <div className="w-4 h-4 border-2 border-slate-500 rounded-md" />
+                                )}
+                                <span className="font-bold text-sm">Arena Ready</span>
+                            </button>
                         </div>
 
                         <div className="p-8">

@@ -18,6 +18,8 @@ import { StudentHeader } from './dashboard/StudentHeader';
 import { HomeView } from './dashboard/HomeView';
 import { AwardsView } from './dashboard/AwardsView';
 import { ProfileView } from './dashboard/ProfileView';
+import { MobileChallengeArena } from './challenges/MobileChallengeArena';
+import { Zap } from 'lucide-react';
 
 // ... (existing code)
 
@@ -613,10 +615,18 @@ export default function MobileQuestDashboard() {
                 </div>
             )}
 
+
+            {/* --- CHALLENGES View --- */}
+            {view === 'challenges' && (
+                <div className="fixed inset-0 z-[60] bg-white animate-in slide-in-from-right duration-300">
+                    <MobileChallengeArena onBack={() => setView('home')} />
+                </div>
+            )}
+
             {/* Bottom Nav */}
             {
-                ['home', 'awards', 'profile'].includes(view) && (
-                    <nav className="fixed bottom-0 left-0 right-0 h-24 bg-white/80 backdrop-blur-2xl border-t border-purple-50 px-10 flex items-center justify-around pb-6 z-50">
+                ['home', 'awards', 'profile', 'challenges'].includes(view) && (
+                    <nav className="fixed bottom-0 left-0 right-0 h-24 bg-white/80 backdrop-blur-2xl border-t border-purple-50 px-6 flex items-center justify-between pb-6 z-50">
                         <button onClick={() => { setView('home'); window.scrollTo(0, 0); }} className={`flex flex-col items-center gap-1.5 transition-all ${view === 'home' ? 'text-purple-600 scale-110' : 'text-slate-300'}`}>
                             <div className={`p-2.5 rounded-2xl transition-colors ${view === 'home' ? 'bg-purple-100' : ''}`}>
                                 <Play size={24} fill={view === 'home' ? "currentColor" : "none"} />
@@ -629,6 +639,13 @@ export default function MobileQuestDashboard() {
                                 <Trophy size={24} fill={view === 'awards' ? "currentColor" : "none"} />
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-widest">Map</span>
+                        </button>
+
+                        <button onClick={() => { setView('challenges'); }} className={`flex flex-col items-center gap-1.5 transition-all ${view === 'challenges' ? 'text-pink-500 scale-110' : 'text-slate-300'}`}>
+                            <div className={`p-2.5 rounded-2xl transition-colors ${view === 'challenges' ? 'bg-pink-100' : ''}`}>
+                                <Zap size={24} fill={view === 'challenges' ? "currentColor" : "none"} />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest">Arena</span>
                         </button>
 
                         <button onClick={() => { setView('profile'); window.scrollTo(0, 0); }} className={`flex flex-col items-center gap-1.5 transition-all ${view === 'profile' ? 'text-indigo-600 scale-110' : 'text-slate-300'}`}>

@@ -18,6 +18,30 @@ export interface UserProfile {
     excludedChapters: string[];
     layout?: "default" | "mobile-quest-v1" | "study-era";
     enrolledSubjects?: string[]; // IDs like 'math', 'science'
+    name?: string;
+    avatar?: string;
+}
+
+// ... existing interfaces ...
+
+export interface Bundle {
+    id: string;
+    title: string; // Changed from name to title to match Creator
+    name?: string; // Optional fallback
+    icon: string;
+    category?: string;
+    description?: string;
+
+    questionCount: number; // Changed from questionsCount to match Firestore
+    grade?: number;
+    subject?: string;
+
+    color?: string;
+    playlistId?: string;
+    createdAt?: any;
+    updatedAt?: any;
+    isActive?: boolean;
+    tags?: string[]; // e.g. ['challenge', 'curriculum']
 }
 
 export interface QuestionOption {
@@ -108,4 +132,28 @@ export interface QuestionLog {
     isSuccess?: boolean;
     syncedAt?: number;
     selectionRationale?: SelectionRationale;
+}
+
+
+
+export interface ChallengeParticipant {
+    userId: string; // or email if external
+    name: string;
+    avatar?: string;
+    status: 'pending' | 'accepted' | 'completed';
+    score?: number;
+    completedAt?: any;
+    isGuest?: boolean; // If true, userId is email
+}
+
+export interface Challenge {
+    id?: string;
+    name: string;
+    creatorId: string;
+    creatorName: string;
+    bundleIds: string[];
+    participants: ChallengeParticipant[];
+    status: 'active' | 'closed';
+    createdAt: any;
+    expiresAt: any;
 }
