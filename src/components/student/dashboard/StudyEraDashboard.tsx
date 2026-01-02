@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNinja } from '../../../context/NinjaContext';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import coreCurriculum from '../../../data/cbse7_core_curriculum_v3.json';
 import { collection, query, where, getDocs, onSnapshot, orderBy, doc, getDoc, limit } from 'firebase/firestore';
 import { db } from '../../../services/db/firebase';
@@ -42,143 +43,97 @@ const StudyEraDashboard = () => {
 
     // --- QUIZ HANDLERS ---
 
-    const handleStartQuiz = async (subject?: any) => {
-        const targetSubjectId = subject?.id || 'science';
-        const querySubject = targetSubjectId.toLowerCase(); // 'gk', 'math', 'science'
-        console.log(`🚀 Starting Quiz Sequence for: ${querySubject}`);
-        console.log(`🔍 Strategy A: Checking Question Bundles (Grade 7)...`);
+    // --- DATA FETCHING (Separated) ---
+    const fetchQuestions = async (targetSubjectId: string) => {
+        const querySubject = targetSubjectId.toLowerCase();
+        let foundQuestions: Question[] = [];
 
         try {
-            let foundQuestions: Question[] = [];
-
-            // --- STRATEGY A: FETCH FROM BUNDLES (Like MobileQuestDashboard) ---
-            // This is likely where "loaded" questions live
+            // Strategy A: Bundles
             const bundlesRef = collection(db, 'question_bundles');
-            const qBundle = query(
-                bundlesRef,
-                where('subject', '==', querySubject),
-                where('grade', '==', 7), // Assuming Grade 7 context for StudyEra
-                limit(1)
-            );
+            const qBundle = query(bundlesRef, where('subject', '==', querySubject), where('grade', '==', 7), limit(1));
             const bundleSnap = await getDocs(qBundle);
 
             if (!bundleSnap.empty) {
                 const bundleDoc = bundleSnap.docs[0];
-                console.log(`✅ Found Bundle: ${bundleDoc.id}`);
-
-                // Fetch actual data from 'question_bundle_data'
                 const dataRef = doc(db, 'question_bundle_data', bundleDoc.id);
                 const dataSnap = await getDoc(dataRef);
-
                 if (dataSnap.exists() && dataSnap.data().questions) {
                     const rawQuestions = dataSnap.data().questions;
-                    // Map Simplified Bundle Format -> App Question Format
                     foundQuestions = Object.values(rawQuestions).map((sq: any) => ({
                         id: sq.id,
-                        type: 'MCQ_SIMPLIFIED', // Force template
-                        text: sq.question, // Legacy
-                        content: {
-                            prompt: { text: sq.question },
-                            instruction: sq.instruction || "Select the best answer"
-                        },
-                        // Direct options property for template compatibility (added in recent McqEraTemplate update)
-                        options: sq.options.map((o: string, i: number) => ({
-                            id: String(i + 1),
-                            text: o,
-                            isCorrect: o === sq.answer
-                        })).sort(() => 0.5 - Math.random()),
-
-                        interaction: {
-                            config: {
-                                options: sq.options.map((o: string, i: number) => ({
-                                    id: String(i + 1),
-                                    text: o,
-                                    isCorrect: o === sq.answer
-                                })).sort(() => 0.5 - Math.random())
-                            }
-                        },
-                        correctOptionId: null, // Logic handles via isCorrect in options
+                        type: 'MCQ_SIMPLIFIED',
+                        text: sq.question,
+                        content: { prompt: { text: sq.question }, instruction: sq.instruction || "Select the best answer" },
+                        options: sq.options.map((o: string, i: number) => ({ id: String(i + 1), text: o, isCorrect: o === sq.answer })).sort(() => 0.5 - Math.random()),
+                        interaction: { config: { options: sq.options.map((o: string, i: number) => ({ id: String(i + 1), text: o, isCorrect: o === sq.answer })).sort(() => 0.5 - Math.random()) } },
+                        correctOptionId: null,
                         subject: querySubject,
                         explanation: sq.explanation,
                     } as unknown as Question));
-
-                    // Limit to 20 Questions
-                    if (foundQuestions.length > 20) {
-                        foundQuestions = foundQuestions.sort(() => 0.5 - Math.random()).slice(0, 20);
-                    }
-
-                    console.log(`📦 Loaded ${foundQuestions.length} questions from Bundle (Limited to 20).`);
+                    if (foundQuestions.length > 20) foundQuestions = foundQuestions.sort(() => 0.5 - Math.random()).slice(0, 20);
                 }
-            } else {
-                console.log(`❌ No Bundles found for ${querySubject} (Grade 7)`);
             }
 
-            // --- STRATEGY B: FETCH FROM DIRECT COLLECTION (Fallback) ---
+            // Strategy B: Direct
             if (foundQuestions.length === 0) {
-                console.log(`🔍 Strategy B: Checking 'questions' collection (MCQ_SIMPLIFIED)...`);
-                const qDirect = query(
-                    collection(db, 'questions'),
-                    where('subject', '==', querySubject),
-                    limit(10)
-                );
+                const qDirect = query(collection(db, 'questions'), where('subject', '==', querySubject), limit(10));
                 const directSnap = await getDocs(qDirect);
-                if (!directSnap.empty) {
-                    foundQuestions = directSnap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
-                    console.log(`📂 Found ${foundQuestions.length} questions in direct collection.`);
-                }
+                if (!directSnap.empty) foundQuestions = directSnap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
             }
+        } catch (e) { console.error(e); }
 
-            // --- FINAL SETUP ---
-            if (foundQuestions.length > 0) {
-                const shuffled = foundQuestions.sort(() => Math.random() - 0.5);
-                setQuizQuestions(shuffled);
-            } else {
-                console.warn(`⚠️ No questions found for ${querySubject} in Bundles OR Direct DB.`);
-                // Fallback Mock (keeping it simple for now)
-                setQuizQuestions([
-                    {
-                        id: 'mock_fail_1',
-                        type: 'MCQ_SIMPLIFIED',
-                        content: { prompt: { text: "No questions found in database. Please check Admin uploads." } },
-                        interaction: { config: { options: [{ text: 'Okay', id: '1', isCorrect: true }] } },
-                        subject: querySubject
-                    } as any
-                ]);
-            }
-
-        } catch (error) {
-            console.error("🔥 Error loading quiz:", error);
-            alert("Database connection failed. Check console.");
+        // Fallback
+        if (foundQuestions.length === 0) {
+            foundQuestions = [{
+                id: 'mock_fail_1', type: 'MCQ_SIMPLIFIED',
+                content: { prompt: { text: "No questions found. Check internet or admin uploads." } },
+                interaction: { config: { options: [{ text: 'Okay', id: '1', isCorrect: true }] } },
+                subject: querySubject
+            } as any];
         }
+
+        const shuffled = foundQuestions.sort(() => Math.random() - 0.5);
+        setQuizQuestions(shuffled);
+    };
+
+    const handleStartQuiz = async () => {
+        if (!selectedSubject) return;
+
+        console.log(`🚀 Manual Start Quiz for: ${selectedSubject.id}`);
+        await fetchQuestions(selectedSubject.id);
 
         setCurrentQuestionIndex(0);
         setQuizScore(0);
         setCurrentView('quiz');
     };
 
-    const handleEraClick = (subject: any, e: React.MouseEvent) => {
-        // 1. Capture the bounding box of the clicked element
+    const handleEraClick = async (subject: any, e: React.MouseEvent) => {
+        // 1. Capture & Start Expansion
         const rect = e.currentTarget.getBoundingClientRect();
-
-        // 2. Save coordinates for the "Ghost Card"
-        setExpansionRect({
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-        });
-
-        // 3. Trigger phases
+        setExpansionRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
         setExpandingSubject(subject);
-        setIsExpanding(true);
 
-        // 4. Handoff to Quiz View after animation (approx 900ms)
-        setTimeout(() => {
-            handleStartQuiz(subject);
-            setIsExpanding(false);
-            setExpandingSubject(null);
-            // Don't set selectedSubject here to avoid panel flashing
-        }, 900);
+        // Tick to allow render of initial state before animating to full
+        setTimeout(() => setIsExpanding(true), 10);
+
+        // 2. Parallel: Fetch Data AND Wait for Animation
+        // This removes the "dead time" between animation end and data load
+        const targetId = subject.id || 'science';
+
+        await Promise.all([
+            fetchQuestions(targetId),
+            new Promise(resolve => setTimeout(resolve, 800)) // Wait at least 800ms for the animation to feel complete
+        ]);
+
+        // 3. Smooth Handoff
+        setCurrentQuestionIndex(0);
+        setQuizScore(0);
+        setCurrentView('quiz');
+
+        // 4. Fade out overlay
+        setExpandingSubject(null);
+        setIsExpanding(false);
     };
 
     const handleQuizAnswer = (result: any) => {
@@ -364,27 +319,77 @@ const StudyEraDashboard = () => {
             </style>
 
             {/* EXPANSION OVERLAY */}
-            {expandingSubject && expansionRect && (
-                <div
-                    className="fixed z-[1000] pointer-events-none transition-all duration-[900ms] cubic-bezier"
-                    style={{
-                        top: isExpanding ? 0 : expansionRect.top,
-                        left: isExpanding ? 0 : expansionRect.left,
-                        width: isExpanding ? '100vw' : expansionRect.width,
-                        height: isExpanding ? '100vh' : expansionRect.height,
-                        borderRadius: isExpanding ? '0rem' : '3rem', // Matching Grid Card Radius
-                    }}
-                >
-                    {/* The colored background matching the subject */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${expandingSubject.color}`} />
+            {/* EXPANSION OVERLAY (Framer Motion) */}
+            <AnimatePresence mode="wait">
+                {expandingSubject && expansionRect && (
+                    <motion.div
+                        key="expansion-overlay"
+                        className="fixed z-[1000] pointer-events-none overflow-hidden"
+                        initial={{
+                            top: expansionRect.top,
+                            left: expansionRect.left,
+                            width: expansionRect.width,
+                            height: expansionRect.height,
+                            borderRadius: '3rem',
+                        }}
+                        animate={{
+                            top: isExpanding ? 0 : expansionRect.top,
+                            left: isExpanding ? 0 : expansionRect.left,
+                            width: isExpanding ? '100vw' : expansionRect.width,
+                            height: isExpanding ? '100vh' : expansionRect.height,
+                            borderRadius: isExpanding ? '0rem' : '3rem',
+                        }}
+                        exit={{
+                            opacity: 0,
+                            scale: 1.05,
+                            transition: { duration: 0.4 }
+                        }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 120,
+                            damping: 20,
+                            mass: 0.8
+                        }}
+                    >
+                        {/* Background */}
+                        <motion.div
+                            className={`absolute inset-0 bg-gradient-to-br ${expandingSubject.color}`}
+                        />
 
-                    {/* The icon scaling up as the card grows */}
-                    <div className={`absolute inset-0 flex items-center justify-center transition-all duration-[900ms] ${isExpanding ? 'scale-[3] opacity-20' : 'scale-1 opacity-100'}`}>
-                        <span className="text-6xl">{expandingSubject.icon}</span>
-                    </div>
+                        {/* WAVES / RIPPLES */}
+                        <motion.div
+                            className="absolute inset-0 flex items-center justify-center opacity-30"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 0.3 }}
+                        >
+                            <motion.div
+                                className="w-[50vw] h-[50vw] border-4 border-white/20 rounded-full"
+                                animate={{ scale: [0.8, 1.2], opacity: [0.5, 0] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                            />
+                            <motion.div
+                                className="absolute w-[40vw] h-[40vw] border-4 border-white/30 rounded-full"
+                                animate={{ scale: [0.8, 1.3], opacity: [0.6, 0] }}
+                                transition={{ duration: 2, delay: 0.5, repeat: Infinity }}
+                            />
+                        </motion.div>
 
-                </div>
-            )}
+                        {/* Icon Scaling with Rotation */}
+                        <motion.div
+                            className="absolute inset-0 flex items-center justify-center"
+                            initial={{ scale: 1, opacity: 1, rotate: 0 }}
+                            animate={{
+                                scale: isExpanding ? 4 : 1,
+                                opacity: isExpanding ? 0.2 : 1,
+                                rotate: isExpanding ? 360 : 0
+                            }}
+                            transition={{ duration: 1.2, ease: "anticipate" }}
+                        >
+                            <span className="text-6xl">{expandingSubject.icon}</span>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* BACKGROUND DECORATION */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">

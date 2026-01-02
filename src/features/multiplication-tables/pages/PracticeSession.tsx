@@ -78,8 +78,10 @@ export default function PracticeSession() {
         feedbackBg: "bg-white/80"
     };
 
-    // State from navigation
-    const selectedTables = (location.state as { tables: number[] })?.tables || [2];
+    // State from navigation - initialized once to maintain stability and prevent infinite loops
+    const [selectedTables] = useState<number[]>(() =>
+        (location.state as { tables: number[] })?.tables || [2]
+    );
 
     // Session State
     const [questions, setQuestions] = useState<Question[]>([]);
