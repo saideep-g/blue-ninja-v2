@@ -8,7 +8,7 @@ import { QuestionBundleMetadata, SimplifiedQuestion } from '../../types/bundle';
 import {
     Plus, Upload, FileJson, Save, Trash2,
     BookOpen, Layers, Clock, CheckCircle, AlertCircle,
-    Search, Filter, Download, Check, Edit, X
+    Search, Filter, Download, Check, Edit, X, Wand
 } from 'lucide-react';
 
 const SUBJECTS = [
@@ -21,6 +21,45 @@ const SUBJECTS = [
 ];
 
 const GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+// --- Fuzzy Logic Helpers ---
+interface AutoFixCandidate {
+    questionId: string;
+    questionText: string;
+    originalAnswer: string;
+    suggestedAnswer: string;
+    confidence: number;
+}
+
+function levenshteinDistance(a: string, b: string): number {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1,
+                    Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+                );
+            }
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
+function getSimilarity(s1: string, s2: string): number {
+    const longer = s1.length > s2.length ? s1 : s2;
+    const shorter = s1.length > s2.length ? s2 : s1;
+    if (longer.length === 0) return 1.0;
+    return (longer.length - levenshteinDistance(longer, shorter)) / longer.length;
+}
 
 export default function QuestionBundleCreator() {
     // --- State ---
@@ -54,6 +93,10 @@ export default function QuestionBundleCreator() {
     const [showInvalidOnly, setShowInvalidOnly] = useState(false);
     const [editingQuestion, setEditingQuestion] = useState<SimplifiedQuestion | null>(null);
 
+    // Auto-Fix State
+    const [fixCandidates, setFixCandidates] = useState<AutoFixCandidate[]>([]);
+    const [showFixModal, setShowFixModal] = useState(false);
+
     // --- Effects ---
     useEffect(() => {
         fetchBundles();
@@ -82,6 +125,45 @@ export default function QuestionBundleCreator() {
         return invalidSet;
     };
 
+    const checkAutoFixCandidates = (questions: SimplifiedQuestion[]) => {
+        const candidates: AutoFixCandidate[] = [];
+
+        questions.forEach(q => {
+            // Only check invalid questions
+            const normalizedAnswer = q.answer?.toString().trim().toLowerCase();
+            const hasMatch = q.options?.some(opt => opt.toString().trim().toLowerCase() === normalizedAnswer);
+
+            if (!hasMatch && q.options && q.answer && q.options.length > 0) {
+                // Calculate similarity for all options
+                const scoredOptions = q.options.map(opt => ({
+                    option: opt,
+                    score: getSimilarity(q.answer!, opt)
+                }));
+
+                // Sort by score descending
+                scoredOptions.sort((a, b) => b.score - a.score);
+
+                const best = scoredOptions[0];
+                const secondBest = scoredOptions.length > 1 ? scoredOptions[1] : { score: 0 };
+
+                // LOGIC: match if > 80% OR if there is a > 20% gap between #1 and #2 (and result is not garbage < 40%)
+                const isHighConfidence = best.score > 0.80;
+                const isClearWinner = (best.score - secondBest.score) > 0.20 && best.score > 0.4;
+
+                if (isHighConfidence || isClearWinner) {
+                    candidates.push({
+                        questionId: q.id!,
+                        questionText: q.question,
+                        originalAnswer: q.answer!,
+                        suggestedAnswer: best.option,
+                        confidence: Math.round(best.score * 100)
+                    });
+                }
+            }
+        });
+        setFixCandidates(candidates);
+    };
+
     // Architecture Note: We use a "Parallel Collection" pattern.
     // 'question_bundles' stores metadata (Title, Grade) -> Optimized for fast List Views.
     // 'question_bundle_data' stores the heavy content (Questions Map) -> Loaded only when editing.
@@ -96,9 +178,10 @@ export default function QuestionBundleCreator() {
                     const qList = Object.values(data.questions) as SimplifiedQuestion[];
                     setExistingQuestions(qList);
 
-                    // Run Validation
+                    // Run Validation & Auto-Fix Check
                     const invalid = validateQuestions(qList);
                     setInvalidQuestionIds(invalid);
+                    checkAutoFixCandidates(qList);
                 }
             } else {
                 setExistingQuestions([]);
@@ -320,12 +403,58 @@ export default function QuestionBundleCreator() {
             // 3. Re-validate
             const invalid = validateQuestions(updatedList);
             setInvalidQuestionIds(invalid);
+            checkAutoFixCandidates(updatedList);
 
             // 4. Close Modal
             setEditingQuestion(null);
         } catch (e) {
             console.error("Update failed", e);
             alert("Failed to update question. Check console.");
+        }
+    };
+
+    const handleApplyFixes = async () => {
+        if (!selectedBundle || fixCandidates.length === 0) return;
+
+        setUploading(true);
+        try {
+            const batch = writeBatch(db);
+            const bundleRef = doc(db, 'question_bundle_data', selectedBundle.id);
+
+            const updates: Record<string, any> = {};
+            const updatedList = [...existingQuestions];
+
+            fixCandidates.forEach(fix => {
+                // Update Firestore Payload
+                updates[`questions.${fix.questionId}.answer`] = fix.suggestedAnswer;
+                updates[`questions.${fix.questionId}.updatedAt`] = new Date().toISOString(); // optional if tracking per-field
+
+                // Update Local State
+                const qIndex = updatedList.findIndex(q => q.id === fix.questionId);
+                if (qIndex !== -1) {
+                    updatedList[qIndex] = {
+                        ...updatedList[qIndex],
+                        answer: fix.suggestedAnswer
+                    };
+                }
+            });
+
+            await updateDoc(bundleRef, updates);
+
+            // Commit State
+            setExistingQuestions(updatedList);
+            const invalid = validateQuestions(updatedList);
+            setInvalidQuestionIds(invalid);
+            setFixCandidates([]); // Clear processed candidates
+            setShowFixModal(false);
+
+            alert(`Successfully auto-corrected ${fixCandidates.length} questions!`);
+
+        } catch (e) {
+            console.error("Auto-fix failed", e);
+            alert("Auto-fix failed. See console.");
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -609,18 +738,30 @@ export default function QuestionBundleCreator() {
                                             <span>All questions validated! Answers match options.</span>
                                         </div>
                                     ) : (
-                                        <button
-                                            onClick={() => setShowInvalidOnly(!showInvalidOnly)}
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm border transition-all
+                                        <div className="flex gap-4">
+                                            <button
+                                                onClick={() => setShowInvalidOnly(!showInvalidOnly)}
+                                                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm border transition-all
                                             ${showInvalidOnly
-                                                    ? 'bg-red-600 text-white border-red-600 shadow-md transform scale-105'
-                                                    : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                                                }`}
-                                        >
-                                            <AlertCircle size={18} />
-                                            <span>{invalidQuestionIds.size} Invalid Questions Found</span>
-                                            {showInvalidOnly ? <span className="text-xs opacity-80">(Showing All)</span> : <span className="text-xs underline ml-1">Filter</span>}
-                                        </button>
+                                                        ? 'bg-red-600 text-white border-red-600 shadow-md transform scale-105'
+                                                        : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                                                    }`}
+                                            >
+                                                <AlertCircle size={18} />
+                                                <span>{invalidQuestionIds.size} Invalid Questions Found</span>
+                                                {showInvalidOnly ? <span className="text-xs opacity-80">(Showing All)</span> : <span className="text-xs underline ml-1">Filter</span>}
+                                            </button>
+
+                                            {fixCandidates.length > 0 && (
+                                                <button
+                                                    onClick={() => setShowFixModal(true)}
+                                                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:shadow-md transition-all animate-pulse"
+                                                >
+                                                    <Wand size={16} />
+                                                    <span>Auto-Fix {fixCandidates.length} Issues</span>
+                                                </button>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
 
@@ -781,6 +922,62 @@ export default function QuestionBundleCreator() {
                                 className="px-6 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
                             >
                                 <Save size={18} /> Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- AUTO FIX MODAL --- */}
+            {showFixModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="bg-purple-600 p-6 flex justify-between items-center text-white">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-white/20 rounded-full"><Wand size={20} /></div>
+                                <div>
+                                    <h3 className="text-xl font-black">AI Auto-Fix Suggestions</h3>
+                                    <p className="text-purple-100 text-xs font-medium">Found high-confidence matches (&gt;80%) for incorrect answers.</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowFixModal(false)} className="hover:bg-white/10 p-2 rounded-full"><X size={20} /></button>
+                        </div>
+
+                        <div className="p-0 max-h-[60vh] overflow-y-auto bg-slate-50">
+                            {fixCandidates.map((fix, idx) => (
+                                <div key={idx} className="p-4 border-b border-slate-200 hover:bg-white transition-colors">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h4 className="font-bold text-slate-700 text-sm line-clamp-1 flex-1 mr-4">{fix.questionText}</h4>
+                                        <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-full">{fix.confidence}% Match</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm">
+                                        <div className="flex-1 p-3 bg-red-50 border border-red-100 rounded-lg">
+                                            <span className="text-xs font-bold text-red-400 uppercase tracking-wider block mb-1">Current (Invalid)</span>
+                                            <span className="text-red-700 font-bold strike-through line-through opacity-70">{fix.originalAnswer}</span>
+                                        </div>
+                                        <div className="text-slate-300"><CheckCircle size={16} /></div>
+                                        <div className="flex-1 p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
+                                            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1">Suggestion (Valid Option)</span>
+                                            <span className="text-emerald-700 font-black">{fix.suggestedAnswer}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-4">
+                            <button
+                                onClick={() => setShowFixModal(false)}
+                                className="px-6 py-3 font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleApplyFixes}
+                                disabled={uploading}
+                                className="px-8 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                            >
+                                {uploading ? 'Applying...' : `Confirm & Fix All (${fixCandidates.length})`}
                             </button>
                         </div>
                     </div>
