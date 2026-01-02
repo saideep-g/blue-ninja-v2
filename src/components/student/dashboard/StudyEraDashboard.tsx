@@ -7,9 +7,10 @@ import {
 import { useNinja } from '../../../context/NinjaContext';
 import { useNavigate } from 'react-router-dom';
 import coreCurriculum from '../../../data/cbse7_core_curriculum_v3.json';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../services/db/firebase';
-import { Bundle, Challenge, User as UserModel } from '../../../types/models';
+import { Bundle, Challenge, User as UserModel, Question } from '../../../types/models';
+import { McqEraTemplate } from '../../templates/McqEraTemplate';
 
 const ProgressBar = ({ value, color, height = "h-2" }: { value: number, color?: string, height?: string }) => (
     <div className={`w-full bg-black/5 rounded-full ${height} overflow-hidden`}>
@@ -108,13 +109,18 @@ const StudyEraDashboard = () => {
     const navigate = useNavigate();
 
     // Navigation & View State
-    const [currentView, setCurrentView] = useState<'dashboard' | 'challenges'>('dashboard');
+    const [currentView, setCurrentView] = useState<'dashboard' | 'challenges' | 'quiz'>('dashboard');
     const [arenaSubView, setArenaSubView] = useState<'create' | 'active' | 'history'>('create');
 
     const [selectedSubject, setSelectedSubject] = useState<any>(null);
     const [viewMode, setViewMode] = useState<'modules' | 'atoms'>('modules');
     const [atomFilter, setAtomFilter] = useState('');
     const [greeting, setGreeting] = useState("Loading vibes...");
+
+    // Quiz State
+    const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [quizScore, setQuizScore] = useState(0);
 
     // Data State
     const [subjects, setSubjects] = useState<any[]>([]);
@@ -129,6 +135,80 @@ const StudyEraDashboard = () => {
     const [inviteEmailInput, setInviteEmailInput] = useState('');
     const [challengeName, setChallengeName] = useState('');
     const [showChallengeSent, setShowChallengeSent] = useState(false);
+
+    const handleStartQuiz = async () => {
+        // Mock Questions for "Vibe Check" if no real data
+        const mockQuestions: Question[] = [
+            {
+                id: 'q1',
+                type: 'MCQ_SIMPLIFIED',
+                text: 'What is the capital of France?',
+                content: { prompt: { text: "Which city is known as the 'City of Love'?" } },
+                interaction: { config: { options: [{ text: 'London', id: '1' }, { text: 'Paris', id: '2' }, { text: 'Berlin', id: '3' }] } },
+                correctOptionId: '2',
+                subject: 'gk'
+            } as any,
+            {
+                id: 'q2',
+                type: 'MCQ_SIMPLIFIED',
+                text: 'Math Vibe',
+                content: { prompt: { text: "Solve for $x$: $2x + 5 = 15$" }, instruction: "Don't panic, it's just algebra." },
+                interaction: { config: { options: [{ text: '$x=5$', id: '1' }, { text: '$x=10$', id: '2' }, { text: '$x=2.5$', id: '3' }] } },
+                correctOptionId: '1',
+                subject: 'math'
+            } as any
+        ];
+
+        setQuizQuestions(mockQuestions);
+        setCurrentQuestionIndex(0);
+        setQuizScore(0);
+        setCurrentView('quiz');
+    };
+
+    const handleQuizAnswer = (result: any) => {
+        if (result.isCorrect) setQuizScore(prev => prev + 1);
+
+        if (currentQuestionIndex < quizQuestions.length - 1) {
+            setTimeout(() => setCurrentQuestionIndex(prev => prev + 1), 1500);
+        } else {
+            // End of Quiz
+            setTimeout(() => {
+                alert(`Era Completed! Score: ${quizScore + (result.isCorrect ? 1 : 0)}/${quizQuestions.length}`);
+                setCurrentView('dashboard');
+            }, 2000);
+        }
+    };
+
+    const handleEnterArena = async (challenge: Challenge) => {
+        try {
+            const allQuestions: Question[] = [];
+            // Fetch all bundles in parallel
+            await Promise.all(challenge.bundleIds.map(async (bundleId) => {
+                const bundleRef = doc(db, 'question_bundles', bundleId);
+                const bundleSnap = await getDoc(bundleRef);
+                if (bundleSnap.exists()) {
+                    const data = bundleSnap.data();
+                    if (data.questions && Array.isArray(data.questions)) {
+                        allQuestions.push(...data.questions as Question[]);
+                    }
+                }
+            }));
+
+            if (allQuestions.length > 0) {
+                // Shuffle questions
+                const shuffled = allQuestions.sort(() => Math.random() - 0.5);
+                setQuizQuestions(shuffled);
+                setCurrentQuestionIndex(0);
+                setQuizScore(0);
+                setCurrentView('quiz');
+            } else {
+                alert("This arena seems empty! No questions found.");
+            }
+        } catch (e) {
+            console.error("Failed to enter arena", e);
+            alert("Failed to load arena questions.");
+        }
+    };
 
     // --- INITIALIZATION & DATA FETCHING ---
 
@@ -414,7 +494,31 @@ const StudyEraDashboard = () => {
                 </header>
 
                 {/* CONTENT SWITCHER */}
-                {currentView === 'dashboard' ? (
+                {currentView === 'quiz' ? (
+                    <div className="max-w-2xl mx-auto py-12 animate-in fade-in zoom-in duration-500">
+                        <div className="flex justify-between items-center mb-12">
+                            <button onClick={() => setCurrentView('dashboard')} className="p-3 bg-white rounded-full text-gray-400 hover:text-pink-500 transition-colors shadow-sm">
+                                <X size={20} />
+                            </button>
+                            <div className="flex gap-2">
+                                {[...Array(quizQuestions.length)].map((_, i) => (
+                                    <div key={i} className={`w-3 h-3 rounded-full transition-colors ${i === currentQuestionIndex ? 'bg-pink-500 scale-125' : i < currentQuestionIndex ? 'bg-emerald-400' : 'bg-gray-200'}`} />
+                                ))}
+                            </div>
+                            <div className="px-4 py-2 bg-white rounded-full shadow-sm text-xs font-black uppercase tracking-widest text-[#1A1A1A]">
+                                Q{currentQuestionIndex + 1}
+                            </div>
+                        </div>
+
+                        {quizQuestions[currentQuestionIndex] && (
+                            <McqEraTemplate
+                                question={quizQuestions[currentQuestionIndex]}
+                                isSubmitting={false}
+                                onAnswer={handleQuizAnswer}
+                            />
+                        )}
+                    </div>
+                ) : currentView === 'dashboard' ? (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-500">
                         {/* LEFT SECTION (Standard Dashboard) */}
                         <div className="lg:col-span-8 space-y-10">
@@ -537,7 +641,7 @@ const StudyEraDashboard = () => {
                                             )}
                                         </div>
                                         <div className="p-8 border-t border-gray-50">
-                                            <button className="w-full py-5 bg-[#1A1A1A] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-pink-500 transition-all active:scale-95">Start Quiz <Zap size={18} fill="currentColor" /></button>
+                                            <button onClick={handleStartQuiz} className="w-full py-5 bg-[#1A1A1A] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-pink-500 transition-all active:scale-95">Start Quiz <Zap size={18} fill="currentColor" /></button>
                                         </div>
                                     </div>
                                 )}
@@ -643,7 +747,7 @@ const StudyEraDashboard = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button className="bg-[#1A1A1A] text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg hover:bg-pink-500 transition-all active:scale-95">
+                                            <button onClick={() => handleEnterArena(quest)} className="bg-[#1A1A1A] text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg hover:bg-pink-500 transition-all active:scale-95">
                                                 Enter Arena
                                             </button>
                                         </div>
@@ -771,8 +875,8 @@ const StudyEraDashboard = () => {
                                                         if (currentView === 'challenges') toggleFriend(f);
                                                     }}
                                                     className={`w-full flex items-center justify-between p-4 rounded-[2rem] border transition-all duration-300 group ${isSelected
-                                                            ? 'bg-pink-50 border-pink-100 text-pink-600 ring-2 ring-pink-50'
-                                                            : 'bg-gray-50/50 border-gray-100 text-gray-400 hover:border-pink-50'
+                                                        ? 'bg-pink-50 border-pink-100 text-pink-600 ring-2 ring-pink-50'
+                                                        : 'bg-gray-50/50 border-gray-100 text-gray-400 hover:border-pink-50'
                                                         }`}
                                                 >
                                                     <div className="flex items-center gap-3">
