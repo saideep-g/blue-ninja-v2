@@ -72,6 +72,25 @@ export default function MobileQuestDashboard() {
 
     // --- EFFECTS ---
 
+    // History Management for Back Button
+    useEffect(() => {
+        if (view === 'quiz' || view === 'results') {
+            // Push a state so the back button doesn't exit the app
+            window.history.pushState({ panel: view }, '', window.location.href);
+
+            const handlePopState = (event: PopStateEvent) => {
+                // Intercept back button and go Home
+                setView('home');
+            };
+
+            window.addEventListener('popstate', handlePopState);
+
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [view]);
+
     // Reset selection on question change
     useEffect(() => {
         setSelectedAnswer(null);
@@ -567,7 +586,7 @@ export default function MobileQuestDashboard() {
 
                     {/* Back Button */}
                     <div className="p-4 flex justify-center pb-8">
-                        <button onClick={() => setView('home')} className="flex items-center gap-2 text-white/80 font-bold hover:text-white hover:bg-white/10 px-6 py-3 rounded-full transition-all">
+                        <button onClick={() => window.history.back()} className="flex items-center gap-2 text-white/80 font-bold hover:text-white hover:bg-white/10 px-6 py-3 rounded-full transition-all">
                             <ArrowLeft size={18} /> Quit Mission
                         </button>
                     </div>
