@@ -2,7 +2,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import 'katex/dist/katex.min.css';
 import { InlineMath } from 'react-katex';
-import { CheckCircle2, XCircle, Sparkles, AlertCircle, Loader2, ArrowRightCircle, Zap, Crown } from 'lucide-react';
+import { CheckCircle2, XCircle, Sparkles, AlertCircle, Loader2, ArrowRightCircle, Zap, Crown, Flag } from 'lucide-react';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../services/db/firebase';
 import { Question } from '../../types';
 import { useProfileStore } from '../../store/profile';
 import { getRandomPraise } from '../../utils/feedbackUtils';
@@ -50,6 +52,10 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
     const [result, setResult] = useState<any>(null);
     const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Flagging State
+    const [showFlagModal, setShowFlagModal] = useState(false);
+    const [reporting, setReporting] = useState(false);
 
     useEffect(() => {
         setSelectedIndex(null);
@@ -148,6 +154,27 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
         }
     };
 
+    const handleReportIssue = async (reason: string) => {
+        setReporting(true);
+        try {
+            await addDoc(collection(db, 'question_reports'), {
+                questionId: question.id || 'unknown',
+                questionText: prompt,
+                reason: reason,
+                reportedAt: serverTimestamp(),
+                userAction: 'flagged_in_era'
+            });
+            // Show localized success/toast if we had one, for now just close
+            alert("Sent! Thanks for keeping it real. 🙌");
+            setShowFlagModal(false);
+        } catch (e) {
+            console.error("Report failed", e);
+            alert("Could not send report. Bummer.");
+        } finally {
+            setReporting(false);
+        }
+    };
+
     const handleSubmit = async () => {
         if (selectedIndex === null || isSubmitting || submitted) return;
 
@@ -195,6 +222,18 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
                         <LatexRenderer text={instruction} />
                     </p>
                 )}
+
+                {/* FLAG BUTTON */}
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setShowFlagModal(true);
+                    }}
+                    className="absolute bottom-4 right-4 z-20 p-2 text-slate-300 hover:text-red-400 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                    title="Report Issue"
+                >
+                    <Flag size={16} />
+                </button>
             </div>
 
             {/* OPTIONS GRID */}
@@ -313,6 +352,59 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
                 </div>
             )}
 
+
+            {/* --- REPORT MODAL --- */}
+            {showFlagModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] p-6 w-full max-w-sm shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-pink-500 to-rose-500" />
+
+                        <div className="text-center mb-6 pt-4">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-rose-100 text-rose-500 mb-3">
+                                <AlertCircle size={24} />
+                            </div>
+                            <h3 className="text-xl font-black text-slate-800">Vibe Check 🤨</h3>
+                            <p className="text-sm text-slate-500 font-medium">What's wrong with this question?</p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => handleReportIssue('Question is confusing')}
+                                disabled={reporting}
+                                className="w-full p-4 bg-slate-50 hover:bg-rose-50 text-slate-700 hover:text-rose-600 rounded-xl font-bold text-sm transition-all text-left flex items-center gap-3 group border border-transparent hover:border-rose-200"
+                            >
+                                <span className="text-xl group-hover:scale-110 transition-transform">😵‍💫</span>
+                                <span>Question is confusing</span>
+                            </button>
+
+                            <button
+                                onClick={() => handleReportIssue('Answer is incorrect')}
+                                disabled={reporting}
+                                className="w-full p-4 bg-slate-50 hover:bg-rose-50 text-slate-700 hover:text-rose-600 rounded-xl font-bold text-sm transition-all text-left flex items-center gap-3 group border border-transparent hover:border-rose-200"
+                            >
+                                <span className="text-xl group-hover:scale-110 transition-transform">❌</span>
+                                <span>Answer seems wrong</span>
+                            </button>
+
+                            <button
+                                onClick={() => handleReportIssue('Typo / Glitch')}
+                                disabled={reporting}
+                                className="w-full p-4 bg-slate-50 hover:bg-rose-50 text-slate-700 hover:text-rose-600 rounded-xl font-bold text-sm transition-all text-left flex items-center gap-3 group border border-transparent hover:border-rose-200"
+                            >
+                                <span className="text-xl group-hover:scale-110 transition-transform">🐛</span>
+                                <span>Typo or Glitch</span>
+                            </button>
+                        </div>
+
+                        <button
+                            onClick={() => setShowFlagModal(false)}
+                            className="mt-6 w-full py-3 text-slate-400 font-bold text-sm hover:bg-slate-50 rounded-xl transition-colors"
+                        >
+                            Nevermind, it's fine.
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
