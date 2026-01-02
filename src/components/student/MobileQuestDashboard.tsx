@@ -232,11 +232,12 @@ export default function MobileQuestDashboard() {
                 console.log(`Fetching bundle for ${subject}...`);
 
                 // Find Bundle Metadata
+                const gradeToFetch = subject === 'GK' ? 7 : 2;
                 const bundlesRef = collection(db, 'question_bundles');
                 const qBundle = query(
                     bundlesRef,
                     where('subject', '==', subject.toLowerCase()),
-                    where('grade', '==', 2),
+                    where('grade', '==', gradeToFetch),
                     limit(1)
                 );
                 const bundleSnap = await getDocs(qBundle);

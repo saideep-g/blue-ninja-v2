@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Beaker, MessageSquare, Globe, Play, Grid3x3 } from 'lucide-react';
+import { BookOpen, Beaker, MessageSquare, Globe, Play, Grid3x3, Lightbulb } from 'lucide-react';
 import { CHAPTERS } from '../../../constants/chapters';
 
 const SUBJECT_CONFIG = {
@@ -7,6 +7,7 @@ const SUBJECT_CONFIG = {
     'Science': { color: 'from-cyan-400 to-blue-500', icon: <Beaker size={28} />, label: 'Science' },
     'Words': { color: 'from-amber-400 to-orange-500', icon: <MessageSquare size={28} />, label: 'Words' },
     'World': { color: 'from-indigo-400 to-purple-500', icon: <Globe size={28} />, label: 'World' },
+    'GK': { color: 'from-teal-400 to-emerald-500', icon: <Lightbulb size={28} />, label: 'Gen. Knowledge' },
 };
 
 interface HomeViewProps {

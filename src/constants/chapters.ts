@@ -86,5 +86,27 @@ export const CHAPTERS = {
         { n: "Voyage Val", e: "🚢", award: "Voyage Val", req: 30, details: "Modes of international travel: Air vs. Sea." },
         { n: "Compass Queen", e: "🧭", award: "Compass Queen", req: 30, details: "How a compass works and identifying intermediate directions (NE, SE, etc.)." },
         { n: "Peace Pilot", e: "🕊️", award: "Peace Pilot", req: 40, details: "Global citizens: How children around the world are the same and different." }
+    ],
+    GK: [
+        { n: "The Indian Constitution", e: "📜", award: "Constitution Champ", req: 40, details: "Preamble analysis, Fundamental Rights (Articles 12-35), Fundamental Duties, and the role of the Drafting Committee led by Dr. Ambedkar." },
+        { n: "State Government Functions", e: "🏛️", award: "State Strategist", req: 40, details: "Roles of the Governor, CM, and Council of Ministers; difference between Vidhan Sabha and Vidhan Parishad; legislative process at state level." },
+        { n: "Women Pioneers & Reformers", e: "👩‍🏫", award: "Reform Ranger", req: 40, details: "History of the women's movement; icons like Savitribai Phule, Rashsundari Devi, and modern achievers; legal protections like the 73rd Amendment." },
+        { n: "The Indian Judicial System", e: "⚖️", award: "Justice Judge", req: 40, details: "Hierarchy of courts (Supreme, High, District); PIL (Public Interest Litigation); FIR process; independent judiciary and Article 21." },
+        { n: "India in Space (ISRO 2026)", e: "🚀", award: "Space Scout", req: 40, details: "Gaganyaan G1 uncrewed mission (March 2026) with Vyommitra robot; Chandrayaan-3 legacy; Aditya-L1 solar studies; LVM3 rocket technology." },
+        { n: "Renewable Energy & Sustainability", e: "☀️", award: "Green Guardian", req: 40, details: "India's 500GW non-fossil goal by 2030; status as 3rd largest solar market; National Green Hydrogen Mission; solar-powered EV charging infrastructure." },
+        { n: "Cyber Safety & Digital Literacy", e: "💻", award: "Cyber Sentinel", req: 40, details: "Digital footprints; privacy settings on social media; identifying phishing and cyber-bullying; safe use of UPI and digital payments." },
+        { n: "Artificial Intelligence (AI)", e: "🤖", award: "AI Ace", req: 40, details: "Basic AI concepts; impact of Generative AI (like ChatGPT); AI in healthcare and education; ethical use of technology." },
+        { n: "Sustainable Development Goals", e: "🌱", award: "SDG Scholar", req: 40, details: "The 17 UN SDGs to be achieved by 2030; India's progress in 'No Poverty', 'Quality Education', and 'Climate Action'." },
+        { n: "The Himalayan Ecosystem", e: "🏔️", award: "Highland Hero", req: 40, details: "Physical geography of the Himalayas; importance of glaciers as water towers; impact of climate change on mountain biodiversity." },
+        { n: "Major World Rivers", e: "🌊", award: "River Runner", req: 40, details: "Importance of the Nile, Amazon, and Yangtze; India's Ganga-Brahmaputra system; river pollution and rejuvenation projects (Namami Gange)." },
+        { n: "Wildlife Conservation in India", e: "🐅", award: "Wildlife Warden", req: 40, details: "Project Tiger and Project Elephant; National Parks vs. Sanctuaries; endangered species like the Snow Leopard and Great Indian Bustard." },
+        { n: "Medieval India Highlights", e: "🏰", award: "History Hunter", req: 40, details: "The Delhi Sultanate (Razia Sultan); Mughal Empire architecture; the rise of the Marathas under Shivaji Maharaj." },
+        { n: "Classical Dances & Culture", e: "💃", award: "Culture Captain", req: 40, details: "The 8 Indian classical dances; states of origin (e.g., Kathak-UP, Mohiniyattam-Kerala); intangible cultural heritage recognized by UNESCO." },
+        { n: "Bhakti & Sufi Movements", e: "🪕", award: "Soul Seeker", req: 40, details: "Teachings of saints like Mirabai, Kabir, and Guru Nanak; the message of social equality and devotion over rituals." },
+        { n: "Basic Economics & RBI", e: "💰", award: "Econ Expert", req: 40, details: "Role of the Reserve Bank of India; understanding inflation; the transition from barter to digital currency; GST basics." },
+        { n: "International Organizations", e: "🇺🇳", award: "Global Guardian", req: 40, details: "Roles of the UN, WHO, and UNESCO; India's G20 Presidency legacy; BRICS and Quad alliances." },
+        { n: "Literature & Famous Authors", e: "🖋️", award: "Literary Legend", req: 40, details: "Works of Rabindranath Tagore; modern literature by Sudha Murty and Arundhati Roy; the significance of the Jnanpith Award." },
+        { n: "Sports Icons & Achievements", e: "🏅", award: "Sports Star", req: 40, details: "India's performance in recent Olympics/Paralympics; rise of the WPL (Women’s Premier League); icons like Neeraj Chopra and P.V. Sindhu." },
+        { n: "Health, Wellness & Nutrition", e: "🧘", award: "Wellness Warrior", req: 40, details: "The science of Yoga and Pranyama; benefits of millets (Shree Anna); mental health awareness and balanced lifestyles for teenagers." }
     ]
 };
