@@ -230,25 +230,17 @@ const StudyEraDashboard = () => {
         else setGreeting("Evening routine... 🌙");
     }, []);
 
+    // Math Completion Listener
+    useEffect(() => {
+        if (quizSubject === 'math' && dailyMission.isComplete) {
+            setTimeout(() => {
+                setCurrentView('dashboard');
+            }, 2000);
+        }
+    }, [dailyMission.isComplete, quizSubject]);
+
     // 1. Build Subjects
     useEffect(() => {
-        const enrolled = ninjaStats?.enrolledSubjects || [];
-        let activeSubjects: any[] = [];
-        // ... (rest of function) ...
-
-        // Math Completion Listener
-        useEffect(() => {
-            if (quizSubject === 'math' && dailyMission.isComplete) {
-                setTimeout(() => {
-                    setCurrentView('dashboard');
-                }, 2000);
-            }
-        }, [dailyMission.isComplete, quizSubject]);
-
-        // 1. Build Subjects logic continuation...
-        /* The chunk above is tricky because 'useEffect' loops. 
-           Let's insert the new useEffect BEFORE the subjects useEffect. 
-        */
         const enrolled = ninjaStats?.enrolledSubjects || [];
         let activeSubjects: any[] = [];
 
