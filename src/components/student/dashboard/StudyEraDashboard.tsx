@@ -23,9 +23,31 @@ const StudyEraDashboard = () => {
     const navigate = useNavigate();
 
     // Navigation & View State
+    // Navigation & View State
     const [currentView, setCurrentView] = useState<'dashboard' | 'challenges' | 'quiz'>('dashboard');
     const [arenaSubView, setArenaSubView] = useState<'create' | 'active' | 'history'>('create');
     const [selectedSubject, setSelectedSubject] = useState<any>(null);
+
+    // --- BACK BUTTON MANAGEMENT ---
+    useEffect(() => {
+        if (currentView === 'quiz' || currentView === 'challenges') {
+            // Push a state so that "Back" stays in the app but goes to dashboard
+            window.history.pushState({ view: currentView }, '', window.location.pathname);
+
+            const handlePopState = (event: PopStateEvent) => {
+                // Determine behavior based on where we are coming FROM
+                // If we are in quiz, Back goes to Dashboard
+                event.preventDefault();
+                setCurrentView('dashboard');
+            };
+
+            window.addEventListener('popstate', handlePopState);
+
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [currentView]);
     const [greeting, setGreeting] = useState("Loading vibes...");
     const [quizSubject, setQuizSubject] = useState<string | null>(null);
 

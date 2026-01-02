@@ -59,6 +59,24 @@ export default function StudyEraProfile() {
     const [activityDays, setActivityDays] = useState<Set<string>>(new Set());
     const [calendarGrid, setCalendarGrid] = useState<Date[]>([]);
 
+    // --- HARDWARE BACK BUTTON HANDLER ---
+    useEffect(() => {
+        // Enforce that Android/Browser Back Button always goes to Dashboard (Home)
+        // instead of previous history (e.g. Tables or Graph)
+        const handlePopState = (event: PopStateEvent) => {
+            event.preventDefault();
+            navigate('/', { replace: true });
+        };
+
+        // Push a dummy state to trap the first back action
+        window.history.pushState(null, '', window.location.href);
+        window.addEventListener('popstate', handlePopState);
+
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, []);
+
     useEffect(() => {
         setFormData({
             dailyQuestionCount: profileStore.dailyQuestionCount || 5,
@@ -130,7 +148,7 @@ export default function StudyEraProfile() {
                 {/* Header with Back Button */}
                 <div className="mb-12">
                     <button
-                        onClick={() => navigate('/')}
+                        onClick={() => navigate('/', { replace: true })}
                         className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-pink-400 transition-colors mb-6"
                     >
                         <ChevronLeft size={16} /> Back to Hub
