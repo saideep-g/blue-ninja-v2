@@ -49,6 +49,9 @@ export default function MobileQuestDashboard() {
     // --- STATE ---
     // Persistent stats
     const [dailyProgress, setDailyProgress] = useState<Record<string, number>>({ Math: 0, Science: 0, Words: 0, World: 0, Tables: 0 });
+    const [currentStreak, setCurrentStreak] = useState(0);
+    const [totalPoints, setTotalPoints] = useState(0);
+
     const [chapterProgress, setChapterProgress] = useState<Record<string, any>>({
         // Default unlocked starter chapters
         "Adding up to 20": { correct: 0, total: 0, unlocked: true, mastered: false },
@@ -85,6 +88,8 @@ export default function MobileQuestDashboard() {
                         const data = snap.data();
                         if (data.mastery) setChapterProgress(prev => ({ ...prev, ...data.mastery })); // Merge
                         if (data.daily) setDailyProgress(prev => ({ ...prev, ...data.daily }));
+                        if (data.points !== undefined) setTotalPoints(data.points);
+                        if (data.streak !== undefined) setCurrentStreak(data.streak);
 
                         // 4 AM Reset Logic
                         // Check if lastActive is before today's 4 AM cutoff
@@ -100,10 +105,27 @@ export default function MobileQuestDashboard() {
                             }
 
                             if (lastDate < resetTime) {
-                                console.log("New Day Detected: Resetting Daily Progress");
+                                console.log("New Day Detected: Resetting Daily Progress & Updating Streak");
+
+                                // Streak Logic
+                                const yesterdayReset = new Date(resetTime);
+                                yesterdayReset.setDate(yesterdayReset.getDate() - 1);
+
+                                let newStreak = (data.streak || 0);
+                                if (lastDate >= yesterdayReset) {
+                                    newStreak += 1; // Consecutive login
+                                } else {
+                                    newStreak = 1; // Reset to 1 (active today)
+                                }
+
                                 const zeros = { Math: 0, Science: 0, Words: 0, World: 0, Tables: 0 };
                                 setDailyProgress(zeros);
-                                updateDoc(docRef, { daily: zeros, lastActive: new Date() }).catch(console.error);
+                                setCurrentStreak(newStreak);
+                                updateDoc(docRef, {
+                                    daily: zeros,
+                                    lastActive: new Date(),
+                                    streak: newStreak
+                                }).catch(console.error);
                             }
                         }
                     }
@@ -465,7 +487,7 @@ export default function MobileQuestDashboard() {
             {view === 'profile' && (
                 <ProfileView
                     user={user}
-                    stats={{ stars: ninjaStats.powerPoints || 0, streak: ninjaStats.streakCount || 0, powerPoints: 0 }}
+                    stats={{ stars: totalPoints || 0, streak: currentStreak || 0, powerPoints: totalPoints || 0 }}
                     onUpdateProfile={handleProfileUpdate}
                 />
             )}
