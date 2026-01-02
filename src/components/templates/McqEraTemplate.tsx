@@ -63,8 +63,13 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
 
     // Safe Access
     const stage0 = (question as any).stages?.[0];
-    const interactionConfig = stage0?.interaction?.config || (question.content as any)?.interaction?.config || {};
-    const options = (interactionConfig.options || []) as { text: string; id?: string }[];
+    const interactionConfig = stage0?.interaction?.config || (question.content as any)?.interaction?.config || {}; // existing logic
+
+    // Updated Logic: Check robust paths including direct .options property used by MobileQuestDashboard bundles
+    const options =
+        (interactionConfig.options as { text: string; id?: string }[]) ||
+        ((question as any).options as { text: string; id?: string }[]) ||
+        [];
 
     // Resolve Correct Index
     let correctIndex = -1;
@@ -80,6 +85,11 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
     if (correctIndex === -1 && options.length > 0 && question.correct_answer) {
         // Try to match text
         correctIndex = options.findIndex(o => o.text === question.correct_answer);
+    }
+
+    // Explicit 'isCorrect' flag check (Used by StudyEraDashboard bundles)
+    if (correctIndex === -1) {
+        correctIndex = options.findIndex((o: any) => o.isCorrect === true);
     }
 
     const prompt = question.question_text || (question.content?.prompt?.text) || "Identify the correct option:";
@@ -98,13 +108,50 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
         }
     };
 
+    // Sound Feedback Helper using Web Audio API
+    const playFeedbackSound = (type: 'correct' | 'wrong') => {
+        try {
+            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContext) return;
+
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.5);
+            } else {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.2);
+            }
+        } catch (e) {
+            console.error("Audio playback failed", e);
+        }
+    };
+
     const handleSubmit = async () => {
         if (selectedIndex === null || isSubmitting || submitted) return;
 
         const isCorrect = selectedIndex === correctIndex;
+        playFeedbackSound(isCorrect ? 'correct' : 'wrong');
+
         const feedbackText = isCorrect
-            ? "Slayed it! 💅"
-            : "Not quite the vibe... try again!";
+            ? getRandomPraise()
+            : "Not quite the vibe... check the fix!";
 
         const resultData = {
             isCorrect,
@@ -129,11 +176,12 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
 
             {/* QUESTION CARD */}
             <div className="bg-white/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white shadow-sm relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Crown size={80} className="rotate-12" />
+                {/* Crown pushed further right to avoid text overlap */}
+                <div className="absolute top-[-1rem] right-[-2rem] p-4 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+                    <Crown size={120} className="rotate-12" />
                 </div>
 
-                <h2 className="text-2xl md:text-3xl font-serif italic text-gray-800 leading-tight relative z-10">
+                <h2 className="text-2xl md:text-3xl font-serif italic text-gray-800 leading-tight relative z-10 pr-12">
                     <LatexRenderer text={prompt} />
                 </h2>
 
@@ -164,30 +212,49 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
                         }
                     } else {
                         if (shouldHighlightCorrect) {
-                            containerClass = "bg-emerald-50 border-emerald-400 shadow-lg";
-                            textClass = "text-emerald-700 font-black";
-                            icon = <CheckCircle2 className="text-emerald-500" />;
+                            // GEN Z GREEN: Vibrant and bold
+                            containerClass = "bg-[#00DDA5] border-[#00BFA5] shadow-xl scale-[1.02]";
+                            textClass = "text-white font-black tracking-wide";
+                            icon = <CheckCircle2 className="text-white w-8 h-8" />;
                         } else if (isWrongSelected) {
                             containerClass = "bg-rose-50 border-rose-300";
                             textClass = "text-rose-500 line-through opacity-70";
                             icon = <XCircle className="text-rose-400" />;
                         } else {
-                            containerClass = "opacity-50 grayscale";
+                            containerClass = "opacity-40 grayscale";
                         }
                     }
+
+                    const labels = ['A', 'B', 'C', 'D', 'E'];
+                    const pastelColors = [
+                        'bg-blue-50 text-blue-500 border-blue-100',
+                        'bg-purple-50 text-purple-500 border-purple-100',
+                        'bg-pink-50 text-pink-500 border-pink-100',
+                        'bg-orange-50 text-orange-500 border-orange-100',
+                    ];
+                    const labelColor = pastelColors[index % pastelColors.length];
 
                     return (
                         <button
                             key={index}
                             onClick={() => handleSelect(index)}
                             disabled={submitted || isSubmitting}
-                            className={`w-full p-6 rounded-[2rem] border-2 text-left transition-all duration-300 relative overflow-hidden group/opt ${containerClass}`}
+                            // Added active:scale-95 for tactile feel
+                            className={`w-full p-5 rounded-[2rem] border-2 text-left transition-all duration-200 relative overflow-hidden group/opt active:scale-95 ${containerClass}`}
                         >
-                            <div className="flex items-center justify-between relative z-10">
-                                <span className={`text-lg md:text-xl font-medium transition-colors ${textClass}`}>
+                            {/* Flex gap-4 with flex-1 on text ensures spacing and alignment */}
+                            <div className="flex items-center gap-4 relative z-10 w-full">
+
+                                {/* Aesthetic Label Circle */}
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-lg shadow-sm border-2 shrink-0 ${labelColor}`}>
+                                    {labels[index] || '?'}
+                                </div>
+
+                                <span className={`text-lg md:text-xl transition-colors flex-1 leading-snug ${textClass}`}>
                                     <LatexRenderer text={option.text} />
                                 </span>
-                                <div>
+
+                                <div className="shrink-0">
                                     {icon ? icon : (
                                         <div className={`w-6 h-6 rounded-full border-2 transition-colors ${isSelected ? 'border-pink-400 bg-pink-400' : 'border-gray-200 group-hover/opt:border-pink-200'}`} />
                                     )}
@@ -209,12 +276,25 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
                 </button>
             ) : (
                 <div className="animate-in slide-in-from-bottom-4 duration-500">
-                    <div className={`p-6 rounded-[2rem] mb-4 text-center border-2 ${feedback?.isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
-                        <h3 className={`font-serif italic text-2xl mb-1 ${feedback?.isCorrect ? 'text-emerald-600' : 'text-rose-500'}`}>
-                            {feedback?.isCorrect ? "Immaculate Vibes! ✨" : "Oop... Glitch in the Matrix 👾"}
+                    <div className={`p-6 rounded-[2rem] mb-4 text-center border-2 ${feedback?.isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-white border-rose-100 shadow-xl'}`}>
+                        {/* De-emphasized Feedback Text */}
+                        <h3 className={`font-serif italic text-lg mb-2 opacity-60 ${feedback?.isCorrect ? 'text-emerald-600' : 'text-rose-400'}`}>
+                            {feedback?.feedback}
                         </h3>
+
                         {!feedback?.isCorrect && (
-                            <p className="text-xs font-black uppercase tracking-widest text-rose-400">Correct: {options[correctIndex]?.text}</p>
+                            <div className="mt-2 animate-in zoom-in-50 duration-300">
+
+                                {/* Hero Explanation */}
+                                {question.explanation && (
+                                    <div className="p-4 bg-gray-50 rounded-2xl text-left border-l-4 border-gray-300">
+                                        <div className="flex gap-2 items-start text-gray-700 leading-relaxed font-medium">
+                                            <Sparkles size={20} className="text-yellow-500 shrink-0 mt-1" />
+                                            <div><LatexRenderer text={question.explanation} /></div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
 
