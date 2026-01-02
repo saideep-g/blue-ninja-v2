@@ -1,3 +1,26 @@
+export const VOCAB_CHAPTERS = [
+    { "id": "w1", "n": "The Power of Prefixes", "e": "🏗️", "details": "Focus on un-, dis-, re-, pre-, mis-." },
+    { "id": "w2", "n": "Suffixes & Word Types", "e": "🏷️", "details": "Focus on -able, -ment, -ness, -ity." },
+    { "id": "w3", "n": "Synonyms & Nuance", "e": "🎭", "details": "Difference between 'good', 'excellent', 'sublime'." },
+    { "id": "w4", "n": "Antonyms in Action", "e": "🌓", "details": "Learning words through their opposites." },
+    { "id": "w5", "n": "Context Clue Detective", "e": "🔍", "details": "Identifying meanings using hints." },
+    { "id": "w6", "n": "Collocations: Natural Pairs", "e": "🤝", "details": "Words that naturally go together." },
+    { "id": "w7", "n": "Idioms: Beyond the Literal", "e": "🥨", "details": "Common English idioms." },
+    { "id": "w8", "n": "Phrasal Verbs: Part 1", "e": "🏃", "details": "Movement verbs: get away, run into." },
+    { "id": "w9", "n": "Words of the Natural World", "e": "🌿", "details": "Ecology, conservation, biodiversity." },
+    { "id": "w10", "n": "Travel & Exploration", "e": "🧭", "details": "Itinerary, expedition, navigation." },
+    { "id": "w11", "n": "The Language of Conflict", "e": "⚔️", "details": "Valor, fortress, treaty, siege." },
+    { "id": "w12", "n": "Describing Personalities", "e": "👤", "details": "Meticulous, arrogant, empathetic." },
+    { "id": "w13", "n": "Academic & Formal English", "e": "🎓", "details": "Inquire, purchase, reside, commence." },
+    { "id": "w14", "n": "Figurative: Similes & Metaphors", "e": "✨", "details": "Comparisons and descriptions." },
+    { "id": "w15", "n": "Hyperbole & Personification", "e": "🗣️", "details": "Exaggeration and human traits." },
+    { "id": "w16", "n": "Homophones & Confusing Pairs", "e": "👯", "details": "Complement/Compliment, Principal/Principle." },
+    { "id": "w17", "n": "The Language of Technology", "e": "🛡️", "details": "Encryption, vulnerability, algorithm." },
+    { "id": "w18", "n": "Emotional Intelligence", "e": "🧠", "details": "Melancholy, serenity, resilience." },
+    { "id": "w19", "n": "The Arts & Culture", "e": "🎨", "details": "Aesthetic, rhythm, classical, legacy." },
+    { "id": "w20", "n": "Persuasion & Debate", "e": "⚖️", "details": "Consequently, fundamentally, nevertheless." }
+];
+
 export const SUBJECT_TEMPLATE = [
     {
         id: 'science',
