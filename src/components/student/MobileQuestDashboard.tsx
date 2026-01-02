@@ -48,7 +48,7 @@ export default function MobileQuestDashboard() {
 
     // --- STATE ---
     // Persistent stats
-    const [dailyProgress, setDailyProgress] = useState<Record<string, number>>({ Math: 0, Science: 0, Words: 0, World: 0 });
+    const [dailyProgress, setDailyProgress] = useState<Record<string, number>>({ Math: 0, Science: 0, Words: 0, World: 0, Tables: 0 });
     const [chapterProgress, setChapterProgress] = useState<Record<string, any>>({
         // Default unlocked starter chapters
         "Adding up to 20": { correct: 0, total: 0, unlocked: true, mastered: false },
@@ -85,6 +85,27 @@ export default function MobileQuestDashboard() {
                         const data = snap.data();
                         if (data.mastery) setChapterProgress(prev => ({ ...prev, ...data.mastery })); // Merge
                         if (data.daily) setDailyProgress(prev => ({ ...prev, ...data.daily }));
+
+                        // 4 AM Reset Logic
+                        // Check if lastActive is before today's 4 AM cutoff
+                        const lastDate = data.lastActive?.toDate();
+                        if (lastDate) {
+                            const now = new Date();
+                            const resetTime = new Date();
+                            resetTime.setHours(4, 0, 0, 0); // 4:00 AM today
+
+                            // If currently 2 AM, the reset time was yesterday 4 AM
+                            if (now < resetTime) {
+                                resetTime.setDate(resetTime.getDate() - 1);
+                            }
+
+                            if (lastDate < resetTime) {
+                                console.log("New Day Detected: Resetting Daily Progress");
+                                const zeros = { Math: 0, Science: 0, Words: 0, World: 0, Tables: 0 };
+                                setDailyProgress(zeros);
+                                updateDoc(docRef, { daily: zeros, lastActive: new Date() }).catch(console.error);
+                            }
+                        }
                     }
                 } catch (e) {
                     console.error("Error loading progress", e);
@@ -453,10 +474,15 @@ export default function MobileQuestDashboard() {
             {/* --- QUIZ view --- */}
             {view === 'quiz' && (
                 <div className="flex flex-col h-full relative z-10">
-                    <div className="flex-1 flex flex-col justify-center items-center px-6 max-w-xl mx-auto w-full">
+                    <div className="flex-1 flex flex-col justify-center items-center px-3 max-w-xl mx-auto w-full">
+
                         {/* Question Card */}
-                        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 shadow-xl w-full border-4 border-indigo-100 min-h-[200px] flex flex-col justify-center items-center text-center relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400" />
+                        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-5 shadow-xl w-full border-4 border-indigo-100 min-h-[200px] flex flex-col justify-center items-center text-center relative overflow-hidden">
+                            {/* Integrated Progress Bar */}
+                            <div
+                                className="absolute top-0 left-0 h-2 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 transition-all duration-500 ease-out"
+                                style={{ width: `${Math.min(100, ((currentQIndex + 1) / questions.length) * 100)}%` }}
+                            />
 
                             <h2 className="text-xl md:text-2xl font-black text-indigo-900 leading-snug">
                                 {renderLatexContent(questions[currentQIndex]?.question_text)}

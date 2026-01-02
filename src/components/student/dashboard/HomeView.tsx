@@ -122,24 +122,38 @@ export const HomeView: React.FC<HomeViewProps> = ({ dailyProgress, chapterProgre
                 })}
 
                 {/* Tables Card */}
-                <button
-                    onClick={onPlayTables}
-                    className="group relative p-6 h-40 rounded-[2.5rem] text-left transition-all active:scale-95 flex flex-col justify-between shadow-lg hover:shadow-xl bg-white shadow-purple-100 sm:col-span-1"
-                >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-teal-400 to-emerald-500 opacity-10 rounded-bl-[2.5rem] rounded-tr-[2.5rem] transition-all group-hover:scale-110" />
-                    <div className="flex justify-between items-start">
-                        <div className="p-3 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-500 text-white shadow-md">
-                            <Grid3x3 size={24} />
-                        </div>
-                    </div>
-                    <div className="z-10">
-                        <h3 className="font-black text-2xl mb-1 text-slate-800">Tables</h3>
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Master x1 to x12</p>
-                    </div>
-                    <div className="absolute bottom-6 right-6 p-2 bg-slate-50 rounded-full text-purple-300 group-hover:bg-purple-100 group-hover:text-purple-600 transition-colors">
-                        <Play size={20} fill="currentColor" />
-                    </div>
-                </button>
+                {/* Tables Card */}
+                {(() => {
+                    const isDoneToday = (dailyProgress['Tables'] || 0) >= 20;
+                    return (
+                        <button
+                            onClick={onPlayTables}
+                            className={`group relative p-6 h-40 rounded-[2.5rem] text-left transition-all active:scale-95 flex flex-col justify-between shadow-lg hover:shadow-xl sm:col-span-1
+                                ${isDoneToday ? 'bg-emerald-500 shadow-emerald-200' : 'bg-white shadow-purple-100'}
+                            `}
+                        >
+                            <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-teal-400 to-emerald-500 opacity-10 rounded-bl-[2.5rem] rounded-tr-[2.5rem] transition-all group-hover:scale-110`} />
+
+                            <div className="flex justify-between items-start">
+                                <div className={`p-3 rounded-2xl ${isDoneToday ? 'bg-white/20 text-white' : 'bg-gradient-to-br from-teal-400 to-emerald-500 text-white shadow-md'}`}>
+                                    <Grid3x3 size={24} />
+                                </div>
+                                {isDoneToday && <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black text-white uppercase tracking-wider">Complete</div>}
+                            </div>
+
+                            <div className="z-10">
+                                <h3 className={`font-black text-2xl mb-1 ${isDoneToday ? 'text-white' : 'text-slate-800'}`}>Tables</h3>
+                                <p className={`text-xs font-bold uppercase tracking-wider ${isDoneToday ? 'text-emerald-100' : 'text-slate-400'}`}>Master x1 to x12</p>
+                            </div>
+
+                            {!isDoneToday && (
+                                <div className="absolute bottom-6 right-6 p-2 bg-slate-50 rounded-full text-purple-300 group-hover:bg-purple-100 group-hover:text-purple-600 transition-colors">
+                                    <Play size={20} fill="currentColor" />
+                                </div>
+                            )}
+                        </button>
+                    );
+                })()}
             </div>
         </div>
     );

@@ -12,7 +12,9 @@ import {
     limit,
     getDocs,
     serverTimestamp,
-    Timestamp
+    Timestamp,
+    updateDoc,
+    increment
 } from 'firebase/firestore';
 
 export interface TableSettings {
@@ -86,6 +88,17 @@ export async function savePracticeSession(studentId: string, logs: Omit<Firestor
         studentId,
         timestamp: serverTimestamp()
     })));
+
+    // Sync with Main Dashboard Daily Progress
+    try {
+        const studentRef = doc(db, COLLECTION_USERS, studentId);
+        await updateDoc(studentRef, {
+            'daily.Tables': increment(logs.length),
+            lastActive: serverTimestamp()
+        });
+    } catch (e) {
+        console.error("Failed to sync daily tables progress", e);
+    }
 }
 
 /**
