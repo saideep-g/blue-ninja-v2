@@ -10,6 +10,8 @@ import CurriculumViewer from './components/curriculum/CurriculumViewer';
 import TemplateWorkbench from './components/templates/TemplateWorkbench';
 import UserProfile from './components/profile/UserProfile';
 import MobileQuestDashboard from './components/student/MobileQuestDashboard';
+import StudyEraDashboard from './components/student/dashboard/StudyEraDashboard';
+import StudyEraProfile from './components/profile/StudyEraProfile';
 
 // Routes
 import AdminRoutes from './routes/AdminRoutes';
@@ -24,7 +26,7 @@ import assessmentGuide from './data/cbse7_assessment_guide_v3.json';
  * Validates role and Redirects to appropriate dashboard.
  */
 function RootRedirector() {
-  const { user, userRole, loading, ninjaStats } = useNinja(); // Destructure ninjaStats
+  const { user, userRole, loading, ninjaStats } = useNinja();
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-blue-50">
@@ -53,11 +55,20 @@ function RootRedirector() {
     if (ninjaStats?.layout === 'mobile-quest-v1') {
       return <MobileQuestDashboard />;
     }
+    if (ninjaStats?.layout === 'study-era') {
+      return <StudyEraDashboard />;
+    }
     return <StudentApp />;
   }
 
   console.warn('Unknown role:', userRole);
   return <div className="p-8 text-center text-red-600">Unknown User Role: {userRole}</div>;
+}
+
+function ProfileRedirector() {
+  const { ninjaStats } = useNinja();
+  if (ninjaStats?.layout === 'study-era') return <StudyEraProfile />;
+  return <UserProfile />;
 }
 
 export default function App() {
@@ -82,8 +93,6 @@ export default function App() {
           {/* Admin Module - Delegated Routing */}
           <Route path="/admin/*" element={<AdminRoutes />} />
 
-
-
           <Route path="/tables/*" element={<TablesFeature />} />
 
           <Route
@@ -97,7 +106,7 @@ export default function App() {
             }
           />
           <Route path="/template/:templateId" element={<TemplateWorkbench />} />
-          <Route path="/profile" element={<UserProfile />} />
+          <Route path="/profile" element={<ProfileRedirector />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </NinjaProvider>

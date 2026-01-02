@@ -9,6 +9,7 @@ const SUBJECTS = [
     { id: 'science', name: 'Science' },
     { id: 'tables', name: 'Tables' },
     { id: 'vocabulary', name: 'Vocabulary' },
+    { id: 'english', name: 'English' },
     { id: 'gk', name: 'General Knowledge' },
 ];
 
@@ -21,7 +22,7 @@ export default function UserManagementDashboard() {
     // Edit State
     const [editingUser, setEditingUser] = useState<any | null>(null);
     const [editForm, setEditForm] = useState<{
-        layout: "default" | "mobile-quest-v1";
+        layout: "default" | "mobile-quest-v1" | "study-era";
         enrolledSubjects: string[];
     }>({ layout: 'default', enrolledSubjects: [] });
 
@@ -304,6 +305,17 @@ export default function UserManagementDashboard() {
                                         >
                                             <div className="font-black text-slate-800 mb-1">Mobile Quest v1</div>
                                             <p className="text-xs text-slate-500 leading-relaxed">Simplified, engaging mobile-first UI for younger students.</p>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setEditForm(p => ({ ...p, layout: 'study-era' }))}
+                                            className={`p-4 rounded-xl border-2 text-left transition-all
+                                                ${editForm.layout === 'study-era'
+                                                    ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200 ring-offset-2'
+                                                    : 'border-slate-100 hover:border-slate-200'}`}
+                                        >
+                                            <div className="font-black text-slate-800 mb-1">Study Era</div>
+                                            <p className="text-xs text-slate-500 leading-relaxed">Aesthetic dashboard with customizable subjects like Math, Science, Vocab.</p>
                                         </button>
                                     </div>
                                 </section>

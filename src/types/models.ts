@@ -16,7 +16,7 @@ export interface UserProfile {
     dailyQuestionCount: number; // 1-15
     diagnosticQuestionCount: number; // 1-30
     excludedChapters: string[];
-    layout?: "default" | "mobile-quest-v1";
+    layout?: "default" | "mobile-quest-v1" | "study-era";
     enrolledSubjects?: string[]; // IDs like 'math', 'science'
 }
 
@@ -80,8 +80,11 @@ export interface NinjaStats {
     activityLog?: string[]; // Array of YYYY-MM-DD strings indicating active practice days
 
     // Configuration
-    layout?: "default" | "mobile-quest-v1";
+    layout?: "default" | "mobile-quest-v1" | "study-era";
     enrolledSubjects?: string[]; // IDs like 'math', 'science'
+    profile?: UserProfile;
+    username?: string;
+    email?: string;
 }
 
 export interface QuestionLog {
