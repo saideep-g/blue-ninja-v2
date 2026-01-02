@@ -6,7 +6,7 @@ import coreCurriculum from '../../../data/cbse7_core_curriculum_v3.json';
 import { collection, query, where, getDocs, onSnapshot, orderBy, doc, getDoc, limit } from 'firebase/firestore';
 import { db } from '../../../services/db/firebase';
 import { Bundle, Challenge, User as UserModel, Question } from '../../../types/models';
-import { SUBJECT_TEMPLATE, VOCAB_CHAPTERS } from '../../../constants/studyEraData';
+import { SUBJECT_TEMPLATE, VOCAB_CHAPTERS, GEN_Z_GREETINGS } from '../../../constants/studyEraData';
 import MissionCard from '../../dashboard/MissionCard';
 import { X } from 'lucide-react';
 import { useDailyMission } from '../../../hooks/useDailyMission';
@@ -222,19 +222,6 @@ const StudyEraDashboard = () => {
     };
 
     // --- INITIALIZATION & DATA FETCHING ---
-
-    const GEN_Z_GREETINGS = [
-        "Let's get this bread 🍞", "Main character energy ✨", "Slay the day 💅", "No cap, you got this 🧢", "Vibe check passed ✅",
-        "It's giving genius 🧠", "CEO of learning 💼", "Manifesting 100% 🕯️", "Stay hydrated & educated 💧", "Big brain time 🤯",
-        "Lowkey unstoppable 🚀", "Highkey crushing it 🔥", "Woke up and chose success ☀️", "Sending positive vibes 📡", "Level up season 📈",
-        "Your potential is viral 🦠", "Straight fire today 🔥", "Periodt. 💅", "Icon behavior 🌟", "Living rent-free in success 🏠",
-        "Sheesh! Look at you go 🥶", "Glow up loading... ⏳", "Caught in 4K being smart 📸", "Bet on yourself 🤝", "Hits different when you study 📚",
-        "POV: You're crushing it 🎥", "Certified genius badge 📛", "Entering your winning era 🏆", "Mindset: Guccier than Gucci 👜", "Brain looking swole 💪",
-        "Don't sleep on your goals 😴", "Finna ace this quiz 💯", "Simply iconic 🖼️", "The moment is now ⏱️", "Secure the knowledge bag 💰",
-        "Serving intelligence 🍽️", "Gatekeeping good grades 🚫", "Understood the assignment 📝", "Valid effort only ✅", "Snapping on these questions 🫰",
-        "A whole mood 🌈", "Just built different 🏗️", "Academic weapon activated ⚔️", "Go off, bestie 👯", "Yeet the doubt 🚮",
-        "Cheugy-free zone 🚫", "Drip or drown? We maximize 💧", "Clout chaser? No, grade chaser 🏃", "Simping for success 😍", "Zoomer zoomer zoom 🏎️"
-    ];
 
     useEffect(() => {
         // Randomly select a Gen Z greeting each session
