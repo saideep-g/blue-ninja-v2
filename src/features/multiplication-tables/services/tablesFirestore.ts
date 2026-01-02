@@ -35,6 +35,15 @@ export interface FirestorePracticeLog {
     timestamp: any; // ServerTimestamp
 }
 
+export interface QuestionStats {
+    correct: number;
+    total: number;
+    timeSum: number;
+    speedSamples: number;
+    accuracy: number;
+    avgTime: number;
+}
+
 const COLLECTION_USERS = 'students'; // Reusing 'students' collection from main app
 const SUBCOLLECTION_SETTINGS = 'table_settings';
 const SUBCOLLECTION_LOGS = 'table_practice_logs';
@@ -146,4 +155,50 @@ export async function getStudentTableStats(studentId: string) {
             avgTime
         };
     });
+}
+
+/**
+ * Get Detailed Question Stats (Table x Multiplier)
+ * Returns a map: Table -> Multiplier -> { stats }
+ */
+export async function getDetailedTableStats(studentId: string) {
+    if (!studentId) return {};
+
+    const logsCol = collection(db, COLLECTION_USERS, studentId, SUBCOLLECTION_LOGS);
+    const q = query(logsCol, orderBy('timestamp', 'desc'), limit(500)); // Last 500 attempts focus
+    const snap = await getDocs(q);
+
+    const stats: Record<number, Record<number, QuestionStats>> = {};
+
+    snap.forEach(doc => {
+        const data = doc.data() as FirestorePracticeLog;
+        const t = data.table;
+        const m = data.multiplier;
+
+        if (!stats[t]) stats[t] = {};
+        if (!stats[t][m]) stats[t][m] = { correct: 0, total: 0, timeSum: 0, speedSamples: 0, accuracy: 0, avgTime: 0 };
+
+        const entry = stats[t][m];
+        entry.total++;
+        if (data.isCorrect) entry.correct++;
+
+        const isReasonableTime = data.timeTaken < 30000;
+        if (data.isValidForSpeed !== false && isReasonableTime && data.isCorrect) {
+            entry.timeSum += data.timeTaken || 0;
+            entry.speedSamples++;
+        }
+    });
+
+    // Calculate Averages
+    Object.keys(stats).forEach(tKey => {
+        const t = parseInt(tKey);
+        Object.keys(stats[t]).forEach(mKey => {
+            const m = parseInt(mKey);
+            const s = stats[t][m];
+            s.accuracy = s.total > 0 ? (s.correct / s.total) * 100 : 0;
+            s.avgTime = (s.speedSamples > 0 && s.timeSum > 0) ? (s.timeSum / s.speedSamples) : 0;
+        });
+    });
+
+    return stats;
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Star, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Star, TrendingUp, CheckCircle2, Grid3x3 } from 'lucide-react';
 import { EraProgressBar } from './EraProgressBar';
 import { User as UserModel } from '../../../../types/models';
 
@@ -10,6 +10,7 @@ interface EraSubjectGridProps {
     onOpenArena: () => void;
     onSelectSubject: (subject: any) => void;
     selectedSubjectId?: string;
+    onOpenTables: () => void;
 }
 
 export const EraSubjectGrid: React.FC<EraSubjectGridProps> = ({
@@ -18,8 +19,17 @@ export const EraSubjectGrid: React.FC<EraSubjectGridProps> = ({
     auraPoints,
     onOpenArena,
     onSelectSubject,
-    selectedSubjectId
+    selectedSubjectId,
+    onOpenTables
 }) => {
+    const tablesSubject = subjects.find(s => s.id === 'tables');
+    const tablesMastery = tablesSubject ? Math.round(tablesSubject.modules.reduce((a: any, b: any) => {
+        if (b.atoms) {
+            return a + b.atoms.reduce((x: any, y: any) => x + y.mastery, 0) / (b.atoms.length || 1);
+        }
+        return a + (b.mastery || 0);
+    }, 0) / (tablesSubject.modules.length || 1)) : 0;
+
     return (
         <div className="lg:col-span-8 space-y-10">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -69,7 +79,29 @@ export const EraSubjectGrid: React.FC<EraSubjectGridProps> = ({
                     <button onClick={onOpenArena} className="text-[10px] font-bold text-pink-400 uppercase tracking-widest hover:underline decoration-2 underline-offset-4">Try Fun Challenges</button>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                    {subjects.map((subject) => {
+                    {/* Tables Strategy Module (Custom) */}
+                    <button onClick={onOpenTables} className="group relative p-8 rounded-[3rem] border-2 text-left transition-all duration-500 overflow-hidden bg-white border-violet-100 hover:border-violet-300 shadow-sm hover:shadow-xl">
+                        <div className="flex justify-between items-start mb-8">
+                            <div className="w-14 h-14 rounded-[2rem] bg-gradient-to-br from-violet-400 to-fuchsia-500 text-white flex items-center justify-center text-3xl shadow-sm group-hover:rotate-12 transition-transform duration-500">
+                                <Grid3x3 size={24} />
+                            </div>
+                            {tablesSubject?.completedToday && (
+                                <div className="w-6 h-6 bg-pink-50 rounded-full flex items-center justify-center text-pink-400 border border-pink-100 shadow-sm">
+                                    <CheckCircle2 size={14} fill="currentColor" stroke="white" />
+                                </div>
+                            )}
+                        </div>
+                        <h4 className="font-serif italic text-lg text-gray-800 leading-tight group-hover:text-violet-600 transition-colors">Tables Era</h4>
+                        <div className="mt-4 w-full h-1.5 bg-violet-50 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-violet-400 to-fuchsia-500 shadow-[0_0_10px_rgba(167,139,250,0.5)] transition-all duration-1000" style={{ width: `${tablesMastery}%` }}></div>
+                        </div>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-2 group-hover:text-violet-400">
+                            {tablesMastery}% Mastery
+                        </p>
+                    </button>
+
+                    {/* Other Subjects */}
+                    {subjects.filter(s => s.id !== 'tables').map((subject) => {
                         const mastery = Math.round(subject.modules.reduce((a: any, b: any) => {
                             if (b.atoms) {
                                 return a + b.atoms.reduce((x: any, y: any) => x + y.mastery, 0) / (b.atoms.length || 1);

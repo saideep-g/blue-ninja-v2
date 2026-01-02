@@ -52,17 +52,18 @@ export default function PracticeSession() {
     }, [userClass, isAdvanced, rawClass]);
 
     const theme = isAdvanced ? {
-        bg: "bg-slate-900",
-        cardBg: "bg-slate-800 border border-slate-700",
-        text: "text-white",
-        accent: "text-cyan-400",
-        button: "bg-cyan-600 hover:bg-cyan-500 text-white shadow-[0_0_15px_rgba(8,145,178,0.5)]",
-        secondaryButton: "bg-slate-700 text-slate-300 border-slate-600",
-        numpadBg: "bg-slate-800 text-cyan-50 border-slate-700 hover:bg-slate-700",
-        numpadActive: "border-cyan-500",
-        progressBar: "bg-cyan-500 shadow-[0_0_10px_#06b6d4]",
-        feedbackCorrect: "text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]",
-        feedbackBg: "bg-slate-900/90"
+        // Study Era "Soft & Smart" Theme
+        bg: "bg-[#FAF9F6]",
+        cardBg: "bg-white/80 backdrop-blur-xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)]",
+        text: "text-[#4A4A4A]",
+        accent: "text-[#FF8DA1]",
+        button: "bg-[#FF8DA1] hover:bg-[#ff7b93] text-white shadow-[0_10px_20px_rgba(255,141,161,0.3)]",
+        secondaryButton: "bg-gray-100 text-gray-400 font-medium hover:bg-gray-200",
+        numpadBg: "bg-white text-gray-600 border border-gray-100 hover:bg-pink-50 hover:border-pink-200 transition-colors",
+        numpadActive: "border-pink-300 bg-pink-50",
+        progressBar: "bg-[#FF8DA1]",
+        feedbackCorrect: "text-[#FF8DA1] drop-shadow-sm",
+        feedbackBg: "bg-white/90"
     } : {
         bg: "bg-slate-50",
         cardBg: "bg-white shadow-xl",
@@ -90,86 +91,139 @@ export default function PracticeSession() {
     const [streak, setStreak] = useState(0);
     const [masteryFetched, setMasteryFetched] = useState(false);
     const [masteryLimit, setMasteryLimit] = useState(10); // Default for Advanced
+    const [detailedStats, setDetailedStats] = useState<Record<number, Record<number, any>>>({}); // New detailed stats
 
     // Fetch Mastery Stats for Advanced Mode
     useEffect(() => {
-        if (!isAdvanced || !user) {
+        if (!user) {
             setMasteryFetched(true);
             return;
         }
 
-        console.log('[PracticeSession] Fetching mastery stats for dynamic limits...');
-        getStudentTableStats(user.uid).then(stats => {
-            let maxMastered = 10;
-            stats.forEach(s => {
-                // Definition of Mastery: 80% accuracy after 20+ attempts
-                // This creates a "Safe Zone" where we assume the student knows the table well enough to use it as a multiplier
-                if (s.accuracy >= 80 && s.totalAttempts >= 20) {
-                    if (s.table > maxMastered) maxMastered = s.table;
-                }
-            });
+        const loadStats = async () => {
+            // 1. General Stats for Limit
+            if (isAdvanced) {
+                console.log('[PracticeSession] Fetching mastery stats for dynamic limits...');
+                try {
+                    const stats = await getStudentTableStats(user.uid);
+                    let maxMastered = 10;
+                    stats.forEach(s => {
+                        if (s.accuracy >= 80 && s.totalAttempts >= 20) {
+                            if (s.table > maxMastered) maxMastered = s.table;
+                        }
+                    });
+                    const limit = Math.max(10, maxMastered);
+                    setMasteryLimit(limit);
 
-            const limit = Math.max(10, maxMastered);
-            console.log(`[PracticeSession] Max Mastered: ${maxMastered}, Multiplier Limit: ${limit}`);
-            setMasteryLimit(limit);
+                    // 2. Detailed Stats for Adaptive Selection
+                    const detailed = await import('../services/tablesFirestore').then(m => m.getDetailedTableStats(user.uid));
+                    setDetailedStats(detailed);
+                } catch (e) {
+                    console.error("Error fetching stats", e);
+                }
+            }
             setMasteryFetched(true);
-        });
+        };
+
+        loadStats();
+
     }, [user, isAdvanced]);
 
-    // Initialize Session
+    // Initialize Session with Adaptive Logic
     useEffect(() => {
         if (!masteryFetched) return; // Wait for mastery check
 
         console.log(`[PracticeSession] Generating questions. Tables: ${selectedTables.join(', ')}`);
-        const newQuestions: Question[] = [];
 
-        // Available multipliers
-        // Advanced Mode (Grade 7+): Multiplier capped at MAX(10, highest_mastered_table).
-        // Rationale: Expand safe zone dynamically. If mastered table 12, allows 10x12, 14x12...
-        // Standard Mode (Grade 2-6): Standard curriculum often goes up to 12x12.
-        const limit = isAdvanced ? masteryLimit : 12;
-        const multipliers = Array.from({ length: limit }, (_, i) => i + 1);
+        // 1. Build Candidate Pool with Weights
+        const candidates: { table: number, multiplier: number, weight: number }[] = [];
 
-        // Generate pool of questions
-        selectedTables.forEach((table: number) => {
-            multipliers.forEach((mult: number) => {
-                // Direct: 2 x 3 = ?
-                newQuestions.push({
-                    id: `${table}-x-${mult}-direct`,
-                    table,
-                    multiplier: mult,
-                    type: 'DIRECT',
-                    correctAnswer: table * mult
-                });
+        selectedTables.forEach(t => {
+            // Multiplier Range
+            const limit = isAdvanced ? masteryLimit : 12;
+            for (let m = 1; m <= limit; m++) {
+                // Exclusion Logic for Advanced Mode: No x1 or x10
+                if (isAdvanced && (m === 1 || m === 10)) continue;
 
-                // Missing Multiplier logic
-                // Grade 2: 20% chance
-                // Grade 7: 40% chance (increases challenge)
-                const missingChance = isAdvanced ? 0.4 : 0.2;
+                // Weight Calculation
+                let weight = 10; // Base Weight
 
-                if (Math.random() < missingChance) {
-                    newQuestions.push({
-                        id: `${table}-x-${mult}-missing`,
-                        table,
-                        multiplier: mult,
-                        type: 'MISSING_MULTIPLIER',
-                        correctAnswer: mult
-                    });
+                if (isAdvanced) {
+                    // Get stats
+                    const stat = detailedStats && detailedStats[t] && detailedStats[t][m];
+                    if (stat) {
+                        // Heavily penalize low accuracy to force practice
+                        if (stat.accuracy < 70) weight += 100;
+                        else if (stat.accuracy < 90) weight += 50;
+
+                        // Prioritize slow answers
+                        if (stat.avgTime > 6000) weight += 40; // >6 seconds
+                        else if (stat.avgTime > 4000) weight += 20; // >4 seconds
+
+                        // Ensure we revisit "mastered" ones occasionally (base weight handles this)
+
+                        // If total attempts is low, boost it to categorize it
+                        if (stat.total < 5) weight += 30;
+                    } else {
+                        // Completely new/unseen
+                        weight += 50;
+                    }
                 }
-            });
+
+                candidates.push({ table: t, multiplier: m, weight });
+            }
         });
 
-        // Shuffle
-        for (let i = newQuestions.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [newQuestions[i], newQuestions[j]] = [newQuestions[j], newQuestions[i]];
+        // Helper: Weighted Random Picker
+        const pickWeighted = (): { table: number, multiplier: number } => {
+            if (candidates.length === 0) return { table: 2, multiplier: 2 }; // Fallback
+
+            const totalWeight = candidates.reduce((s, c) => s + c.weight, 0);
+            let random = Math.random() * totalWeight;
+
+            for (const cand of candidates) {
+                random -= cand.weight;
+                if (random <= 0) return cand;
+            }
+            return candidates[candidates.length - 1];
+        };
+
+        const newQuestions: Question[] = [];
+        const sessionLength = isAdvanced ? 25 : 20;
+
+        // Generate Questions
+        const usedIds = new Set<string>();
+
+        for (let i = 0; i < sessionLength; i++) {
+            let selected = pickWeighted();
+            let uniqueKey = `${selected.table}x${selected.multiplier}`;
+
+            // Try to avoid immediate duplicates if pool is large enough
+            let retries = 5;
+            while (usedIds.has(uniqueKey) && candidates.length > 5 && retries > 0) {
+                selected = pickWeighted();
+                uniqueKey = `${selected.table}x${selected.multiplier}`;
+                retries--;
+            }
+            usedIds.add(uniqueKey);
+
+            // Determine Type
+            // Grade 2: 20% Missing Mutliplier
+            // Grade 7 (Advanced): 40% Missing Multiplier
+            const missingChance = isAdvanced ? 0.4 : 0.2;
+            const type: QuestionType = Math.random() < missingChance ? 'MISSING_MULTIPLIER' : 'DIRECT';
+
+            newQuestions.push({
+                id: `${selected.table}-x-${selected.multiplier}-${type}-${i}`, // Unique ID even if duplicate fact
+                table: selected.table,
+                multiplier: selected.multiplier,
+                type: type,
+                correctAnswer: type === 'MISSING_MULTIPLIER' ? selected.multiplier : (selected.table * selected.multiplier)
+            });
         }
 
-        // Session Length
-        // Grade 7 users might want a longer session? Keeping 20 for now to be "snackable".
-        const sessionLength = isAdvanced ? 25 : 20;
-        setQuestions(newQuestions.slice(0, sessionLength));
-    }, [selectedTables, isAdvanced, masteryFetched, masteryLimit]); // Re-run when mastery is fetched
+        setQuestions(newQuestions);
+    }, [selectedTables, isAdvanced, masteryFetched, masteryLimit, detailedStats]);
 
     // Intercept Back Button
     useEffect(() => {
@@ -279,9 +333,8 @@ export default function PracticeSession() {
             {/* Background Animations */}
             {isAdvanced ? (
                 <>
-                    <div className="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-600 opacity-50" />
-                    <div className="fixed bottom-0 right-0 w-96 h-96 bg-cyan-900/20 rounded-full filter blur-3xl" />
-                    <div className="fixed top-20 left-10 w-64 h-64 bg-purple-900/20 rounded-full filter blur-3xl animate-pulse" />
+                    <div className="fixed -top-20 -right-20 w-96 h-96 bg-pink-100/50 rounded-full blur-[100px] animate-pulse" />
+                    <div className="fixed bottom-0 -left-20 w-80 h-80 bg-purple-100/40 rounded-full blur-[120px]" />
                 </>
             ) : (
                 // Original playful blobs
@@ -291,19 +344,19 @@ export default function PracticeSession() {
 
             {/* Top Bar */}
             <div className="w-full p-4 flex justify-between items-center max-w-lg mx-auto z-10">
-                <button onClick={() => navigate('/tables')} className={`p-2 rounded-full hover:bg-opacity-80 transition ${isAdvanced ? 'bg-slate-800 text-cyan-400' : 'bg-white text-slate-600'}`}>
+                <button onClick={() => navigate('/tables')} className={`p-2 rounded-full hover:bg-opacity-80 transition ${isAdvanced ? 'bg-white shadow-sm text-pink-400' : 'bg-white text-slate-600'}`}>
                     <ChevronLeft className="w-6 h-6" />
                 </button>
                 <div className="flex gap-2 items-center flex-1 mx-4">
-                    <div className={`h-2 flex-1 rounded-full overflow-hidden ${isAdvanced ? 'bg-slate-700' : 'bg-slate-200'}`}>
+                    <div className={`h-2 flex-1 rounded-full overflow-hidden ${isAdvanced ? 'bg-pink-100' : 'bg-slate-200'}`}>
                         <div
                             className={`h-full transition-all duration-500 ${theme.progressBar}`}
                             style={{ width: `${((currentIndex) / questions.length) * 100}%` }}
                         />
                     </div>
-                    <span className={`text-xs font-bold ${isAdvanced ? 'text-slate-500' : 'text-slate-400'}`}>{currentIndex + 1}/{questions.length}</span>
+                    <span className={`text-xs font-bold ${isAdvanced ? 'text-pink-400' : 'text-slate-400'}`}>{currentIndex + 1}/{questions.length}</span>
                 </div>
-                <div className={`flex items-center gap-1 font-bold ${isAdvanced ? 'text-cyan-400' : 'text-orange-500'}`}>
+                <div className={`flex items-center gap-1 font-bold ${isAdvanced ? 'text-[#FF8DA1]' : 'text-orange-500'}`}>
                     {isAdvanced ? <Zap className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
                     <span>{streak}</span>
                 </div>
@@ -321,8 +374,7 @@ export default function PracticeSession() {
                         exit={{ opacity: 0, x: -50 }}
                         className={`${theme.cardBg} w-full rounded-3xl p-8 mb-8 flex flex-col items-center justify-center min-h-[220px] transition-colors duration-300 relative overflow-hidden`}
                     >
-                        {isAdvanced && <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />}
-
+                        {isAdvanced && <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-pink-300/50 to-transparent" />}
                         <div className={`text-6xl font-black tracking-tighter flex items-center gap-4 ${theme.text}`}>
                             {currentQuestion.type === 'DIRECT' ? (
                                 <>
@@ -330,7 +382,7 @@ export default function PracticeSession() {
                                     <span className={theme.accent}>×</span>
                                     <span>{currentQuestion.multiplier}</span>
                                     <span className="opacity-40">=</span>
-                                    <span className={`min-w-[80px] text-center border-b-4 ${userAnswer ? (isAdvanced ? 'border-cyan-500 text-cyan-400' : 'border-indigo-500 text-indigo-600') : (isAdvanced ? 'border-slate-600' : 'border-slate-200')} pb-2 transition-colors`}>
+                                    <span className={`min-w-[80px] text-center border-b-4 ${userAnswer ? (isAdvanced ? 'border-pink-400 text-pink-500' : 'border-indigo-500 text-indigo-600') : (isAdvanced ? 'border-pink-100' : 'border-slate-200')} pb-2 transition-colors`}>
                                         {userAnswer || '?'}
                                     </span>
                                 </>
@@ -338,7 +390,7 @@ export default function PracticeSession() {
                                 <>
                                     <span>{currentQuestion.table}</span>
                                     <span className={theme.accent}>×</span>
-                                    <span className={`min-w-[80px] text-center border-b-4 ${userAnswer ? (isAdvanced ? 'border-cyan-500 text-cyan-400' : 'border-indigo-500 text-indigo-600') : (isAdvanced ? 'border-slate-600' : 'border-slate-200')} pb-2 transition-colors`}>
+                                    <span className={`min-w-[80px] text-center border-b-4 ${userAnswer ? (isAdvanced ? 'border-fuchsia-500 text-fuchsia-400' : 'border-indigo-500 text-indigo-600') : (isAdvanced ? 'border-violet-600' : 'border-slate-200')} pb-2 transition-colors`}>
                                         {userAnswer || '?'}
                                     </span>
                                     <span className="opacity-40">=</span>
@@ -358,9 +410,9 @@ export default function PracticeSession() {
                             exit={{ opacity: 0 }}
                             className={`absolute inset-0 flex items-center justify-center ${theme.feedbackBg} backdrop-blur-sm z-20 pointer-events-none`}
                         >
-                            <div className={`${theme.feedbackCorrect} font-black text-6xl flex flex-col items-center gap-4`}>
+                            <div className={`${theme.feedbackCorrect} font-black text-6xl flex flex-col items-center gap-4 text-center`}>
                                 {isAdvanced ? <Zap size={64} /> : null}
-                                {isAdvanced ? "SYSTEM OPTIMAL" : "AWESOME!"}
+                                {isAdvanced ? "SLAY!" : "AWESOME!"}
                             </div>
                         </motion.div>
                     )}

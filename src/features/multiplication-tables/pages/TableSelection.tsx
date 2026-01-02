@@ -71,7 +71,7 @@ export default function TableSelection() {
     };
 
     if (loading) return (
-        <div className={`min-h-screen flex items-center justify-center text-2xl font-bold ${isAdvanced ? 'bg-slate-900 text-cyan-400' : 'bg-slate-50 text-slate-400'}`}>
+        <div className={`min-h-screen flex items-center justify-center text-2xl font-bold ${isAdvanced ? 'bg-[#FAF9F6] text-[#FF8DA1]' : 'bg-slate-50 text-slate-400'}`}>
             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
                 {isAdvanced ? <Zap size={48} /> : <Sparkles size={48} />}
             </motion.div>
@@ -79,33 +79,33 @@ export default function TableSelection() {
     );
 
     return (
-        <div className={`max-w-4xl mx-auto p-6 flex flex-col items-center justify-center min-h-screen relative overflow-hidden transition-colors duration-500 ${isAdvanced ? 'bg-slate-900' : 'bg-slate-50'}`}>
+        <div className={`max-w-4xl mx-auto p-6 flex flex-col items-center justify-center min-h-screen relative overflow-hidden transition-colors duration-500 ${isAdvanced ? 'bg-[#FAF9F6]' : 'bg-slate-50'}`}>
 
             <header className="mb-12 text-center z-10">
                 <div
                     onClick={() => setShowDebug(!showDebug)}
-                    className={`text-5xl font-extrabold mb-4 tracking-tight cursor-pointer select-none ${isAdvanced ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500' : 'text-indigo-600'}`}
+                    className={`text-5xl font-extrabold mb-4 tracking-tight cursor-pointer select-none ${isAdvanced ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400' : 'text-indigo-600'}`}
                 >
-                    {isAdvanced ? 'QUANTUM TABLES' : 'Times Tables'}
+                    {isAdvanced ? 'Tables Era' : 'Times Tables'}
                 </div>
-                <p className={`text-xl ${isAdvanced ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {isAdvanced ? 'Optimize your calculation matrix.' : 'Master your multiplication powers!'}
+                <p className={`text-xl ${isAdvanced ? 'text-gray-400 font-serif italic' : 'text-slate-500'}`}>
+                    {isAdvanced ? 'Optimize your mastery speed.' : 'Master your multiplication powers!'}
                 </p>
-                <div className="mt-2 text-xs opacity-50 font-mono">
-                    Class: {userClass} | Mode: {isAdvanced ? 'Advanced' : 'Standard'}
+                <div className="mt-2 text-xs opacity-50 font-mono text-gray-400">
+                    Class: {userClass} | Mode: {isAdvanced ? 'Speed' : 'Standard'}
                 </div>
             </header>
 
-            <div className={`rounded-3xl shadow-xl p-12 w-full max-w-xl border text-center z-10 transition-all ${isAdvanced ? 'bg-slate-800 border-slate-700' : 'bg-white border-indigo-50'}`}>
+            <div className={`rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-12 w-full max-w-xl border text-center z-10 transition-all ${isAdvanced ? 'bg-white/80 backdrop-blur-xl border-white' : 'bg-white border-indigo-50'}`}>
                 {assignedTables.length > 0 ? (
                     <>
                         <div className="mb-8">
-                            <p className={`text-lg mb-4 ${isAdvanced ? 'text-slate-300' : 'text-slate-600'}`}>
+                            <p className={`text-lg mb-4 ${isAdvanced ? 'text-gray-500 font-medium' : 'text-slate-600'}`}>
                                 {isAdvanced ? 'Active protocols:' : 'Your current mission covers tables:'}
                             </p>
                             <div className="flex flex-wrap justify-center gap-2">
                                 {assignedTables.slice().sort((a, b) => a - b).map(t => (
-                                    <span key={t} className={`px-4 py-2 rounded-full font-bold text-xl ${isAdvanced ? 'bg-slate-700 text-cyan-400 border border-slate-600' : 'bg-indigo-100 text-indigo-700'}`}>
+                                    <span key={t} className={`px-4 py-2 rounded-full font-bold text-xl ${isAdvanced ? 'bg-pink-50 text-pink-500 border border-pink-100' : 'bg-indigo-100 text-indigo-700'}`}>
                                         x{t}
                                     </span>
                                 ))}
@@ -116,29 +116,29 @@ export default function TableSelection() {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={startSession}
-                            className={`w-full py-6 rounded-2xl text-3xl font-bold shadow-xl hover:shadow-2xl flex items-center justify-center gap-4 transition-all ${isAdvanced ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-900/50' : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white'}`}
+                            className={`w-full py-6 rounded-2xl text-2xl font-bold shadow-xl hover:shadow-2xl flex items-center justify-center gap-4 transition-all ${isAdvanced ? 'bg-[#FF8DA1] hover:bg-[#ff7b93] text-white shadow-[0_10px_20px_rgba(255,141,161,0.3)]' : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white'}`}
                         >
                             <Play className="w-8 h-8 fill-current" />
-                            {isAdvanced ? 'INITIATE' : 'Start Practice'}
+                            {isAdvanced ? 'Start Session' : 'Start Practice'}
                         </motion.button>
                     </>
                 ) : (
                     <div className="py-8">
-                        <p className={`text-xl font-medium mb-4 ${isAdvanced ? 'text-slate-400' : 'text-slate-400'}`}>No protocols assigned.</p>
-                        <p className={`${isAdvanced ? 'text-slate-500' : 'text-slate-500'}`}>Ask admin to configure target vectors.</p>
+                        <p className={`text-xl font-medium mb-4 ${isAdvanced ? 'text-gray-400' : 'text-slate-400'}`}>No protocols assigned.</p>
+                        <p className={`${isAdvanced ? 'text-gray-400' : 'text-slate-500'}`}>Ask admin to configure target vectors.</p>
                     </div>
                 )}
 
-                <div className={`mt-8 pt-8 border-t ${isAdvanced ? 'border-slate-700' : 'border-slate-100'}`}>
+                <div className={`mt-8 pt-8 border-t ${isAdvanced ? 'border-gray-100' : 'border-slate-100'}`}>
                     <button
                         onClick={() => navigate('/')}
-                        className={`text-sm font-bold mb-4 flex items-center justify-center gap-2 w-full py-2 rounded-xl transition-colors ${isAdvanced ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                        className={`text-sm font-bold mb-4 flex items-center justify-center gap-2 w-full py-2 rounded-xl transition-colors ${isAdvanced ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                     >
                         ← Back to Dashboard
                     </button>
                     <button
                         onClick={() => navigate('/tables/parent')}
-                        className={`text-sm font-medium hover:underline ${isAdvanced ? 'text-slate-500 hover:text-cyan-400' : 'text-slate-400 hover:text-slate-600'}`}
+                        className={`text-sm font-medium hover:underline ${isAdvanced ? 'text-gray-400 hover:text-pink-400' : 'text-slate-400 hover:text-slate-600'}`}
                     >
                         Parent Dashboard (Admin)
                     </button>
@@ -170,8 +170,8 @@ export default function TableSelection() {
             {/* Decorative background elements */}
             {isAdvanced ? (
                 <>
-                    <div className="fixed top-20 right-20 w-96 h-96 bg-blue-900/20 rounded-full filter blur-3xl animate-pulse" />
-                    <div className="fixed bottom-20 left-20 w-64 h-64 bg-cyan-900/10 rounded-full filter blur-3xl" />
+                    <div className="fixed -top-20 -right-20 w-96 h-96 bg-pink-100/50 rounded-full blur-[100px] animate-pulse" />
+                    <div className="fixed bottom-0 -left-20 w-80 h-80 bg-purple-100/40 rounded-full blur-[120px]" />
                 </>
             ) : (
                 <>

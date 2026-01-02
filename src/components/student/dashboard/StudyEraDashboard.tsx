@@ -275,6 +275,7 @@ const StudyEraDashboard = () => {
                             onOpenArena={() => { setCurrentView('challenges'); setArenaSubView('create'); }}
                             onSelectSubject={setSelectedSubject}
                             selectedSubjectId={selectedSubject?.id}
+                            onOpenTables={() => navigate('/tables')}
                         />
 
                         <div className="lg:col-span-4 sticky top-8 h-[700px]">
