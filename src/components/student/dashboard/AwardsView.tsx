@@ -16,18 +16,18 @@ export const AwardsView: React.FC<AwardsViewProps> = ({ masteryProgress, onPlayC
 
     return (
         <div className="px-6 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="mb-6">
+            <div className="mb-6 text-center">
                 <h2 className="text-3xl font-black text-purple-900 leading-tight">Treasure Map</h2>
                 <p className="text-sm font-medium text-slate-500">Your collection of badges and medals.</p>
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide sm:justify-center">
                 {TASKS.map(t => (
                     <button
                         key={t}
                         onClick={() => setActiveTab(t)}
-                        className={`px-5 py-2.5 rounded-2xl text-sm font-black transition-all whitespace-nowrap
+                        className={`flex items-center justify-center px-5 py-2.5 rounded-2xl text-sm font-black transition-all whitespace-nowrap
                             ${activeTab === t
                                 ? 'bg-purple-600 text-white shadow-lg shadow-purple-200 scale-105'
                                 : 'bg-white text-slate-400 border border-slate-100'
@@ -61,7 +61,7 @@ export const AwardsView: React.FC<AwardsViewProps> = ({ masteryProgress, onPlayC
                                     onPlayChapter(activeTab, chapter);
                                 }
                             }}
-                            className={`relative text-left p-4 rounded-[2rem] border-b-4 transition-all active:scale-95 flex flex-col items-center text-center
+                            className={`relative p-4 rounded-[2rem] border-b-4 transition-all active:scale-95 flex flex-col items-center text-center
                                 ${isMastered
                                     ? 'bg-indigo-50 border-indigo-200'
                                     : isUnlocked
@@ -76,10 +76,10 @@ export const AwardsView: React.FC<AwardsViewProps> = ({ masteryProgress, onPlayC
                                 {isMastered ? '🏆' : (isUnlocked ? chapter.e : '🔒')}
                             </div>
 
-                            <h3 className={`font-black text-sm leading-tight mb-1 ${isMastered ? 'text-indigo-900' : 'text-slate-700'}`}>
+                            <h3 className={`font-black text-sm leading-tight mb-1 w-full text-center ${isMastered ? 'text-indigo-900' : 'text-slate-700'}`}>
                                 {chapter.award}
                             </h3>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-3">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-3 w-full text-center">
                                 {chapter.n}
                             </p>
 
@@ -95,7 +95,7 @@ export const AwardsView: React.FC<AwardsViewProps> = ({ masteryProgress, onPlayC
                                         {/* Mock progress or real progress */}
                                         <div className="h-full bg-purple-400" style={{ width: `${(progress.questionsAnswered || 0) / (chapter.req || 50) * 100}%` }} />
                                     </div>
-                                    <p className="text-[9px] text-slate-400 font-bold mt-1">
+                                    <p className="text-[9px] text-slate-400 font-bold mt-1 text-center w-full">
                                         {(progress.questionsAnswered || 0)} / {chapter.req || 50}
                                     </p>
                                 </div>
@@ -110,6 +110,6 @@ export const AwardsView: React.FC<AwardsViewProps> = ({ masteryProgress, onPlayC
                 <h3 className="font-black text-xl mb-2">Final Master Badge</h3>
                 <p className="text-sm text-indigo-100 opacity-80">Complete all chapters to rule the realm!</p>
             </div>
-        </div>
+        </div >
     );
 };
