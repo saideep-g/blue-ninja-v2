@@ -22,13 +22,18 @@ interface Feedback {
 
 const LatexRenderer = ({ text }: { text: string | null }) => {
     if (!text) return null;
-    const parts = text.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g);
+    // Split by LaTeX ($$ or $) AND Markdown Bold (**)
+    const parts = text.split(/(\$\$[^$]+\$\$|\$[^$]+\$|\*\*[^*]+\*\*)/g);
     return (
         <>
             {parts.map((part, i) => {
                 if ((part.startsWith('$$') && part.endsWith('$$')) || (part.startsWith('$') && part.endsWith('$'))) {
                     const math = part.startsWith('$$') ? part.slice(2, -2) : part.slice(1, -1);
                     return <span key={i} className="font-sans not-italic inline-block mx-1"><InlineMath math={math} /></span>;
+                }
+                if (part.startsWith('**') && part.endsWith('**')) {
+                    const content = part.slice(2, -2);
+                    return <strong key={i} className="font-black text-indigo-900">{content}</strong>;
                 }
                 return <span key={i}>{part}</span>;
             })}

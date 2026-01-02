@@ -8,7 +8,7 @@ interface EraSubjectGridProps {
     totalCompletedToday: number;
     auraPoints: number;
     onOpenArena: () => void;
-    onSelectSubject: (subject: any) => void;
+    onSelectSubject: (subject: any, e: React.MouseEvent) => void;
     selectedSubjectId?: string;
     onOpenTables: () => void;
 }
@@ -110,7 +110,7 @@ export const EraSubjectGrid: React.FC<EraSubjectGridProps> = ({
                         }, 0) / (subject.modules.length || 1));
 
                         return (
-                            <button key={subject.id} onClick={() => onSelectSubject(subject)} className={`group relative p-8 rounded-[3rem] border-2 text-left transition-all duration-500 overflow-hidden ${selectedSubjectId === subject.id ? 'bg-white border-pink-200 shadow-xl' : 'bg-white/40 border-white hover:bg-white hover:border-pink-50 shadow-sm'}`}>
+                            <button key={subject.id} onClick={(e) => onSelectSubject(subject, e)} className={`group relative p-8 rounded-[3rem] border-2 text-left transition-all duration-500 overflow-hidden ${selectedSubjectId === subject.id ? 'bg-white border-pink-200 shadow-xl' : 'bg-white/40 border-white hover:bg-white hover:border-pink-50 shadow-sm'}`}>
                                 <div className="flex justify-between items-start mb-8">
                                     <div className={`w-14 h-14 rounded-[2rem] bg-gradient-to-br ${subject.color} flex items-center justify-center text-3xl shadow-sm group-hover:rotate-12 transition-transform duration-500`}>{subject.icon}</div>
                                     {subject.completedToday && <div className="w-6 h-6 bg-pink-50 rounded-full flex items-center justify-center text-pink-400 border border-pink-100 shadow-sm"><CheckCircle2 size={14} fill="currentColor" stroke="white" /></div>}
