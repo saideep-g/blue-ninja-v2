@@ -12,10 +12,10 @@ import { CHAPTERS } from '../../../constants/chapters';
 import 'katex/dist/katex.min.css';
 
 // Components
-import { StudentHeader } from './StudentHeader';
-import { HomeView } from './HomeView';
-import { AwardsView } from './AwardsView';
-import { ProfileView } from './ProfileView';
+import { StudentHeader } from './quest/StudentHeader';
+import { HomeView } from './quest/HomeView';
+import { AwardsView } from './quest/AwardsView';
+import { ProfileView } from './quest/ProfileView';
 import { MobileChallengeArena } from '../challenges/MobileChallengeArena';
 
 // Quest Components

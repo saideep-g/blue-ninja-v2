@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Sparkles, CheckCircle2 } from 'lucide-react';
-import { CHAPTERS } from '../../../constants/chapters'; // Assuming path
+import { CHAPTERS } from '../../../../constants/chapters'; // Assuming path
 
 interface AwardsViewProps {
     masteryProgress: Record<string, any>;

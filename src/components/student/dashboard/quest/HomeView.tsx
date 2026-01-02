@@ -1,6 +1,6 @@
 import React from 'react';
 import { BookOpen, Beaker, MessageSquare, Globe, Play, Grid3x3, Lightbulb } from 'lucide-react';
-import { CHAPTERS } from '../../../constants/chapters';
+import { CHAPTERS } from '../../../../constants/chapters';
 
 const SUBJECT_CONFIG = {
     'Math': { color: 'from-pink-400 to-rose-500', icon: <BookOpen size={28} />, label: 'Math' },
