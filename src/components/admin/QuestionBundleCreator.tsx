@@ -94,6 +94,7 @@ export default function QuestionBundleCreator() {
     const [duplicateQuestionIds, setDuplicateQuestionIds] = useState<Set<string>>(new Set());
     const [showInvalidOnly, setShowInvalidOnly] = useState(false);
     const [editingQuestion, setEditingQuestion] = useState<SimplifiedQuestion | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Auto-Fix State
     const [fixCandidates, setFixCandidates] = useState<AutoFixCandidate[]>([]);
@@ -773,6 +774,28 @@ export default function QuestionBundleCreator() {
                                     Existing Questions ({existingQuestions.length})
                                 </h3>
 
+                                {/* Search Bar */}
+                                <div className="mb-6">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                        <input
+                                            type="text"
+                                            placeholder="Search questions by text or ID..."
+                                            value={searchQuery}
+                                            onChange={e => setSearchQuery(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-purple-400 outline-none shadow-sm"
+                                        />
+                                        {searchQuery && (
+                                            <button
+                                                onClick={() => setSearchQuery('')}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
                                 {/* Validation Summary */}
                                 <div className="mb-6 flex items-center gap-4">
                                     {invalidQuestionIds.size === 0 && duplicateQuestionIds.size === 0 ? (
@@ -840,7 +863,22 @@ export default function QuestionBundleCreator() {
                                     <div className="space-y-4">
                                         <div className="space-y-4">
                                             {existingQuestions
-                                                .filter(q => !showInvalidOnly || invalidQuestionIds.has(q.id || '') || duplicateQuestionIds.has(q.id || ''))
+                                                .filter(q => {
+                                                    // 1. Filter by Issues (if toggled)
+                                                    if (showInvalidOnly) {
+                                                        return invalidQuestionIds.has(q.id || '') || duplicateQuestionIds.has(q.id || '');
+                                                    }
+                                                    return true;
+                                                })
+                                                .filter(q => {
+                                                    // 2. Filter by Search Query
+                                                    if (!searchQuery) return true;
+                                                    const query = searchQuery.toLowerCase();
+                                                    return (
+                                                        q.question.toLowerCase().includes(query) ||
+                                                        (q.id && q.id.toLowerCase().includes(query))
+                                                    );
+                                                })
                                                 .map((q, i) => {
                                                     const isInvalid = invalidQuestionIds.has(q.id || '');
                                                     const isDuplicate = duplicateQuestionIds.has(q.id || '');
