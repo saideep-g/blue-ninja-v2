@@ -8,7 +8,7 @@ import { QuestionBundleMetadata, SimplifiedQuestion } from '../../types/bundle';
 import {
     Plus, Upload, FileJson, Save, Trash2,
     BookOpen, Layers, Clock, CheckCircle, AlertCircle,
-    Search, Filter, Download, Check, Edit, X, Wand
+    Search, Filter, Download, Check, Edit, X, Wand, Copy
 } from 'lucide-react';
 
 const SUBJECTS = [
@@ -90,6 +90,7 @@ export default function QuestionBundleCreator() {
 
     // Validation State
     const [invalidQuestionIds, setInvalidQuestionIds] = useState<Set<string>>(new Set());
+    const [duplicateQuestionIds, setDuplicateQuestionIds] = useState<Set<string>>(new Set());
     const [showInvalidOnly, setShowInvalidOnly] = useState(false);
     const [editingQuestion, setEditingQuestion] = useState<SimplifiedQuestion | null>(null);
 
@@ -123,6 +124,26 @@ export default function QuestionBundleCreator() {
             }
         });
         return invalidSet;
+    };
+
+    const checkForDuplicates = (questions: SimplifiedQuestion[]) => {
+        const textMap = new Map<string, string[]>(); // Normalized Text -> [IDs]
+        const duplicateSet = new Set<string>();
+
+        questions.forEach((q, index) => {
+            const id = q.id || `temp_${index}`;
+            const normalizedText = q.question.trim().toLowerCase();
+
+            if (textMap.has(normalizedText)) {
+                const existingIds = textMap.get(normalizedText)!;
+                existingIds.push(id);
+                // Mark all instances as duplicates
+                existingIds.forEach(dupId => duplicateSet.add(dupId));
+            } else {
+                textMap.set(normalizedText, [id]);
+            }
+        });
+        return duplicateSet;
     };
 
     const checkAutoFixCandidates = (questions: SimplifiedQuestion[]) => {
@@ -181,6 +202,8 @@ export default function QuestionBundleCreator() {
                     // Run Validation & Auto-Fix Check
                     const invalid = validateQuestions(qList);
                     setInvalidQuestionIds(invalid);
+                    const duplicates = checkForDuplicates(qList);
+                    setDuplicateQuestionIds(duplicates);
                     checkAutoFixCandidates(qList);
                 }
             } else {
@@ -403,6 +426,8 @@ export default function QuestionBundleCreator() {
             // 3. Re-validate
             const invalid = validateQuestions(updatedList);
             setInvalidQuestionIds(invalid);
+            const duplicates = checkForDuplicates(updatedList);
+            setDuplicateQuestionIds(duplicates);
             checkAutoFixCandidates(updatedList);
 
             // 4. Close Modal
@@ -445,6 +470,8 @@ export default function QuestionBundleCreator() {
             setExistingQuestions(updatedList);
             const invalid = validateQuestions(updatedList);
             setInvalidQuestionIds(invalid);
+            const duplicates = checkForDuplicates(updatedList);
+            setDuplicateQuestionIds(duplicates);
             setFixCandidates([]); // Clear processed candidates
             setShowFixModal(false);
 
@@ -732,25 +759,42 @@ export default function QuestionBundleCreator() {
 
                                 {/* Validation Summary */}
                                 <div className="mb-6 flex items-center gap-4">
-                                    {invalidQuestionIds.size === 0 ? (
+                                    {invalidQuestionIds.size === 0 && duplicateQuestionIds.size === 0 ? (
                                         <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg font-bold text-sm border border-emerald-100">
                                             <CheckCircle size={18} />
-                                            <span>All questions validated! Answers match options.</span>
+                                            <span>All questions validated! No issues found.</span>
                                         </div>
                                     ) : (
-                                        <div className="flex gap-4">
-                                            <button
-                                                onClick={() => setShowInvalidOnly(!showInvalidOnly)}
-                                                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm border transition-all
-                                            ${showInvalidOnly
-                                                        ? 'bg-red-600 text-white border-red-600 shadow-md transform scale-105'
-                                                        : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                                                    }`}
-                                            >
-                                                <AlertCircle size={18} />
-                                                <span>{invalidQuestionIds.size} Invalid Questions Found</span>
-                                                {showInvalidOnly ? <span className="text-xs opacity-80">(Showing All)</span> : <span className="text-xs underline ml-1">Filter</span>}
-                                            </button>
+                                        <div className="flex gap-4 flex-wrap">
+                                            {invalidQuestionIds.size > 0 && (
+                                                <button
+                                                    onClick={() => setShowInvalidOnly(!showInvalidOnly)}
+                                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm border transition-all
+                                                ${showInvalidOnly
+                                                            ? 'bg-red-600 text-white border-red-600 shadow-md transform scale-105'
+                                                            : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                                                        }`}
+                                                >
+                                                    <AlertCircle size={18} />
+                                                    <span>{invalidQuestionIds.size} Invalid Answers</span>
+                                                    {showInvalidOnly ? <span className="text-xs opacity-80">(Showing Issues)</span> : <span className="text-xs underline ml-1">Filter</span>}
+                                                </button>
+                                            )}
+
+                                            {duplicateQuestionIds.size > 0 && (
+                                                <button
+                                                    onClick={() => setShowInvalidOnly(!showInvalidOnly)}
+                                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm border transition-all
+                                                    ${showInvalidOnly
+                                                            ? 'bg-amber-500 text-white border-amber-600 shadow-md transform scale-105'
+                                                            : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+                                                        }`}
+                                                >
+                                                    <Copy size={18} />
+                                                    <span>{duplicateQuestionIds.size} Duplicates</span>
+                                                    {showInvalidOnly ? <span className="text-xs opacity-80">(Showing Issues)</span> : <span className="text-xs underline ml-1">Filter</span>}
+                                                </button>
+                                            )}
 
                                             {fixCandidates.length > 0 && (
                                                 <button
@@ -771,65 +815,82 @@ export default function QuestionBundleCreator() {
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
-                                        {existingQuestions
-                                            .filter(q => !showInvalidOnly || invalidQuestionIds.has(q.id || ''))
-                                            .map((q, i) => {
-                                                const isInvalid = invalidQuestionIds.has(q.id || '');
-                                                return (
-                                                    <div
-                                                        key={i}
-                                                        className={`bg-white border p-4 rounded-xl flex gap-4 items-start shadow-sm transition-all
-                                                    ${isInvalid ? 'border-red-300 bg-red-50/30 ring-2 ring-red-100' : 'border-slate-200'}
-                                                    `}
-                                                    >
-                                                        <span className={`px-2 py-1 rounded-md text-xs font-mono font-bold ${isInvalid ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
-                                                            {q.id || `#${i + 1}`}
-                                                        </span>
-                                                        <div className="flex-1">
-                                                            <div className="flex justify-between items-start">
-                                                                <p className="font-bold text-slate-800 text-sm mb-1">{q.question}</p>
-                                                                <div className="flex items-center gap-2">
-                                                                    {isInvalid && (
-                                                                        <span className="text-[10px] font-bold bg-red-600 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                                                            Invalid Answer
-                                                                        </span>
-                                                                    )}
-                                                                    <button
-                                                                        onClick={() => setEditingQuestion(q)}
-                                                                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-purple-600 transition-colors"
-                                                                        title="Edit Question"
-                                                                    >
-                                                                        <Edit size={14} />
-                                                                    </button>
+                                        <div className="space-y-4">
+                                            {existingQuestions
+                                                .filter(q => !showInvalidOnly || invalidQuestionIds.has(q.id || '') || duplicateQuestionIds.has(q.id || ''))
+                                                .map((q, i) => {
+                                                    const isInvalid = invalidQuestionIds.has(q.id || '');
+                                                    const isDuplicate = duplicateQuestionIds.has(q.id || '');
+
+                                                    let borderClass = 'border-slate-200';
+                                                    let bgClass = 'bg-white';
+                                                    if (isInvalid) {
+                                                        borderClass = 'border-red-300 ring-2 ring-red-100';
+                                                        bgClass = 'bg-red-50/30';
+                                                    } else if (isDuplicate) {
+                                                        borderClass = 'border-amber-300 ring-2 ring-amber-100';
+                                                        bgClass = 'bg-amber-50/30';
+                                                    }
+
+                                                    return (
+                                                        <div
+                                                            key={i}
+                                                            className={`${bgClass} border ${borderClass} p-4 rounded-xl flex gap-4 items-start shadow-sm transition-all`}
+                                                        >
+                                                            <span className={`px-2 py-1 rounded-md text-xs font-mono font-bold ${isInvalid ? 'bg-red-100 text-red-600' : isDuplicate ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                                {q.id || `#${i + 1}`}
+                                                            </span>
+                                                            <div className="flex-1">
+                                                                <div className="flex justify-between items-start">
+                                                                    <p className="font-bold text-slate-800 text-sm mb-1">{q.question}</p>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {isInvalid && (
+                                                                            <span className="text-[10px] font-bold bg-red-600 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                                                Invalid Answer
+                                                                            </span>
+                                                                        )}
+                                                                        {isDuplicate && (
+                                                                            <span className="text-[10px] font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                                                Duplicate
+                                                                            </span>
+                                                                        )}
+                                                                        <button
+                                                                            onClick={() => setEditingQuestion(q)}
+                                                                            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-purple-600 transition-colors"
+                                                                            title="Edit Question"
+                                                                        >
+                                                                            <Edit size={14} />
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div className="flex gap-2 text-xs flex-wrap">
-                                                                <span className={`${isInvalid ? 'text-red-600 border-b-2 border-red-200' : 'text-emerald-600'} font-bold`}>
-                                                                    Ans: {q.answer}
-                                                                </span>
-                                                                <span className="text-slate-400">•</span>
-                                                                <span className="text-slate-500">
-                                                                    {q.options?.map(opt => {
-                                                                        const isMatch = opt.toString().trim().toLowerCase() === q.answer?.toString().trim().toLowerCase();
-                                                                        return isMatch ? <b key={opt} className="text-emerald-600 underline decoration-2">{opt}</b> : <span key={opt} className="mr-1">{opt},</span>;
-                                                                    })}
-                                                                </span>
-                                                                {q.chapter_id && (
-                                                                    <>
-                                                                        <span className="text-slate-400">•</span>
-                                                                        <span className="text-purple-500 font-bold uppercase">{q.chapter_id}</span>
-                                                                    </>
+                                                                <div className="flex gap-2 text-xs flex-wrap">
+                                                                    <span className={`${isInvalid ? 'text-red-600 border-b-2 border-red-200' : 'text-emerald-600'} font-bold`}>
+                                                                        Ans: {q.answer}
+                                                                    </span>
+                                                                    <span className="text-slate-400">•</span>
+                                                                    <span className="text-slate-500">
+                                                                        {q.options?.map(opt => {
+                                                                            const isMatch = opt.toString().trim().toLowerCase() === q.answer?.toString().trim().toLowerCase();
+                                                                            return isMatch ? <b key={opt} className="text-emerald-600 underline decoration-2">{opt}</b> : <span key={opt} className="mr-1">{opt},</span>;
+                                                                        })}
+                                                                    </span>
+                                                                    {q.chapter_id && (
+                                                                        <>
+                                                                            <span className="text-slate-400">•</span>
+                                                                            <span className="text-purple-500 font-bold uppercase">{q.chapter_id}</span>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                                {q.explanation && (
+                                                                    <p className="text-xs text-slate-500 mt-1 italic border-l-2 border-purple-200 pl-2">
+                                                                        {q.explanation}
+                                                                    </p>
                                                                 )}
                                                             </div>
-                                                            {q.explanation && (
-                                                                <p className="text-xs text-slate-500 mt-1 italic border-l-2 border-purple-200 pl-2">
-                                                                    {q.explanation}
-                                                                </p>
-                                                            )}
                                                         </div>
-                                                    </div>
-                                                );
-                                            })}
+                                                    );
+                                                })}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -837,6 +898,7 @@ export default function QuestionBundleCreator() {
                     </div>
                 </div>
             )}
+
             {/* --- EDIT MODAL --- */}
             {editingQuestion && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
