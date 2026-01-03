@@ -7,6 +7,11 @@ import { db } from '../../../services/db/firebase';
 import { Question } from '../../../types';
 import { getStudentTableStats } from '../../../features/multiplication-tables/services/tablesFirestore';
 import { CHAPTERS } from '../../../constants/chapters';
+import Confetti from 'react-confetti';
+import { motion, AnimatePresence } from 'framer-motion';
+import { calculateWeightedTableMastery } from '../../../utils/tablesLogic';
+
+const GEN_Z_PRAISES = ["SLAYED IT! 💅", "NO CRUMBS LEFT 🍪", "MAIN CHARACTER ENERGY ✨", "W RIZZ 👑", "ATE THAT UP 🔥"];
 
 // Support
 import 'katex/dist/katex.min.css';
@@ -35,6 +40,20 @@ export default function MobileQuestDashboard() {
     const [dailyProgress, setDailyProgress] = useState<Record<string, number>>({ Math: 0, Science: 0, Words: 0, World: 0, Tables: 0 });
     const [currentStreak, setCurrentStreak] = useState(0);
     const [totalPoints, setTotalPoints] = useState(0);
+    const [tablesMasteryScore, setTablesMasteryScore] = useState(0);
+
+    // Animations
+    const [showCelebration, setShowCelebration] = useState(false);
+    const [celebrationMessage, setCelebrationMessage] = useState("");
+
+    const triggerCelebration = () => {
+        setCelebrationMessage(GEN_Z_PRAISES[Math.floor(Math.random() * GEN_Z_PRAISES.length)]);
+        setShowCelebration(true);
+        setTimeout(() => {
+            setShowCelebration(false);
+            setView('home');
+        }, 4000);
+    };
 
     const [chapterProgress, setChapterProgress] = useState<Record<string, any>>({
         // Default unlocked starter chapters
@@ -89,7 +108,13 @@ export default function MobileQuestDashboard() {
                     const snap = await getDoc(docRef);
                     if (snap.exists()) {
                         const data = snap.data();
-                        if (data.mastery) setChapterProgress(prev => ({ ...prev, ...data.mastery })); // Merge
+                        if (data.mastery) {
+                            setChapterProgress(prev => ({ ...prev, ...data.mastery })); // Merge
+                            // Calculate Weighted Tables Score
+                            const tScore = calculateWeightedTableMastery(data.mastery || {});
+                            setTablesMasteryScore(tScore);
+                        }
+
                         if (data.daily) setDailyProgress(prev => ({ ...prev, ...data.daily }));
                         if (data.points !== undefined) setTotalPoints(data.points);
                         if (data.streak !== undefined) setCurrentStreak(data.streak);
@@ -407,7 +432,12 @@ export default function MobileQuestDashboard() {
         }
 
         updatePower(finalScore * 20);
-        setView('results');
+
+        // Trigger celebration instead of direct view switch
+        setView('results'); // Show results briefly/underneath? Actually results view has 'Continue' button.
+        // If we want the celebration overlay to happen ON TOP of results or BEFORE results?
+        // Let's trigger it here, it will overlay whatever view is active. 
+        triggerCelebration();
     };
 
     // --- RENDER ---
@@ -424,6 +454,7 @@ export default function MobileQuestDashboard() {
                 <HomeView
                     dailyProgress={dailyProgress}
                     chapterProgress={chapterProgress}
+                    tablesMasteryScore={tablesMasteryScore}
                     onPlaySubject={handlePlaySubject}
                     onPlayTables={() => navigate('/tables')}
                 />
@@ -464,6 +495,50 @@ export default function MobileQuestDashboard() {
                     onContinue={() => { setView('home'); window.scrollTo(0, 0); }}
                 />
             )}
+
+            {/* CELEBRATION OVERLAY */}
+            <AnimatePresence>
+                {showCelebration && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-md pointer-events-none"
+                    >
+                        <Confetti
+                            width={window.innerWidth}
+                            height={window.innerHeight}
+                            numberOfPieces={400}
+                            recycle={false}
+                            colors={['#A78BFA', '#F472B6', '#34D399', '#FBBF24']}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.5, y: 100 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 1.5, opacity: 0 }}
+                            transition={{ type: "spring", bounce: 0.5 }}
+                            className="bg-white rounded-[3rem] p-12 text-center shadow-[0_0_100px_rgba(167,139,250,0.5)] border-4 border-white relative overflow-hidden mx-4"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-br from-purple-100 via-pink-100 to-yellow-100 opacity-50" />
+                            <div className="relative z-10">
+                                <motion.div
+                                    animate={{ rotate: [0, 10, -10, 0] }}
+                                    transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+                                    className="text-8xl mb-6"
+                                >
+                                    👑
+                                </motion.div>
+                                <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4 tracking-tighter">
+                                    {celebrationMessage}
+                                </h1>
+                                <p className="text-lg md:text-xl font-bold text-slate-500 uppercase tracking-widest">
+                                    Quest Complete
+                                </p>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
 
             {/* --- CHALLENGES View --- */}

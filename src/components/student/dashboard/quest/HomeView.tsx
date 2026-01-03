@@ -13,11 +13,12 @@ const SUBJECT_CONFIG = {
 interface HomeViewProps {
     dailyProgress: Record<string, number>;
     chapterProgress: Record<string, any>;
+    tablesMasteryScore?: number;
     onPlaySubject: (subject: string) => void;
     onPlayTables: () => void;
 }
 
-export const HomeView: React.FC<HomeViewProps> = ({ dailyProgress, chapterProgress, onPlaySubject, onPlayTables }) => {
+export const HomeView: React.FC<HomeViewProps> = ({ dailyProgress, chapterProgress, tablesMasteryScore = 0, onPlaySubject, onPlayTables }) => {
 
     // Calculate Daily Total
     const totalDaily = Object.values(dailyProgress).reduce((a, b) => a + b, 0);
@@ -144,7 +145,15 @@ export const HomeView: React.FC<HomeViewProps> = ({ dailyProgress, chapterProgre
 
                             <div className="z-10">
                                 <h3 className={`font-black text-2xl mb-1 ${isDoneToday ? 'text-white' : 'text-slate-800'}`}>Tables</h3>
-                                <p className={`text-xs font-bold uppercase tracking-wider ${isDoneToday ? 'text-emerald-100' : 'text-slate-400'}`}>Master x1 to x12</p>
+                                <p className={`text-xs font-bold uppercase tracking-wider ${isDoneToday ? 'text-emerald-100' : 'text-slate-400'}`}>
+                                    {tablesMasteryScore}% Mastered
+                                </p>
+                                {/* Mini Progress Bar */}
+                                {!isDoneToday && (
+                                    <div className="w-full h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                                        <div className="h-full bg-gradient-to-r from-teal-400 to-emerald-500 rounded-full" style={{ width: `${tablesMasteryScore}%` }} />
+                                    </div>
+                                )}
                             </div>
 
                             {!isDoneToday && (
