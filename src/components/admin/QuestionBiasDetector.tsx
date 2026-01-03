@@ -27,13 +27,16 @@ export const QuestionBiasDetector: React.FC<{ onBack: () => void }> = ({ onBack 
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [reports, setReports] = useState<BundleReport[]>([]);
+
     const [analyzedCount, setAnalyzedCount] = useState(0);
+    const [totalQuestionsScanned, setTotalQuestionsScanned] = useState(0);
 
     const analyzeBundles = async () => {
         setLoading(true);
         setReports([]);
         setProgress(0);
         setAnalyzedCount(0);
+        setTotalQuestionsScanned(0);
 
         try {
             // 1. Fetch Request Bundles Metadata
@@ -43,6 +46,7 @@ export const QuestionBiasDetector: React.FC<{ onBack: () => void }> = ({ onBack 
 
             const results: BundleReport[] = [];
             let processed = 0;
+            let totalQ = 0;
 
             // 2. Iterate and Analyze
             for (const bundle of bundles) {
@@ -57,6 +61,7 @@ export const QuestionBiasDetector: React.FC<{ onBack: () => void }> = ({ onBack 
 
                 const questions = dataSnap.data().questions; // Object or Array
                 const qList = Array.isArray(questions) ? questions : Object.values(questions);
+                totalQ += qList.length;
 
                 const flaggedItems: BiasReportItem[] = [];
 
@@ -87,15 +92,25 @@ export const QuestionBiasDetector: React.FC<{ onBack: () => void }> = ({ onBack 
 
                     if (maxOther > 0 && correctLen > maxOther) {
                         // It is the longest.
-                        // Calculate Ratio for "Severity"
-                        const ratio = correctLen / maxOther;
 
-                        // Filtering for "Likely Bias":
-                        // If it's just 1 char longer, maybe noise.
-                        // If it's > 10% longer or > 5 chars longer?
-                        // Let's use a simple heuristic: strictly longest is enough to flag for specific patterns.
-                        // But to avoid noise, let's say at least 3 chars longer.
-                        if (correctLen - maxOther >= 3) {
+                        // Rule 1: Single Word Exclusion ("just because the word is long")
+                        // If the correct answer is a single word, ignore (e.g. "Hippopotamus" vs "Cat")
+                        const isSingleWord = !correctText.trim().includes(' ');
+                        if (isSingleWord) return;
+
+                        // Rule 2: Short Answer Variance (< 15 chars requires > 20% variance)
+                        const ratio = correctLen / maxOther;
+                        let isBias = false;
+
+                        if (correctLen < 15) {
+                            // Must be > 20% longer (ratio > 1.2)
+                            if (ratio > 1.2) isBias = true;
+                        } else {
+                            // General case: At least 3 chars longer (keeps original logic)
+                            if (correctLen - maxOther >= 3) isBias = true;
+                        }
+
+                        if (isBias) {
                             flaggedItems.push({
                                 bundleId: bundle.id,
                                 bundleName: (bundle as any).title || (bundle as any).name || bundle.id,
@@ -124,6 +139,7 @@ export const QuestionBiasDetector: React.FC<{ onBack: () => void }> = ({ onBack 
 
             setReports(results);
             setAnalyzedCount(bundles.length);
+            setTotalQuestionsScanned(totalQ);
 
         } catch (e) {
             console.error(e);
@@ -218,15 +234,26 @@ export const QuestionBiasDetector: React.FC<{ onBack: () => void }> = ({ onBack 
                 </div>
             ) : analyzedCount > 0 ? (
                 <div className="animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                             <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Bundles Scanned</div>
                             <div className="text-4xl font-black text-slate-800">{analyzedCount}</div>
                         </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Total Questions</div>
+                            <div className="text-4xl font-black text-slate-800">{totalQuestionsScanned}</div>
+                        </div>
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-                            <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Potential Bias Found</div>
-                            <div className="text-4xl font-black text-amber-500">{totalFlagged} <span className="text-lg text-slate-400 font-medium">questions</span></div>
-                            <AlertTriangle className="absolute right-4 bottom-4 text-amber-100 w-24 h-24 -z-0" />
+                            <div className="relative z-10">
+                                <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Potential Bias Found</div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-4xl font-black text-amber-500">{totalFlagged}</span>
+                                    <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${((totalFlagged / totalQuestionsScanned) * 100) > 20 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                        {totalQuestionsScanned > 0 ? ((totalFlagged / totalQuestionsScanned) * 100).toFixed(1) : 0}% Rate
+                                    </span>
+                                </div>
+                            </div>
+                            <AlertTriangle className="absolute right-2 bottom-2 text-amber-100/50 w-12 h-12 md:w-16 md:h-16 -z-0" />
                         </div>
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center">
                             <button
@@ -255,29 +282,39 @@ export const QuestionBiasDetector: React.FC<{ onBack: () => void }> = ({ onBack 
                                 <thead className="bg-slate-50 text-slate-500 font-semibold uppercase text-xs">
                                     <tr>
                                         <th className="p-4">Bundle Name</th>
-                                        <th className="p-4 text-center">Total Questions</th>
+                                        <th className="p-4 text-center">Questions</th>
+                                        <th className="p-4 text-center">Bias Rate</th>
                                         <th className="p-4 text-center">Flagged</th>
                                         <th className="p-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {reports.map(repo => (
-                                        <tr key={repo.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="p-4 font-medium text-slate-700">{repo.name}</td>
-                                            <td className="p-4 text-center text-slate-500">{repo.totalQuestions}</td>
-                                            <td className="p-4 text-center">
-                                                <span className="bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-bold text-xs">{repo.flaggedCount}</span>
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                <button
-                                                    onClick={() => downloadBundleReport(repo)}
-                                                    className="text-blue-600 hover:underline font-medium flex items-center gap-1 ml-auto"
-                                                >
-                                                    <Download size={14} /> Download
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {reports.map(repo => {
+                                        const rate = (repo.flaggedCount / repo.totalQuestions) * 100;
+                                        const isHigh = rate > 20;
+                                        return (
+                                            <tr key={repo.id} className="hover:bg-slate-50 transition-colors">
+                                                <td className="p-4 font-medium text-slate-700">{repo.name}</td>
+                                                <td className="p-4 text-center text-slate-500">{repo.totalQuestions}</td>
+                                                <td className="p-4 text-center">
+                                                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${isHigh ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                                        {rate.toFixed(1)}%
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 text-center">
+                                                    <span className="bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-bold text-xs">{repo.flaggedCount}</span>
+                                                </td>
+                                                <td className="p-4 text-right">
+                                                    <button
+                                                        onClick={() => downloadBundleReport(repo)}
+                                                        className="text-blue-600 hover:underline font-medium flex items-center gap-1 ml-auto"
+                                                    >
+                                                        <Download size={14} /> Download
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         )}
