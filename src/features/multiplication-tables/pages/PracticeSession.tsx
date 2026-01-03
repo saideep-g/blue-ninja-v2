@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Send, Sparkles, Zap } from 'lucide-react';
 import { useNinja } from '../../../context/NinjaContext';
 // Static import to resolve build warning (was mixed with dynamic/static in other files)
-import { getStudentTableStats, saveSinglePracticeLog } from '../services/tablesFirestore';
+import { getStudentTableStats, saveSinglePracticeLog, getDetailedTableStats } from '../services/tablesFirestore';
 import { playCorrectSound, playIncorrectSound, playCompletionSound } from '../utils/sounds';
 
 type QuestionType = 'DIRECT' | 'MISSING_MULTIPLIER';
@@ -118,7 +118,7 @@ export default function PracticeSession() {
                     setMasteryLimit(limit);
 
                     // 2. Detailed Stats for Adaptive Selection
-                    const detailed = await import('../services/tablesFirestore').then(m => m.getDetailedTableStats(user.uid));
+                    const detailed = await getDetailedTableStats(user.uid);
                     setDetailedStats(detailed);
                 } catch (e) {
                     console.error("Error fetching stats", e);
