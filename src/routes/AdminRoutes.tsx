@@ -12,6 +12,7 @@ import TestLab from '../components/admin/TestLab';
 import { MigrationDashboard } from '../features/questions/admin/MigrationDashboard';
 import { TemplateManager } from '../features/questions/admin/TemplateManager';
 import QuestionBundleCreator from '../components/admin/QuestionBundleCreator';
+import ReviewQueue from '../components/admin/ReviewQueue';
 
 export default function AdminRoutes() {
     return (
@@ -31,6 +32,7 @@ export default function AdminRoutes() {
                 <Route path="migration" element={<MigrationDashboard />} />
                 <Route path="templates" element={<TemplateManager />} />
                 <Route path="question-bundles" element={<QuestionBundleCreator />} />
+                <Route path="review" element={<ReviewQueue />} />
             </Route>
         </Routes>
     );

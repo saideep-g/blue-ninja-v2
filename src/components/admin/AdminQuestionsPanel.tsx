@@ -16,11 +16,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Save, Edit3, Trash2, Database, Play, Loader, FileJson, ArrowRight, X, Eye, RefreshCw,
-  CheckCircle, AlertTriangle, AlertCircle, XCircle, Search, Upload, FileUp, Download, Copy
+  CheckCircle, AlertTriangle, AlertCircle, XCircle, Search, Upload, FileUp, Download, Copy, AlertOctagon
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
-import { getDocs } from 'firebase/firestore';
+import { getDocs, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../services/db/firebase';
 import { questionBundlesCollection } from '../../services/db/firestore';
 import MissionCard from '../diagnostic/MissionCard';
 
@@ -834,6 +835,39 @@ export default function AdminQuestionsPanel() {
     }
   };
 
+  const handleFlagQuestion = async (item: any) => {
+    const id = item.item_id || item.id;
+    const bundleId = item._bundleId;
+    if (!id || !bundleId) {
+      alert("Cannot flag: ID or Bundle ID missing (is this a local draft?)");
+      return;
+    }
+    const reason = prompt("Reason for flagging?");
+    if (reason === null) return;
+
+    try {
+      await addDoc(collection(db, 'review_queue'), {
+        bundleId: bundleId,
+        questionId: id,
+        // Construct a simplified snapshot or store raw
+        questionSnapshot: {
+          question: item.prompt?.text || item.content?.prompt?.text || item.question || "Unknown Prompt",
+          answer: item.solution?.text || item.answer || "Unknown",
+          options: item.options || item.choices || [],
+          id: id,
+          difficulty: item.difficulty || 'medium'
+        },
+        reason: reason || "Flagged from Browser",
+        flaggedAt: serverTimestamp(),
+        status: 'pending'
+      });
+      alert("Flagged for review!");
+    } catch (e) {
+      console.error("Flag failed", e);
+      alert("Failed to flag");
+    }
+  };
+
   // Trigger scan when entering DUPLICATES mode
   useEffect(() => {
     if (step === 'DUPLICATES' && duplicateGroups.length === 0) {
@@ -1078,6 +1112,16 @@ export default function AdminQuestionsPanel() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFlagQuestion(item);
+                      }}
+                      className="p-2 text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-full transition opacity-0 group-hover:opacity-100"
+                      title="Flag for Review"
+                    >
+                      <AlertOctagon className="w-5 h-5" />
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

@@ -14,7 +14,8 @@ import {
     FlaskConical,
     Library,
     GitPullRequest,
-    Layers
+    Layers,
+    AlertOctagon
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -31,6 +32,7 @@ export default function AdminSidebar() {
         { icon: BarChart2, label: 'Analytics', to: '/admin/analytics' },
         { icon: Users, label: 'Users', to: '/admin/users' },
         { icon: FlaskConical, label: 'Test Lab', to: '/admin/test-lab' },
+        { icon: AlertOctagon, label: 'Review Queue', to: '/admin/review' },
     ];
 
     return (

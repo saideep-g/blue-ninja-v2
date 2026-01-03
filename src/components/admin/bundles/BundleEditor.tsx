@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
-    doc, getDoc, updateDoc, writeBatch, increment, serverTimestamp
+    doc, getDoc, updateDoc, writeBatch, increment, serverTimestamp, addDoc, collection
 } from 'firebase/firestore';
 import { db } from '../../../services/db/firebase';
 import { QuestionBundleMetadata, SimplifiedQuestion } from '../../../types/bundle';
-import { Check, Download, FileJson, CheckCircle, BookOpen, Search, X, AlertCircle, Copy, Wand, Layers, Edit } from 'lucide-react';
+import { Check, Download, FileJson, CheckCircle, BookOpen, Search, X, AlertCircle, Copy, Wand, Layers, Edit, AlertOctagon } from 'lucide-react';
 import { AutoFixCandidate, getSimilarity } from './utils';
 import { EditQuestionModal } from './EditQuestionModal';
 import { AutoFixModal } from './AutoFixModal';
@@ -283,6 +283,27 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({ bundle, onBack, onUp
         }
     };
 
+    const handleFlagQuestion = async (q: SimplifiedQuestion) => {
+        if (!q.id) return;
+        const reason = prompt("Enter a reason for flagging this question (optional):");
+        if (reason === null) return; // Cancelled
+
+        try {
+            await addDoc(collection(db, 'review_queue'), {
+                bundleId: bundle.id,
+                questionId: q.id,
+                questionSnapshot: q,
+                reason: reason || "Flagged manually",
+                flaggedAt: serverTimestamp(),
+                status: 'pending'
+            });
+            alert("Question flagged for review.");
+        } catch (e) {
+            console.error("Flag failed", e);
+            alert("Failed to flag question.");
+        }
+    };
+
     // --- Download Utilities ---
     const downloadTemplate = () => {
         const template = {
@@ -503,8 +524,11 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({ bundle, onBack, onUp
                                         <div className="flex-1">
                                             <div className="flex justify-between items-start">
                                                 <p className="font-bold text-slate-800 text-sm mb-1">{q.question}</p>
-                                                <button onClick={() => setEditingQuestion(q)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-purple-600">
+                                                <button onClick={() => setEditingQuestion(q)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-purple-600" title="Edit">
                                                     <Edit size={14} />
+                                                </button>
+                                                <button onClick={() => handleFlagQuestion(q)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-amber-500" title="Flag for Review">
+                                                    <AlertOctagon size={14} />
                                                 </button>
                                             </div>
                                             <div className="flex gap-2 text-xs flex-wrap">
