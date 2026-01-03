@@ -555,6 +555,50 @@ export default function AdminQuestionsPanel() {
     setEditingItemIndex(null);
   };
 
+  // --- Download Utilities ---
+  const handleDownloadInvalid = () => {
+    const invalidItems = items.filter(i => !i.isValid).map(i => ({
+      item_id: i.item_id,
+      issues: i.issues,
+      original_data: i.data
+    }));
+
+    if (invalidItems.length === 0) return alert("No invalid items to download.");
+
+    const blob = new Blob([JSON.stringify(invalidItems, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invalid_items_report_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadDuplicates = () => {
+    if (duplicateGroups.length === 0) return alert("No duplicates to download.");
+
+    const report = duplicateGroups.map(g => ({
+      type: g.type,
+      signature: g.signature,
+      conflict_count: g.ids.length,
+      item_ids: g.ids,
+      // Include one full example item for context if available
+      example_item: browserQuestions.find(q => (q.item_id || q.id) === g.ids[0])
+    }));
+
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `duplicate_content_report_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handlePublish = async () => {
     if (summary.invalid > 0) {
       if (!window.confirm(`You have ${summary.invalid} invalid items. They will be EXCLUDED from the bundle. Continue?`)) {
@@ -805,13 +849,24 @@ export default function AdminQuestionsPanel() {
     return (
       <div className="h-full flex flex-col bg-slate-50">
         {/* Header */}
+        {/* Header */}
         <div className="bg-white border-b px-8 py-4 flex items-center justify-between sticky top-0 z-10">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             <AlertTriangle className="text-red-500" /> Content Integrity Check
           </h2>
-          <button onClick={() => setStep('INTELLIGENCE')} className="text-sm font-bold text-slate-500 hover:text-slate-800">
-            ← Back to Report
-          </button>
+          <div className="flex gap-4">
+            {duplicateGroups.length > 0 && (
+              <button
+                onClick={handleDownloadDuplicates}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 font-medium transition"
+              >
+                <Download className="w-4 h-4" /> Download Report
+              </button>
+            )}
+            <button onClick={() => setStep('INTELLIGENCE')} className="text-sm font-bold text-slate-500 hover:text-slate-800">
+              ← Back to Report
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-6">
@@ -879,13 +934,15 @@ export default function AdminQuestionsPanel() {
         </div>
 
         {/* Re-use Preview Modal */}
-        {previewItem && (
-          <PreviewModal
-            item={previewItem}
-            onClose={() => setPreviewItem(null)}
-          />
-        )}
-      </div>
+        {
+          previewItem && (
+            <PreviewModal
+              item={previewItem}
+              onClose={() => setPreviewItem(null)}
+            />
+          )
+        }
+      </div >
     );
   }
 
@@ -1207,6 +1264,15 @@ export default function AdminQuestionsPanel() {
           >
             Cancel
           </button>
+          {summary.invalid > 0 && (
+            <button
+              onClick={handleDownloadInvalid}
+              className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-lg transition flex items-center gap-2 font-medium"
+              title="Download invalid questions for AI repair"
+            >
+              <Download className="w-4 h-4" /> Invalid ({summary.invalid})
+            </button>
+          )}
           <button
             onClick={handlePublish}
             disabled={summary.total === 0}

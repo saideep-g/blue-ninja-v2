@@ -502,6 +502,57 @@ export default function QuestionBundleCreator() {
 
 
 
+    // --- Download Utilities ---
+    const downloadInvalidQuestions = () => {
+        const questionsToScan = existingQuestions.length > 0 ? existingQuestions : parsedQuestions;
+        const invalidQs = questionsToScan.filter(q => invalidQuestionIds.has(q.id || ''));
+
+        if (invalidQs.length === 0) return alert("No invalid questions to download.");
+
+        const report = invalidQs.map(q => ({
+            id: q.id,
+            question: q.question,
+            current_answer: q.answer,
+            options: q.options,
+            issue: "Answer not found in options"
+        }));
+
+        const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bundle_invalid_questions_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const downloadDuplicateQuestions = () => {
+        const questionsToScan = existingQuestions.length > 0 ? existingQuestions : parsedQuestions;
+        const duplicateQs = questionsToScan.filter(q => duplicateQuestionIds.has(q.id || ''));
+
+        if (duplicateQs.length === 0) return alert("No duplicate questions to download.");
+
+        const report = duplicateQs.map(q => ({
+            id: q.id,
+            question: q.question,
+            options: q.options,
+            answer: q.answer,
+            issue: "Duplicate ID or Content detected"
+        }));
+
+        const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bundle_duplicate_questions_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     // --- Render Helpers ---
 
     const filteredBundles = bundles.filter(b => {
@@ -806,33 +857,51 @@ export default function QuestionBundleCreator() {
                                     ) : (
                                         <div className="flex gap-4 flex-wrap">
                                             {invalidQuestionIds.size > 0 && (
-                                                <button
-                                                    onClick={() => setShowInvalidOnly(!showInvalidOnly)}
-                                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm border transition-all
-                                                ${showInvalidOnly
-                                                            ? 'bg-red-600 text-white border-red-600 shadow-md transform scale-105'
-                                                            : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                                                        }`}
-                                                >
-                                                    <AlertCircle size={18} />
-                                                    <span>{invalidQuestionIds.size} Invalid Answers</span>
-                                                    {showInvalidOnly ? <span className="text-xs opacity-80">(Showing Issues)</span> : <span className="text-xs underline ml-1">Filter</span>}
-                                                </button>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={() => setShowInvalidOnly(!showInvalidOnly)}
+                                                        className={`flex items-center gap-2 px-4 py-2 rounded-l-lg font-bold text-sm border transition-all
+                                                        ${showInvalidOnly
+                                                                ? 'bg-red-600 text-white border-red-600 shadow-md transform scale-105'
+                                                                : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                                                            }`}
+                                                    >
+                                                        <AlertCircle size={18} />
+                                                        <span>{invalidQuestionIds.size} Invalid Answers</span>
+                                                        {showInvalidOnly ? <span className="text-xs opacity-80">(Showing Issues)</span> : <span className="text-xs underline ml-1">Filter</span>}
+                                                    </button>
+                                                    <button
+                                                        onClick={downloadInvalidQuestions}
+                                                        className="px-3 py-2 bg-white border border-l-0 border-red-200 rounded-r-lg text-red-600 hover:bg-red-50 transition-colors"
+                                                        title="Download Invalid Questions JSON"
+                                                    >
+                                                        <Download size={16} />
+                                                    </button>
+                                                </div>
                                             )}
 
                                             {duplicateQuestionIds.size > 0 && (
-                                                <button
-                                                    onClick={() => setShowInvalidOnly(!showInvalidOnly)}
-                                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm border transition-all
-                                                    ${showInvalidOnly
-                                                            ? 'bg-amber-500 text-white border-amber-600 shadow-md transform scale-105'
-                                                            : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
-                                                        }`}
-                                                >
-                                                    <Copy size={18} />
-                                                    <span>{duplicateQuestionIds.size} Duplicates</span>
-                                                    {showInvalidOnly ? <span className="text-xs opacity-80">(Showing Issues)</span> : <span className="text-xs underline ml-1">Filter</span>}
-                                                </button>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={() => setShowInvalidOnly(!showInvalidOnly)}
+                                                        className={`flex items-center gap-2 px-4 py-2 rounded-l-lg font-bold text-sm border transition-all
+                                                        ${showInvalidOnly
+                                                                ? 'bg-amber-500 text-white border-amber-600 shadow-md transform scale-105'
+                                                                : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+                                                            }`}
+                                                    >
+                                                        <Copy size={18} />
+                                                        <span>{duplicateQuestionIds.size} Duplicates</span>
+                                                        {showInvalidOnly ? <span className="text-xs opacity-80">(Showing Issues)</span> : <span className="text-xs underline ml-1">Filter</span>}
+                                                    </button>
+                                                    <button
+                                                        onClick={downloadDuplicateQuestions}
+                                                        className="px-3 py-2 bg-white border border-l-0 border-amber-200 rounded-r-lg text-amber-600 hover:bg-amber-50 transition-colors"
+                                                        title="Download Duplicate Questions JSON"
+                                                    >
+                                                        <Download size={16} />
+                                                    </button>
+                                                </div>
                                             )}
 
                                             {fixCandidates.length > 0 && (
