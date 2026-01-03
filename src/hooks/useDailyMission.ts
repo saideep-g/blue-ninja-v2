@@ -203,7 +203,9 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
             // 1. Generate Plan (Skeleton or Bundle)
             const batch = await missionsService.generateDailyMissions({
                 userId: user.uid,
-                date: new Date().toISOString().split('T')[0]
+                // 4 AM Reset Logic (IST is UTC+5:30. Midnight UTC is 5:30 AM IST. 
+                // To reset at 4:00 AM IST, we add 1.5 hours (90m) to the time so 4 AM becomes virtual midnight)
+                date: new Date(Date.now() + 90 * 60 * 1000).toISOString().split('T')[0]
             }, finalOptions);
 
             let extractedQuestions: any[] = [];

@@ -3,13 +3,15 @@ import { useNinja } from '../../../context/NinjaContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import coreCurriculum from '../../../data/cbse7_core_curriculum_v3.json';
-import { collection, query, where, getDocs, onSnapshot, orderBy, doc, getDoc, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, orderBy, doc, getDoc, limit, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../../../services/db/firebase';
 import { Bundle, Challenge, User as UserModel, Question } from '../../../types/models';
 import { SUBJECT_TEMPLATE, VOCAB_CHAPTERS, GEN_Z_GREETINGS, SCIENCE_CHAPTERS } from '../../../constants/studyEraData';
 import MissionCard from '../../dashboard/MissionCard';
-import { X } from 'lucide-react';
+import { X, Sparkles, Trophy } from 'lucide-react';
 import { useDailyMission } from '../../../hooks/useDailyMission';
+import Confetti from 'react-confetti';
+import { calculateWeightedTableMastery } from '../../../utils/tablesLogic';
 
 // Components
 import { EraHeader } from './era/EraHeader';
@@ -58,6 +60,50 @@ const StudyEraDashboard = () => {
     const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [quizScore, setQuizScore] = useState(0);
+    const [showCelebration, setShowCelebration] = useState(false);
+    const [celebrationMessage, setCelebrationMessage] = useState("");
+    const [completedSubjects, setCompletedSubjects] = useState<Set<string>>(new Set());
+
+    // --- 4 AM RESET & PERSISTENCE LOGIC ---
+    useEffect(() => {
+        if (!user) return;
+        const syncDailyProgress = async () => {
+            try {
+                const docRef = doc(db, 'students', user.uid);
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    const lastDate = data.lastActive?.toDate();
+                    let daily = data.daily || {};
+
+                    // 4 AM Reset Check (Matches MobileQuestDashboard)
+                    const now = new Date();
+                    const resetTime = new Date();
+                    resetTime.setHours(4, 0, 0, 0);
+                    if (now < resetTime) resetTime.setDate(resetTime.getDate() - 1);
+
+                    if (lastDate && lastDate < resetTime) {
+                        // Logic says: Old Day. Reset View.
+                        // We don't necessarily wipe DB here (MobileQuest does it on load), 
+                        // but we treat local state as empty.
+                        setCompletedSubjects(new Set());
+                    } else {
+                        // Load Progress
+                        const restored = new Set<string>();
+                        if (daily.Math > 0) restored.add('math');
+                        if (daily.Science > 0) restored.add('science');
+                        if (daily.Words > 0) restored.add('vocabulary');
+                        if (daily.World > 0) restored.add('gk');
+                        if (daily.Tables > 0) restored.add('tables');
+                        setCompletedSubjects(restored);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to sync daily progress", e);
+            }
+        };
+        syncDailyProgress();
+    }, [user]);
 
     // Data State
     const [subjects, setSubjects] = useState<any[]>([]);
@@ -191,10 +237,41 @@ const StudyEraDashboard = () => {
             setCurrentQuestionIndex(i => i + 1);
         } else {
             // Finish
-            setTimeout(() => {
-                setCurrentView('dashboard');
-            }, 2000);
+            triggerCelebration();
         }
+    };
+
+    const triggerCelebration = () => {
+        // Mark as completed for this session
+        if (quizSubject) {
+            setCompletedSubjects(prev => new Set(prev).add(quizSubject));
+
+            // Persist to Firestore (Daily Counts)
+            if (user) {
+                const keyMap: Record<string, string> = {
+                    'math': 'Math', 'science': 'Science',
+                    'vocabulary': 'Words', 'english': 'Words',
+                    'gk': 'World', 'tables': 'Tables'
+                };
+                const dbKey = keyMap[quizSubject];
+                if (dbKey) {
+                    const docRef = doc(db, 'students', user.uid);
+                    updateDoc(docRef, {
+                        [`daily.${dbKey}`]: increment(10), // Assume ~10 questions per era session
+                        lastActive: new Date()
+                    }).catch(e => console.error("Failed to save daily progress", e));
+                }
+            }
+        }
+
+        const genZPraises = ["SLAYED IT! 💅", "NO CRUMBS LEFT 🍪", "MAIN CHARACTER ENERGY ✨", "W RIZZ 👑", "ATE THAT UP 🔥"];
+        setCelebrationMessage(genZPraises[Math.floor(Math.random() * genZPraises.length)]);
+        setShowCelebration(true);
+
+        setTimeout(() => {
+            setShowCelebration(false);
+            setCurrentView('dashboard');
+        }, 4000);
     };
 
     const handleMissionSubmit = async (result: any) => {
@@ -253,12 +330,10 @@ const StudyEraDashboard = () => {
 
     // Math Completion Listener
     useEffect(() => {
-        if (quizSubject === 'math' && dailyMission.isComplete) {
-            setTimeout(() => {
-                setCurrentView('dashboard');
-            }, 2000);
+        if (quizSubject === 'math' && dailyMission.isComplete && currentView === 'quiz' && !showCelebration) { // Added checks to prevent loop
+            triggerCelebration();
         }
-    }, [dailyMission.isComplete, quizSubject]);
+    }, [dailyMission.isComplete, quizSubject, currentView]);
 
     // 1. Build Subjects
     useEffect(() => {
@@ -293,7 +368,7 @@ const StudyEraDashboard = () => {
                 color: 'from-[#FFDEE9] to-[#B5FFFC]',
                 accent: '#FF8DA1',
                 hasAtoms: true,
-                completedToday: false,
+                completedToday: dailyMission.isComplete,
                 modules: mathModules
             });
         }
@@ -315,7 +390,7 @@ const StudyEraDashboard = () => {
                 color: 'from-[#a18cd1] to-[#fbc2eb]', // Misty Purple -> Pink
                 accent: '#a18cd1',
                 hasAtoms: false,
-                completedToday: false,
+                completedToday: completedSubjects.has('vocabulary'),
                 modules: vocabModules
             });
         }
@@ -338,8 +413,34 @@ const StudyEraDashboard = () => {
                 color: 'from-[#E0C3FC] to-[#8EC5FC]',
                 accent: '#A18CD1',
                 hasAtoms: false,
-                completedToday: false,
+                completedToday: completedSubjects.has('science'),
                 modules: scienceModules
+            });
+        }
+
+
+
+        // Tables Era Logic (Dynamic)
+        if (enrolled.includes('tables') || enrolled.length === 0) {
+            const tablesScore = calculateWeightedTableMastery(ninjaStats?.mastery || {});
+
+            activeSubjects.push({
+                id: 'tables',
+                name: 'Table Era',
+                icon: '🍬',
+                color: 'from-[#84fab0] to-[#8fd3f4]',
+                accent: '#43e97b',
+                completedToday: completedSubjects.has('tables'),
+                modules: [
+                    {
+                        id: 't_comprehensive',
+                        name: 'Tables 1-20',
+                        mastery: tablesScore,
+                        // We could break this down into "Easy", "Hard" modules if we wanted to visualize breakdown,
+                        // but user asked for "progress bar weighting logic". A single module with the calculated mastery is sufficient.
+                        atoms: []
+                    }
+                ]
             });
         }
 
@@ -348,14 +449,19 @@ const StudyEraDashboard = () => {
             // Filter duplicate/conflicting IDs
             if (tpl.id === 'vocabulary') return;
             if (tpl.id === 'science') return;
+            if (tpl.id === 'tables') return; // Handled explicitly above
 
             if (enrolled.includes(tpl.id) || enrolled.length === 0) {
-                activeSubjects.push(tpl);
+                // Clone and properly set completedToday
+                activeSubjects.push({
+                    ...tpl,
+                    completedToday: completedSubjects.has(tpl.id)
+                });
             }
         });
 
         setSubjects(activeSubjects);
-    }, [ninjaStats, user]);
+    }, [ninjaStats, user, dailyMission.isComplete, completedSubjects]);
 
     // 2. Fetch Bundles
     useEffect(() => {
@@ -505,6 +611,50 @@ const StudyEraDashboard = () => {
                             transition={{ duration: 1.2, ease: "anticipate" }}
                         >
                             <span className="text-6xl">{expandingSubject.icon}</span>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* CELEBRATION OVERLAY */}
+            <AnimatePresence>
+                {showCelebration && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-md pointer-events-none"
+                    >
+                        <Confetti
+                            width={window.innerWidth}
+                            height={window.innerHeight}
+                            numberOfPieces={400}
+                            recycle={false}
+                            colors={['#A78BFA', '#F472B6', '#34D399', '#FBBF24']}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.5, y: 100 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 1.5, opacity: 0 }}
+                            transition={{ type: "spring", bounce: 0.5 }}
+                            className="bg-white rounded-[3rem] p-12 text-center shadow-[0_0_100px_rgba(167,139,250,0.5)] border-4 border-white relative overflow-hidden"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-br from-purple-100 via-pink-100 to-yellow-100 opacity-50" />
+                            <div className="relative z-10">
+                                <motion.div
+                                    animate={{ rotate: [0, 10, -10, 0] }}
+                                    transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+                                    className="text-8xl mb-6"
+                                >
+                                    👑
+                                </motion.div>
+                                <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4 tracking-tighter">
+                                    {celebrationMessage}
+                                </h1>
+                                <p className="text-xl font-bold text-slate-500 uppercase tracking-widest">
+                                    Era Conquered
+                                </p>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}
