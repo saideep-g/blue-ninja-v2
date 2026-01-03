@@ -90,27 +90,22 @@ export const QuestionBiasDetector: React.FC<{ onBack: () => void }> = ({ onBack 
                     // Let's flag if it is the STRICTLY longest, and maybe by a margin?
                     // User simple request: "when the option choice text is longer than other choices"
 
+                    // Rule: Correct answer must be strictly longer
                     if (maxOther > 0 && correctLen > maxOther) {
-                        // It is the longest.
 
-                        // Rule 1: Single Word Exclusion ("just because the word is long")
-                        // If the correct answer is a single word, ignore (e.g. "Hippopotamus" vs "Cat")
+                        // 1. Tokenize / Single Word Check
+                        // Ignore single words to avoid "Cat" vs "Hippopotamus" triggering bias
                         const isSingleWord = !correctText.trim().includes(' ');
-                        if (isSingleWord) return;
 
-                        // Rule 2: Short Answer Variance (< 15 chars requires > 20% variance)
-                        const ratio = correctLen / maxOther;
-                        let isBias = false;
+                        // 2. Calculate "Jump" (Variance from second longest)
+                        // How much longer is the correct answer than the longest distractor?
+                        const jump = (correctLen - maxOther) / maxOther;
 
-                        if (correctLen < 15) {
-                            // Must be > 20% longer (ratio > 1.2)
-                            if (ratio > 1.2) isBias = true;
-                        } else {
-                            // General case: At least 3 chars longer (keeps original logic)
-                            if (correctLen - maxOther >= 3) isBias = true;
-                        }
-
-                        if (isBias) {
+                        // 3. Thresholds
+                        // - Must not be a single word
+                        // - Jump must be > 20% (0.2). This naturally filters "Balanced" cases where
+                        //   a distractor is close in length (e.g. Correct=100, D1=95 -> Jump=5% -> safe).
+                        if (!isSingleWord && jump > 0.2) {
                             flaggedItems.push({
                                 bundleId: bundle.id,
                                 bundleName: (bundle as any).title || (bundle as any).name || bundle.id,
@@ -119,7 +114,7 @@ export const QuestionBiasDetector: React.FC<{ onBack: () => void }> = ({ onBack 
                                 options: options, // Save full options for AI context
                                 biasedOption: correctText,
                                 correctOption: correctText,
-                                ratio,
+                                ratio: correctLen / maxOther, // Keep ratio for report (1.x format)
                                 originalData: q
                             });
                         }
