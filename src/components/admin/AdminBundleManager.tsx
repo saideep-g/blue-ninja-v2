@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getDocs, updateDoc, doc } from 'firebase/firestore';
 import { studentsCollection, questionBundlesCollection, getStudentRef } from '../../services/db/firestore';
-import { User, Package, Plus, Trash2, Loader, Search, CheckCircle, Box } from 'lucide-react';
+import { User, Package, Plus, Trash2, Loader, Search, CheckCircle, Box, AlertTriangle } from 'lucide-react';
+import { QuestionBiasDetector } from './QuestionBiasDetector';
 
 interface Student {
     id: string;
@@ -27,6 +28,7 @@ export const AdminBundleManager: React.FC = () => {
 
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [studentSearch, setStudentSearch] = useState('');
+    const [showBiasDetector, setShowBiasDetector] = useState(false);
 
     // Fetch Data
     useEffect(() => {
@@ -118,6 +120,10 @@ export const AdminBundleManager: React.FC = () => {
 
     if (loading) return <div className="flex h-full items-center justify-center"><Loader className="animate-spin w-8 h-8 text-blue-500" /></div>;
 
+    if (showBiasDetector) {
+        return <QuestionBiasDetector onBack={() => setShowBiasDetector(false)} />;
+    }
+
     return (
         <div className="flex h-full bg-[#f8faff] overflow-hidden">
             {/* Left Sidebar: Student List */}
@@ -139,6 +145,12 @@ export const AdminBundleManager: React.FC = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    <button
+                        onClick={() => setShowBiasDetector(true)}
+                        className="w-full mb-4 p-3 bg-white border border-rose-200 text-rose-600 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-rose-50 transition-colors shadow-sm"
+                    >
+                        <AlertTriangle className="w-4 h-4" /> Run Bias Check
+                    </button>
                     {filteredStudents.map(student => {
                         const isSelected = selectedStudentId === student.id;
                         return (

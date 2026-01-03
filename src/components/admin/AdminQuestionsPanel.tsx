@@ -30,6 +30,7 @@ import { publishBundleToFirestore, deleteQuestionFromBundle, updateQuestionInBun
 import { AdminIntelligenceReport } from './AdminIntelligenceReport';
 import { ConceptVitalityDetail } from './ConceptVitalityDetail';
 import { TemplateDiversityReport } from './TemplateDiversityReport';
+import { QuestionBiasDetector } from './QuestionBiasDetector';
 
 // Restore PreviewModal here before main component
 const PreviewModal = ({
@@ -229,7 +230,7 @@ const PreviewModal = ({
 // TYPES & CONSTANTS
 // ============================================================================
 
-type UploadStep = 'UPLOAD' | 'REVIEW' | 'PUBLISHING' | 'SUCCESS' | 'BROWSE' | 'INTELLIGENCE' | 'DUPLICATES' | 'VITALITY_DETAIL' | 'TEMPLATE_DIVERSITY';
+type UploadStep = 'UPLOAD' | 'REVIEW' | 'PUBLISHING' | 'SUCCESS' | 'BROWSE' | 'INTELLIGENCE' | 'DUPLICATES' | 'VITALITY_DETAIL' | 'TEMPLATE_DIVERSITY' | 'BIAS_DETECTOR';
 
 // ============================================================================
 // SUB-COMPONENTS
@@ -896,6 +897,10 @@ export default function AdminQuestionsPanel() {
     return <TemplateDiversityReport onBack={() => setStep('INTELLIGENCE')} />;
   }
 
+  if (step === 'BIAS_DETECTOR') {
+    return <QuestionBiasDetector onBack={() => setStep('BROWSE')} />;
+  }
+
   if (step === 'INTELLIGENCE') {
     return (
       <div className="h-full flex flex-col bg-slate-50">
@@ -959,6 +964,14 @@ export default function AdminQuestionsPanel() {
                   onChange={(e) => setBrowserSearch(e.target.value)}
                 />
               </div>
+              <button
+                onClick={() => setStep('BIAS_DETECTOR')}
+                className="px-4 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 shadow-sm transition flex items-center gap-2"
+                title="Detect Length Bias"
+              >
+                <AlertTriangle size={20} className="text-amber-500" />
+                <span className="hidden md:inline">Bias Check</span>
+              </button>
               <button
                 onClick={() => loadAllQuestions(true)}
                 disabled={browserStep === 'LOADING'}
