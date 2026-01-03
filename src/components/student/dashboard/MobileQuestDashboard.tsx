@@ -261,11 +261,25 @@ export default function MobileQuestDashboard() {
                         subjectQuestions = Object.values(dataSnap.data().questions).map((sq: any) => ({
                             id: sq.id,
                             question_text: sq.question,
-                            options: sq.options.map((o: string, i: number) => ({
-                                id: String(i + 1),
-                                text: o,
-                                isCorrect: o === sq.answer
-                            })).sort(() => 0.5 - Math.random()),
+                            options: (() => {
+                                const mapped = sq.options.map((o: string, i: number) => ({
+                                    id: String(i + 1),
+                                    text: o,
+                                    isCorrect: o === sq.answer
+                                }));
+
+                                const specialRegex = /both.*and|all of the|none of the|a and b|options a|neither|a and c|b and c/i;
+                                const hasSpecial = mapped.some((o: { text: string }) => specialRegex.test(o.text));
+
+                                if (hasSpecial) {
+                                    // Keep original order but ensure special options are at the bottom
+                                    const special = mapped.filter((o: { text: string }) => specialRegex.test(o.text));
+                                    const normal = mapped.filter((o: { text: string }) => !specialRegex.test(o.text));
+                                    return [...normal, ...special];
+                                }
+
+                                return mapped.sort(() => 0.5 - Math.random());
+                            })(),
                             correct_answer: sq.answer,
                             type: 'MCQ',
                             subject: subject,
@@ -275,286 +289,287 @@ export default function MobileQuestDashboard() {
                             chapter_id: sq.chapter_id,
                             chapter: sq.chapter // Legacy field support
                         } as unknown as Question));
-                    }
+                    } as unknown as Question));
                 }
-
-                // Update Cache (even if empty to prevent retries)
-                questionCache.current[subject] = subjectQuestions || [];
             }
+
+            // Update Cache (even if empty to prevent retries)
+            questionCache.current[subject] = subjectQuestions || [];
+        }
 
             // 3. Filter for Specific Chapter
             // Heuristic: Map Chapter Index to ID (m1, m2... s1, s2...)
             const subjChapters = CHAPTERS[subject as keyof typeof CHAPTERS] || [];
-            const chapterIndex = subjChapters.findIndex(c => c.n === topic);
+        const chapterIndex = subjChapters.findIndex(c => c.n === topic);
 
-            // Construct probable IDs based on Subject first letter + Index+1
-            // Math -> m, Science -> s, Words -> w, World -> g
-            let shortCode = subject.charAt(0).toLowerCase();
-            if (subject === 'World') shortCode = 'g';
+        // Construct probable IDs based on Subject first letter + Index+1
+        // Math -> m, Science -> s, Words -> w, World -> g
+        let shortCode = subject.charAt(0).toLowerCase();
+        if (subject === 'World') shortCode = 'g';
 
-            const targetId = `${shortCode}${chapterIndex + 1}`;
+        const targetId = `${shortCode}${chapterIndex + 1}`;
 
-            const relevantQuestions = (questionCache.current[subject] || []).filter((q: any) => {
-                // Strong Match: ID
-                if (q.chapter_id === targetId) return true;
-                // Fallback Match: Topic Name
-                if (q.chapter === topic) return true;
-                // If chapter_id is missing in data, maybe use 'General' fallback for unassigned
-                return false;
-            });
-
-            if (relevantQuestions.length > 0) {
-                // Shuffle and pick 10
-                const shuffled = relevantQuestions.sort(() => 0.5 - Math.random()).slice(0, 10);
-                setQuestions(shuffled);
-            } else {
-                // Fallback to Dummy if no real questions found for this specific chapter
-                console.warn(`No questions found for ${subject} chapter ${topic} (Target ID: ${targetId}). Using placeholders.`);
-                const fetched = Array.from({ length: 10 }, (_, i) => ({
-                    id: `gen-${i}`,
-                    question_text: `Challenge: ${topic || subject} Question ${i + 1}`,
-                    correct_answer: "Correct Option",
-                    options: [
-                        { id: '1', text: "Correct Option", isCorrect: true },
-                        { id: '2', text: "Wrong Answer", isCorrect: false },
-                        { id: '3', text: "Not this one", isCorrect: false },
-                        { id: '4', text: "Try again", isCorrect: false }
-                    ],
-                    type: 'MCQ',
-                    subject: subject,
-                    difficulty: 'easy' as const,
-                    curriculum_version: 'v3',
-                    topic: topic || 'General',
-                    chapter: 'General'
-                }));
-                setQuestions(fetched as Question[]);
-            }
-
-        } catch (e) {
-            console.error("Fetch error", e);
-            setQuestions([]);
-        } finally {
-            setLoadingQuestions(false);
-        }
-    };
-
-    const handleNext = () => {
-        setFeedback(null);
-        setSelectedAnswer(null);
-        if (currentQIndex < questions.length - 1) {
-            setCurrentQIndex(q => q + 1);
-        } else {
-            finishQuiz(score); // Score already updated in handleAnswer if correct
-        }
-    };
-
-    const handleAnswer = (answerId: string, isCorrect: boolean) => {
-        if (selectedAnswer) return; // Prevent double taps
-        setSelectedAnswer(answerId);
-        const currentQ = questions[currentQIndex];
-
-        // Sound played in view component wrapper now
-        setFeedback(isCorrect ? 'correct' : 'wrong');
-
-        if (isCorrect) {
-            setScore(s => s + 1);
-        }
-
-        const ansText = currentQ.options.find(o => o.id === answerId)?.text || answerId;
-        logQuestionResult({
-            questionId: currentQ.id as string,
-            studentAnswer: ansText,
-            isCorrect,
-            timestamp: new Date()
+        const relevantQuestions = (questionCache.current[subject] || []).filter((q: any) => {
+            // Strong Match: ID
+            if (q.chapter_id === targetId) return true;
+            // Fallback Match: Topic Name
+            if (q.chapter === topic) return true;
+            // If chapter_id is missing in data, maybe use 'General' fallback for unassigned
+            return false;
         });
 
-        // Auto-advance only if correct, otherwise wait for user to read explanation
-        if (isCorrect) {
-            setTimeout(() => {
-                handleNext();
-            }, 1500);
-        }
-    };
-
-    const finishQuiz = (finalScore: number) => {
-        const sessionQuestions = questions.length;
-        const currentDaily = dailyProgress[activePathSubject] || 0;
-        const newDailyTotal = currentDaily + sessionQuestions;
-
-        setDailyProgress(prev => ({ ...prev, [activePathSubject]: newDailyTotal }));
-
-        if (activeChapter) {
-            setChapterProgress(prev => {
-                const current = prev[activeChapter.n] || { correct: 0, total: 0, unlocked: true, questionsAnswered: 0 };
-                const newCorrect = current.correct + (finalScore * 20);
-                const newTotalPoints = current.total + (sessionQuestions * 20);
-                const newQuestionsAnswered = (current.questionsAnswered || 0) + sessionQuestions;
-                const accuracy = newCorrect / (newTotalPoints || 1);
-
-                const reqQuestions = activeChapter.req || 50;
-                const isMastered = (newQuestionsAnswered >= reqQuestions) && (accuracy >= 0.8);
-
-                if (isMastered) {
-                    const subjChapters = CHAPTERS[activePathSubject as keyof typeof CHAPTERS];
-                    const idx = subjChapters.findIndex(c => c.n === activeChapter.n);
-                    if (idx !== -1 && idx < subjChapters.length - 1) {
-                        const nextChapter = subjChapters[idx + 1];
-                        if (prev[nextChapter.n]) {
-                            prev[nextChapter.n] = { ...prev[nextChapter.n], unlocked: true };
-                        } else {
-                            prev[nextChapter.n] = { correct: 0, total: 0, unlocked: true, mastered: false, questionsAnswered: 0 };
-                        }
-                    }
-                }
-
-                const newState = {
-                    ...prev,
-                    [activeChapter.n]: {
-                        correct: newCorrect,
-                        total: newTotalPoints,
-                        questionsAnswered: newQuestionsAnswered,
-                        unlocked: true,
-                        mastered: isMastered
-                    }
-                };
-
-                if (user?.uid) {
-                    const studentRef = doc(db, 'students', user.uid);
-                    updateDoc(studentRef, {
-                        [`mastery.${activeChapter.n}`]: newState[activeChapter.n],
-                        [`daily.${activePathSubject}`]: newDailyTotal,
-                        lastActive: new Date()
-                    }).catch(e => console.error(e));
-                }
-
-                return newState;
-            });
+        if (relevantQuestions.length > 0) {
+            // Shuffle and pick 10
+            const shuffled = relevantQuestions.sort(() => 0.5 - Math.random()).slice(0, 10);
+            setQuestions(shuffled);
+        } else {
+            // Fallback to Dummy if no real questions found for this specific chapter
+            console.warn(`No questions found for ${subject} chapter ${topic} (Target ID: ${targetId}). Using placeholders.`);
+            const fetched = Array.from({ length: 10 }, (_, i) => ({
+                id: `gen-${i}`,
+                question_text: `Challenge: ${topic || subject} Question ${i + 1}`,
+                correct_answer: "Correct Option",
+                options: [
+                    { id: '1', text: "Correct Option", isCorrect: true },
+                    { id: '2', text: "Wrong Answer", isCorrect: false },
+                    { id: '3', text: "Not this one", isCorrect: false },
+                    { id: '4', text: "Try again", isCorrect: false }
+                ],
+                type: 'MCQ',
+                subject: subject,
+                difficulty: 'easy' as const,
+                curriculum_version: 'v3',
+                topic: topic || 'General',
+                chapter: 'General'
+            }));
+            setQuestions(fetched as Question[]);
         }
 
-        updatePower(finalScore * 20);
+    } catch (e) {
+        console.error("Fetch error", e);
+        setQuestions([]);
+    } finally {
+        setLoadingQuestions(false);
+    }
+};
 
-        // Trigger celebration instead of direct view switch
-        setView('results'); // Show results briefly/underneath? Actually results view has 'Continue' button.
-        // If we want the celebration overlay to happen ON TOP of results or BEFORE results?
-        // Let's trigger it here, it will overlay whatever view is active. 
-        triggerCelebration();
-    };
+const handleNext = () => {
+    setFeedback(null);
+    setSelectedAnswer(null);
+    if (currentQIndex < questions.length - 1) {
+        setCurrentQIndex(q => q + 1);
+    } else {
+        finishQuiz(score); // Score already updated in handleAnswer if correct
+    }
+};
 
-    // --- RENDER ---
-    return (
-        <div className="min-h-screen w-full bg-[#F9F6FF] font-sans text-slate-800 select-none pb-28">
+const handleAnswer = (answerId: string, isCorrect: boolean) => {
+    if (selectedAnswer) return; // Prevent double taps
+    setSelectedAnswer(answerId);
+    const currentQ = questions[currentQIndex];
 
-            {/* Header */}
-            {view !== 'quiz' && view !== 'results' && (
-                <StudentHeader user={user} stars={ninjaStats.powerPoints || 0} />
-            )}
+    // Sound played in view component wrapper now
+    setFeedback(isCorrect ? 'correct' : 'wrong');
 
-            {/* Views */}
-            {view === 'home' && (
-                <HomeView
-                    dailyProgress={dailyProgress}
-                    chapterProgress={chapterProgress}
-                    tablesMasteryScore={tablesMasteryScore}
-                    onPlaySubject={handlePlaySubject}
-                    onPlayTables={() => navigate('/tables')}
-                />
-            )}
+    if (isCorrect) {
+        setScore(s => s + 1);
+    }
 
-            {view === 'awards' && (
-                <AwardsView
-                    masteryProgress={chapterProgress}
-                    onPlayChapter={handlePlaySpecificChapter}
-                />
-            )}
+    const ansText = currentQ.options.find(o => o.id === answerId)?.text || answerId;
+    logQuestionResult({
+        questionId: currentQ.id as string,
+        studentAnswer: ansText,
+        isCorrect,
+        timestamp: new Date()
+    });
 
-            {view === 'profile' && (
-                <ProfileView
-                    user={user}
-                    stats={{ stars: totalPoints || 0, streak: currentStreak || 0, powerPoints: totalPoints || 0 }}
-                    onUpdateProfile={handleProfileUpdate}
-                />
-            )}
+    // Auto-advance only if correct, otherwise wait for user to read explanation
+    if (isCorrect) {
+        setTimeout(() => {
+            handleNext();
+        }, 1500);
+    }
+};
 
-            {/* Quiz & Results Overlays */}
-            {/* --- QUIZ view --- */}
-            {view === 'quiz' && (
-                <QuestQuizView
-                    questions={questions}
-                    currentQIndex={currentQIndex}
-                    selectedAnswer={selectedAnswer}
-                    feedback={feedback}
-                    onAnswer={handleAnswer}
-                    onNext={handleNext}
-                    onBack={() => window.history.back()}
-                />
-            )}
+const finishQuiz = (finalScore: number) => {
+    const sessionQuestions = questions.length;
+    const currentDaily = dailyProgress[activePathSubject] || 0;
+    const newDailyTotal = currentDaily + sessionQuestions;
 
-            {view === 'results' && (
-                <QuestResultsView
-                    score={score}
-                    onContinue={() => { setView('home'); window.scrollTo(0, 0); }}
-                />
-            )}
+    setDailyProgress(prev => ({ ...prev, [activePathSubject]: newDailyTotal }));
 
-            {/* CELEBRATION OVERLAY */}
-            <AnimatePresence>
-                {showCelebration && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-md pointer-events-none"
-                    >
-                        <Confetti
-                            width={window.innerWidth}
-                            height={window.innerHeight}
-                            numberOfPieces={400}
-                            recycle={false}
-                            colors={['#A78BFA', '#F472B6', '#34D399', '#FBBF24']}
-                        />
-                        <motion.div
-                            initial={{ scale: 0.5, y: 100 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 1.5, opacity: 0 }}
-                            transition={{ type: "spring", bounce: 0.5 }}
-                            className="bg-white rounded-[3rem] p-12 text-center shadow-[0_0_100px_rgba(167,139,250,0.5)] border-4 border-white relative overflow-hidden mx-4"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-100 via-pink-100 to-yellow-100 opacity-50" />
-                            <div className="relative z-10">
-                                <motion.div
-                                    animate={{ rotate: [0, 10, -10, 0] }}
-                                    transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-                                    className="text-8xl mb-6"
-                                >
-                                    👑
-                                </motion.div>
-                                <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4 tracking-tighter">
-                                    {celebrationMessage}
-                                </h1>
-                                <p className="text-lg md:text-xl font-bold text-slate-500 uppercase tracking-widest">
-                                    Quest Complete
-                                </p>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+    if (activeChapter) {
+        setChapterProgress(prev => {
+            const current = prev[activeChapter.n] || { correct: 0, total: 0, unlocked: true, questionsAnswered: 0 };
+            const newCorrect = current.correct + (finalScore * 20);
+            const newTotalPoints = current.total + (sessionQuestions * 20);
+            const newQuestionsAnswered = (current.questionsAnswered || 0) + sessionQuestions;
+            const accuracy = newCorrect / (newTotalPoints || 1);
 
+            const reqQuestions = activeChapter.req || 50;
+            const isMastered = (newQuestionsAnswered >= reqQuestions) && (accuracy >= 0.8);
 
-            {/* --- CHALLENGES View --- */}
-            {view === 'challenges' && (
-                <div className="fixed inset-0 z-[60] bg-white animate-in slide-in-from-right duration-300">
-                    <MobileChallengeArena onBack={() => setView('home')} />
-                </div>
-            )}
-
-            {/* Bottom Nav */}
-            {
-                ['home', 'awards', 'profile', 'challenges'].includes(view) && (
-                    <QuestBottomNav currentView={view} setView={setView} />
-                )
+            if (isMastered) {
+                const subjChapters = CHAPTERS[activePathSubject as keyof typeof CHAPTERS];
+                const idx = subjChapters.findIndex(c => c.n === activeChapter.n);
+                if (idx !== -1 && idx < subjChapters.length - 1) {
+                    const nextChapter = subjChapters[idx + 1];
+                    if (prev[nextChapter.n]) {
+                        prev[nextChapter.n] = { ...prev[nextChapter.n], unlocked: true };
+                    } else {
+                        prev[nextChapter.n] = { correct: 0, total: 0, unlocked: true, mastered: false, questionsAnswered: 0 };
+                    }
+                }
             }
 
-        </div >
-    );
+            const newState = {
+                ...prev,
+                [activeChapter.n]: {
+                    correct: newCorrect,
+                    total: newTotalPoints,
+                    questionsAnswered: newQuestionsAnswered,
+                    unlocked: true,
+                    mastered: isMastered
+                }
+            };
+
+            if (user?.uid) {
+                const studentRef = doc(db, 'students', user.uid);
+                updateDoc(studentRef, {
+                    [`mastery.${activeChapter.n}`]: newState[activeChapter.n],
+                    [`daily.${activePathSubject}`]: newDailyTotal,
+                    lastActive: new Date()
+                }).catch(e => console.error(e));
+            }
+
+            return newState;
+        });
+    }
+
+    updatePower(finalScore * 20);
+
+    // Trigger celebration instead of direct view switch
+    setView('results'); // Show results briefly/underneath? Actually results view has 'Continue' button.
+    // If we want the celebration overlay to happen ON TOP of results or BEFORE results?
+    // Let's trigger it here, it will overlay whatever view is active. 
+    triggerCelebration();
+};
+
+// --- RENDER ---
+return (
+    <div className="min-h-screen w-full bg-[#F9F6FF] font-sans text-slate-800 select-none pb-28">
+
+        {/* Header */}
+        {view !== 'quiz' && view !== 'results' && (
+            <StudentHeader user={user} stars={ninjaStats.powerPoints || 0} />
+        )}
+
+        {/* Views */}
+        {view === 'home' && (
+            <HomeView
+                dailyProgress={dailyProgress}
+                chapterProgress={chapterProgress}
+                tablesMasteryScore={tablesMasteryScore}
+                onPlaySubject={handlePlaySubject}
+                onPlayTables={() => navigate('/tables')}
+            />
+        )}
+
+        {view === 'awards' && (
+            <AwardsView
+                masteryProgress={chapterProgress}
+                onPlayChapter={handlePlaySpecificChapter}
+            />
+        )}
+
+        {view === 'profile' && (
+            <ProfileView
+                user={user}
+                stats={{ stars: totalPoints || 0, streak: currentStreak || 0, powerPoints: totalPoints || 0 }}
+                onUpdateProfile={handleProfileUpdate}
+            />
+        )}
+
+        {/* Quiz & Results Overlays */}
+        {/* --- QUIZ view --- */}
+        {view === 'quiz' && (
+            <QuestQuizView
+                questions={questions}
+                currentQIndex={currentQIndex}
+                selectedAnswer={selectedAnswer}
+                feedback={feedback}
+                onAnswer={handleAnswer}
+                onNext={handleNext}
+                onBack={() => window.history.back()}
+            />
+        )}
+
+        {view === 'results' && (
+            <QuestResultsView
+                score={score}
+                onContinue={() => { setView('home'); window.scrollTo(0, 0); }}
+            />
+        )}
+
+        {/* CELEBRATION OVERLAY */}
+        <AnimatePresence>
+            {showCelebration && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-md pointer-events-none"
+                >
+                    <Confetti
+                        width={window.innerWidth}
+                        height={window.innerHeight}
+                        numberOfPieces={400}
+                        recycle={false}
+                        colors={['#A78BFA', '#F472B6', '#34D399', '#FBBF24']}
+                    />
+                    <motion.div
+                        initial={{ scale: 0.5, y: 100 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 1.5, opacity: 0 }}
+                        transition={{ type: "spring", bounce: 0.5 }}
+                        className="bg-white rounded-[3rem] p-12 text-center shadow-[0_0_100px_rgba(167,139,250,0.5)] border-4 border-white relative overflow-hidden mx-4"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-100 via-pink-100 to-yellow-100 opacity-50" />
+                        <div className="relative z-10">
+                            <motion.div
+                                animate={{ rotate: [0, 10, -10, 0] }}
+                                transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+                                className="text-8xl mb-6"
+                            >
+                                👑
+                            </motion.div>
+                            <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4 tracking-tighter">
+                                {celebrationMessage}
+                            </h1>
+                            <p className="text-lg md:text-xl font-bold text-slate-500 uppercase tracking-widest">
+                                Quest Complete
+                            </p>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+
+
+        {/* --- CHALLENGES View --- */}
+        {view === 'challenges' && (
+            <div className="fixed inset-0 z-[60] bg-white animate-in slide-in-from-right duration-300">
+                <MobileChallengeArena onBack={() => setView('home')} />
+            </div>
+        )}
+
+        {/* Bottom Nav */}
+        {
+            ['home', 'awards', 'profile', 'challenges'].includes(view) && (
+                <QuestBottomNav currentView={view} setView={setView} />
+            )
+        }
+
+    </div >
+);
 }

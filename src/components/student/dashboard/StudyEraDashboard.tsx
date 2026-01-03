@@ -140,8 +140,34 @@ const StudyEraDashboard = () => {
                         type: 'MCQ_SIMPLIFIED',
                         text: sq.question,
                         content: { prompt: { text: sq.question }, instruction: sq.instruction || "Select the best answer" },
-                        options: sq.options.map((o: string, i: number) => ({ id: String(i + 1), text: o, isCorrect: o === sq.answer })).sort(() => 0.5 - Math.random()),
-                        interaction: { config: { options: sq.options.map((o: string, i: number) => ({ id: String(i + 1), text: o, isCorrect: o === sq.answer })).sort(() => 0.5 - Math.random()) } },
+                        options: (() => {
+                            const mapped = sq.options.map((o: string, i: number) => ({ id: String(i + 1), text: o, isCorrect: o === sq.answer }));
+                            const specialRegex = /both.*and|all of the|none of the|a and b|options a|neither|a and c|b and c/i;
+                            const hasSpecial = mapped.some((o: any) => specialRegex.test(o.text));
+
+                            if (hasSpecial) {
+                                const special = mapped.filter((o: any) => specialRegex.test(o.text));
+                                const normal = mapped.filter((o: any) => !specialRegex.test(o.text));
+                                return [...normal, ...special];
+                            }
+                            return mapped.sort(() => 0.5 - Math.random());
+                        })(),
+                        interaction: {
+                            config: {
+                                options: (() => {
+                                    const mapped = sq.options.map((o: string, i: number) => ({ id: String(i + 1), text: o, isCorrect: o === sq.answer }));
+                                    const specialRegex = /both.*and|all of the|none of the|a and b|options a|neither|a and c|b and c/i;
+                                    const hasSpecial = mapped.some((o: any) => specialRegex.test(o.text));
+
+                                    if (hasSpecial) {
+                                        const special = mapped.filter((o: any) => specialRegex.test(o.text));
+                                        const normal = mapped.filter((o: any) => !specialRegex.test(o.text));
+                                        return [...normal, ...special];
+                                    }
+                                    return mapped.sort(() => 0.5 - Math.random());
+                                })()
+                            }
+                        },
                         correctOptionId: null,
                         subject: querySubject,
                         explanation: sq.explanation,
