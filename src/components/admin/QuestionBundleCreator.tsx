@@ -29,6 +29,7 @@ interface AutoFixCandidate {
     originalAnswer: string;
     suggestedAnswer: string;
     confidence: number;
+    isBestGuess?: boolean;
 }
 
 function levenshteinDistance(a: string, b: string): number {
@@ -97,6 +98,7 @@ export default function QuestionBundleCreator() {
     // Auto-Fix State
     const [fixCandidates, setFixCandidates] = useState<AutoFixCandidate[]>([]);
     const [showFixModal, setShowFixModal] = useState(false);
+    const [selectedFixIds, setSelectedFixIds] = useState<Set<string>>(new Set());
 
     // --- Effects ---
     useEffect(() => {
@@ -167,17 +169,19 @@ export default function QuestionBundleCreator() {
                 const best = scoredOptions[0];
                 const secondBest = scoredOptions.length > 1 ? scoredOptions[1] : { score: 0 };
 
-                // LOGIC: match if > 80% OR if there is a > 20% gap between #1 and #2 (and result is not garbage < 40%)
+                // LOGIC: match if > 80% OR if there is a > 15% gap between #1 and #2 (and result is not garbage < 40%)
                 const isHighConfidence = best.score > 0.80;
-                const isClearWinner = (best.score - secondBest.score) > 0.20 && best.score > 0.4;
+                const isClearWinner = (best.score - secondBest.score) > 0.15 && best.score > 0.4;
+                const isBestGuess = !isHighConfidence && !isClearWinner && best.score > 0.4;
 
-                if (isHighConfidence || isClearWinner) {
+                if (isHighConfidence || isClearWinner || isBestGuess) {
                     candidates.push({
                         questionId: q.id!,
                         questionText: q.question,
                         originalAnswer: q.answer!,
                         suggestedAnswer: best.option,
-                        confidence: Math.round(best.score * 100)
+                        confidence: Math.round(best.score * 100),
+                        isBestGuess: isBestGuess // Mark as lower confidence
                     });
                 }
             }
@@ -439,7 +443,15 @@ export default function QuestionBundleCreator() {
     };
 
     const handleApplyFixes = async () => {
-        if (!selectedBundle || fixCandidates.length === 0) return;
+        if (!selectedBundle) return;
+
+        // Filter only selected fixes
+        const fixesToApply = fixCandidates.filter(f => selectedFixIds.has(f.questionId));
+
+        if (fixesToApply.length === 0) {
+            alert("No fixes selected!");
+            return;
+        }
 
         setUploading(true);
         try {
@@ -449,10 +461,10 @@ export default function QuestionBundleCreator() {
             const updates: Record<string, any> = {};
             const updatedList = [...existingQuestions];
 
-            fixCandidates.forEach(fix => {
+            fixesToApply.forEach(fix => {
                 // Update Firestore Payload
                 updates[`questions.${fix.questionId}.answer`] = fix.suggestedAnswer;
-                updates[`questions.${fix.questionId}.updatedAt`] = new Date().toISOString(); // optional if tracking per-field
+                // updates[`questions.${fix.questionId}.updatedAt`] = new Date().toISOString(); 
 
                 // Update Local State
                 const qIndex = updatedList.findIndex(q => q.id === fix.questionId);
@@ -473,17 +485,21 @@ export default function QuestionBundleCreator() {
             const duplicates = checkForDuplicates(updatedList);
             setDuplicateQuestionIds(duplicates);
             setFixCandidates([]); // Clear processed candidates
+            // Re-run check to see if any unselected ones remain or new issues
+            checkAutoFixCandidates(updatedList);
             setShowFixModal(false);
 
-            alert(`Successfully auto-corrected ${fixCandidates.length} questions!`);
+            alert(`Successfully auto-corrected ${fixesToApply.length} questions!`);
 
         } catch (e) {
-            console.error("Auto-fix failed", e);
-            alert("Auto-fix failed. See console.");
+            console.error("Auto fix failed", e);
+            alert("Failed to apply fixes.");
         } finally {
             setUploading(false);
         }
     };
+
+
 
     // --- Render Helpers ---
 
@@ -798,7 +814,14 @@ export default function QuestionBundleCreator() {
 
                                             {fixCandidates.length > 0 && (
                                                 <button
-                                                    onClick={() => setShowFixModal(true)}
+                                                    onClick={() => {
+                                                        // Pre-select high confidence ones
+                                                        const highConfIds = fixCandidates
+                                                            .filter(f => !f.isBestGuess)
+                                                            .map(f => f.questionId);
+                                                        setSelectedFixIds(new Set(highConfIds));
+                                                        setShowFixModal(true);
+                                                    }}
                                                     className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:shadow-md transition-all animate-pulse"
                                                 >
                                                     <Wand size={16} />
@@ -938,29 +961,43 @@ export default function QuestionBundleCreator() {
                             <div>
                                 <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Options</label>
                                 <div className="space-y-2">
-                                    {editingQuestion.options?.map((opt, idx) => (
-                                        <div key={idx} className="flex gap-2">
-                                            <input
-                                                className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-400 outline-none"
-                                                value={opt}
-                                                onChange={e => {
-                                                    const newOpts = [...(editingQuestion.options || [])];
-                                                    newOpts[idx] = e.target.value;
-                                                    setEditingQuestion({ ...editingQuestion, options: newOpts });
-                                                }}
-                                            />
-                                            <button
-                                                onClick={() => {
-                                                    // Quick Action: Set as Answer
-                                                    setEditingQuestion({ ...editingQuestion, answer: opt });
-                                                }}
-                                                className="px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-lg hover:bg-emerald-100"
-                                                title="Set as Correct Answer"
-                                            >
-                                                Set Ans
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {editingQuestion.options?.map((opt, idx) => {
+                                        const similarity = getSimilarity(editingQuestion.answer || '', opt);
+                                        const score = Math.round(similarity * 100);
+                                        let scoreColor = 'text-red-400 bg-red-50';
+                                        if (score === 100) scoreColor = 'text-emerald-600 bg-emerald-50 border-emerald-200';
+                                        else if (score > 80) scoreColor = 'text-emerald-500 bg-emerald-50';
+                                        else if (score > 50) scoreColor = 'text-amber-500 bg-amber-50';
+
+                                        return (
+                                            <div key={idx} className="flex gap-2 items-center">
+                                                <div className="flex-1 relative">
+                                                    <input
+                                                        className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-400 outline-none pr-16"
+                                                        value={opt}
+                                                        onChange={e => {
+                                                            const newOpts = [...(editingQuestion.options || [])];
+                                                            newOpts[idx] = e.target.value;
+                                                            setEditingQuestion({ ...editingQuestion, options: newOpts });
+                                                        }}
+                                                    />
+                                                    <span className={`absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold px-1.5 py-0.5 rounded border ${scoreColor}`}>
+                                                        {score}% Match
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        // Quick Action: Set as Answer
+                                                        setEditingQuestion({ ...editingQuestion, answer: opt });
+                                                    }}
+                                                    className="px-3 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-purple-100 hover:text-purple-600 transition-colors border border-slate-200 whitespace-nowrap"
+                                                    title="Set as Correct Answer"
+                                                >
+                                                    Set Ans
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                             <div>
@@ -1006,25 +1043,94 @@ export default function QuestionBundleCreator() {
                         </div>
 
                         <div className="p-0 max-h-[60vh] overflow-y-auto bg-slate-50">
-                            {fixCandidates.map((fix, idx) => (
-                                <div key={idx} className="p-4 border-b border-slate-200 hover:bg-white transition-colors">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h4 className="font-bold text-slate-700 text-sm line-clamp-1 flex-1 mr-4">{fix.questionText}</h4>
-                                        <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-full">{fix.confidence}% Match</span>
+                            {/* Group 1: High Confidence */}
+                            {fixCandidates.filter(f => !f.isBestGuess).length > 0 && (
+                                <div>
+                                    <div className="px-6 py-3 bg-slate-100 text-slate-500 text-xs font-black uppercase tracking-wider flex justify-between items-center sticky top-0 z-10">
+                                        <span>High Confidence Matches</span>
+                                        <span className="text-emerald-600 font-bold">{fixCandidates.filter(f => !f.isBestGuess).length} Found</span>
                                     </div>
-                                    <div className="flex items-center gap-4 text-sm">
-                                        <div className="flex-1 p-3 bg-red-50 border border-red-100 rounded-lg">
-                                            <span className="text-xs font-bold text-red-400 uppercase tracking-wider block mb-1">Current (Invalid)</span>
-                                            <span className="text-red-700 font-bold strike-through line-through opacity-70">{fix.originalAnswer}</span>
+                                    {fixCandidates.filter(f => !f.isBestGuess).map((fix, idx) => (
+                                        <div key={fix.questionId} className={`p-4 border-b border-slate-200 transition-colors flex gap-3
+                                         ${selectedFixIds.has(fix.questionId) ? 'bg-purple-50/50' : 'bg-white opacity-80 hover:opacity-100'}`}>
+                                            <input
+                                                type="checkbox"
+                                                className="mt-1 w-5 h-5 cursor-pointer accent-purple-600"
+                                                checked={selectedFixIds.has(fix.questionId)}
+                                                onChange={(e) => {
+                                                    const newSet = new Set(selectedFixIds);
+                                                    if (e.target.checked) newSet.add(fix.questionId);
+                                                    else newSet.delete(fix.questionId);
+                                                    setSelectedFixIds(newSet);
+                                                }}
+                                            />
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h4 className="font-bold text-slate-700 text-sm line-clamp-1 flex-1 mr-4">{fix.questionText}</h4>
+                                                    <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-full">{fix.confidence}% Match</span>
+                                                </div>
+                                                <div className="flex items-center gap-4 text-sm">
+                                                    <div className="flex-1 p-2 bg-red-50 border border-red-100 rounded-lg">
+                                                        <span className="text-xs font-bold text-red-400 uppercase tracking-wider block mb-1">Invalid</span>
+                                                        <span className="text-red-700 font-bold line-through opacity-70">{fix.originalAnswer}</span>
+                                                    </div>
+                                                    <div className="text-slate-300"><CheckCircle size={16} /></div>
+                                                    <div className="flex-1 p-2 bg-emerald-50 border border-emerald-100 rounded-lg">
+                                                        <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1">Fix</span>
+                                                        <span className="text-emerald-700 font-black">{fix.suggestedAnswer}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="text-slate-300"><CheckCircle size={16} /></div>
-                                        <div className="flex-1 p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
-                                            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1">Suggestion (Valid Option)</span>
-                                            <span className="text-emerald-700 font-black">{fix.suggestedAnswer}</span>
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
+
+                            {/* Group 2: Potential Matches (Best Guess) */}
+                            {fixCandidates.filter(f => f.isBestGuess).length > 0 && (
+                                <div>
+                                    <div className="px-6 py-3 bg-amber-50 text-amber-700 text-xs font-black uppercase tracking-wider border-t border-amber-100 sticky top-0 z-10 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <AlertCircle size={14} />
+                                            <span>Potential Matches (Review Needed)</span>
+                                        </div>
+                                        <span className="bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">{fixCandidates.filter(f => f.isBestGuess).length}</span>
+                                    </div>
+                                    {fixCandidates.filter(f => f.isBestGuess).map((fix, idx) => (
+                                        <div key={fix.questionId} className={`p-4 border-b border-amber-100 transition-colors flex gap-3
+                                         ${selectedFixIds.has(fix.questionId) ? 'bg-amber-100/50' : 'bg-amber-50/20 hover:bg-amber-50'}`}>
+                                            <input
+                                                type="checkbox"
+                                                className="mt-1 w-5 h-5 cursor-pointer accent-amber-600"
+                                                checked={selectedFixIds.has(fix.questionId)}
+                                                onChange={(e) => {
+                                                    const newSet = new Set(selectedFixIds);
+                                                    if (e.target.checked) newSet.add(fix.questionId);
+                                                    else newSet.delete(fix.questionId);
+                                                    setSelectedFixIds(newSet);
+                                                }}
+                                            />
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h4 className="font-bold text-slate-700 text-sm line-clamp-1 flex-1 mr-4">{fix.questionText}</h4>
+                                                    <span className="bg-amber-100 text-amber-700 text-xs font-black px-2 py-1 rounded-full">{fix.confidence}% Match</span>
+                                                </div>
+                                                <div className="flex items-center gap-4 text-sm">
+                                                    <div className="flex-1 p-2 bg-slate-50 border border-slate-100 rounded-lg">
+                                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Current</span>
+                                                        <span className="text-slate-600 font-bold line-through opacity-70">{fix.originalAnswer}</span>
+                                                    </div>
+                                                    <div className="text-amber-300"><Wand size={16} /></div>
+                                                    <div className="flex-1 p-2 bg-amber-50 border border-amber-100 rounded-lg">
+                                                        <span className="text-xs font-bold text-amber-600 uppercase tracking-wider block mb-1">Best Guess</span>
+                                                        <span className="text-amber-800 font-bold">{fix.suggestedAnswer}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-4">
@@ -1036,10 +1142,10 @@ export default function QuestionBundleCreator() {
                             </button>
                             <button
                                 onClick={handleApplyFixes}
-                                disabled={uploading}
-                                className="px-8 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                                disabled={uploading || selectedFixIds.size === 0}
+                                className="px-8 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50"
                             >
-                                {uploading ? 'Applying...' : `Confirm & Fix All (${fixCandidates.length})`}
+                                {uploading ? 'Applying...' : `Fix Selected (${selectedFixIds.size})`}
                             </button>
                         </div>
                     </div>
