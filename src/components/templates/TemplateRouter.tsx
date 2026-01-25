@@ -14,6 +14,7 @@ import { SortOrderTemplate } from './SortOrderTemplate';
 import { ErrorAnalysisTemplate } from './ErrorAnalysisTemplate';
 import { McqBranchingTemplate } from './McqBranchingTemplate';
 import { BalanceOpsTemplate } from './BalanceOpsTemplate';
+import { NumericAutoTemplate } from './NumericAutoTemplate';
 
 interface TemplateRouterProps {
   question: Question;
@@ -135,8 +136,10 @@ const TwoTierAdapter: React.FC<TemplateRouterProps & { onAnswer: (result: any) =
 const TEMPLATE_REGISTRY: Record<string, React.ComponentType<any>> = {
   'MCQ_CONCEPT': MCQTemplate,
   'MCQ_SKILL': MCQTemplate,
+  'MCQ_SIMPLIFIED': MCQTemplate, // Explicit mapping
   'TWO_TIER': TwoTierAdapter,
-  'NUMERIC_INPUT': NumericInputTemplate,
+  'NUMERIC_INPUT': NumericAutoTemplate, // Force use of new Auto Template
+  'NUMERIC_AUTO': NumericAutoTemplate,
   'MATCHING': MatchingTemplate,
   'CLASSIFY_SORT': ClassifySortTemplate,
   'DRAG_DROP_MATCH': ClassifySortTemplate,

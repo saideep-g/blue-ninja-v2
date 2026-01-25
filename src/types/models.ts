@@ -65,6 +65,8 @@ export interface Question {
     explanation?: string;
     created_at?: string | Date;
     updated_by?: string;
+    visualType?: 'svg' | 'image' | null;
+    visualData?: string | null;
 
     // Legacy/Support fields
     atom?: string;

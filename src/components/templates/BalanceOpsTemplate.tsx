@@ -258,12 +258,23 @@ export const BalanceOpsTemplate: React.FC<TemplateProps> = ({ question, onAnswer
         });
     };
 
+    // Safe Prompt Extraction
+    const getSafePrompt = () => {
+        const qContent = question.content;
+        if (typeof qContent === 'string') return qContent;
+        if (typeof qContent === 'object' && qContent !== null) {
+            if (typeof (qContent as any).prompt === 'string') return (qContent as any).prompt;
+            if (typeof (qContent as any).prompt?.text === 'string') return (qContent as any).prompt.text;
+        }
+        return "Solve for " + variableName;
+    };
+
     if (!config) return <div className="p-4 text-red-500">Invalid Configuration</div>;
 
     return (
         <div className="flex flex-col items-center py-4 w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <h3 className="text-lg font-bold text-slate-700 mb-8 self-start">
-                {question.content || "Solve for " + variableName}
+                {getSafePrompt()}
             </h3>
 
             <div className="flex items-center gap-4 md:gap-12 mb-16 w-full justify-center flex-wrap">

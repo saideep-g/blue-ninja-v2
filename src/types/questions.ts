@@ -35,7 +35,25 @@ export type QuestionType =
   | 'table_fill'
   | 'formula'
   | 'mcq_branching'
-  | 'balance_ops';
+  | 'mcq_branching'
+  | 'balance_ops'
+  | 'NUMERIC_AUTO';
+
+// ... (existing interfaces)
+
+export interface NumericAutoQuestion extends BaseQuestion {
+  template: 'NUMERIC_AUTO';
+  visualType?: 'svg' | 'image' | null;
+  visualData?: string | null;
+  correctAnswer: number; // Stored as number, but input might be fraction
+  tolerance?: number;
+  unit?: string;
+  answerKey?: {
+    value?: string; // e.g. "1/2"
+    correctValue?: number; // e.g. 0.5
+    tolerance?: number;
+  };
+}
 
 // Type-specific question interfaces
 
@@ -245,4 +263,5 @@ export type Question =
   | MultipleSelectQuestion
   | SequencingQuestion
   | TableFillQuestion
-  | FormulaQuestion;
+  | FormulaQuestion
+  | NumericAutoQuestion;

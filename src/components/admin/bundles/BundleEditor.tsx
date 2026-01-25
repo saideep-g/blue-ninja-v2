@@ -43,6 +43,23 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({ bundle, onBack, onUp
         const invalidSet = new Set<string>();
         questions.forEach((q, index) => {
             const id = q.id || `temp_${index}`;
+            const template = q.template_id?.toUpperCase();
+
+            // Skip option validation for Numeric types
+            if (template === 'NUMERIC_AUTO' || template === 'NUMERIC') {
+                if (!q.answer) invalidSet.add(id); // Just ensure answer exists
+                return;
+            }
+
+            // MCQ Validation (Default)
+            // Ensure answer exists in options
+            if (!q.options || q.options.length === 0) {
+                // Open ended or invalid MCQ
+                // If no template specified, we assume MCQ simplified, so require options
+                invalidSet.add(id);
+                return;
+            }
+
             const normalizedAnswer = q.answer?.toString().trim().toLowerCase();
             const hasMatch = q.options?.some(opt => opt.toString().trim().toLowerCase() === normalizedAnswer);
             if (!hasMatch) invalidSet.add(id);
@@ -70,6 +87,8 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({ bundle, onBack, onUp
     const checkAutoFixCandidates = (questions: SimplifiedQuestion[]) => {
         const candidates: AutoFixCandidate[] = [];
         questions.forEach(q => {
+            if (!q.options) return; // Skip if no options (e.g. Numeric)
+
             const normalizedAnswer = q.answer?.toString().trim().toLowerCase();
             const hasMatch = q.options?.some(opt => opt.toString().trim().toLowerCase() === normalizedAnswer);
 

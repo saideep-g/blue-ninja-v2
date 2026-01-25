@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNinja } from '../../../context/NinjaContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,17 +18,19 @@ import { EraHeader } from './era/EraHeader';
 import { EraSubjectGrid } from './era/EraSubjectGrid';
 import { EraDetailPanel } from './era/EraDetailPanel';
 import { EraArenaView } from './era/EraArenaView';
-import { EraQuizView } from './era/EraQuizView';
+import { EraQuizView, EraQuizViewHandle } from './era/EraQuizView';
 
 const StudyEraDashboard = () => {
     const { user, ninjaStats } = useNinja();
     const navigate = useNavigate();
 
     // Navigation & View State
-    // Navigation & View State
     const [currentView, setCurrentView] = useState<'dashboard' | 'challenges' | 'quiz'>('dashboard');
     const [arenaSubView, setArenaSubView] = useState<'create' | 'active' | 'history'>('create');
     const [selectedSubject, setSelectedSubject] = useState<any>(null);
+
+    // Ref to control Quiz View
+    const quizViewRef = useRef<EraQuizViewHandle>(null);
 
     // --- BACK BUTTON MANAGEMENT ---
     useEffect(() => {
@@ -37,16 +39,33 @@ const StudyEraDashboard = () => {
             window.history.pushState({ view: currentView }, '', window.location.pathname);
 
             const handlePopState = (event: PopStateEvent) => {
-                // Determine behavior based on where we are coming FROM
-                // If we are in quiz, Back goes to Dashboard
+                // If in Quiz view, trigger confirmation instead of immediate exit
+                if (currentView === 'quiz' && quizViewRef.current) {
+                    event.preventDefault(); // Try to prevent default (though popstate is post-event)
+                    window.history.pushState({ view: 'quiz' }, '', window.location.pathname); // Re-push state to stay on page
+                    quizViewRef.current.triggerExitConfirmation();
+                    return;
+                }
+
+                // Default behavior for other views or if ref missing
                 event.preventDefault();
                 setCurrentView('dashboard');
             };
 
+            // Warn on Browser Exit/Refresh
+            const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+                if (currentView === 'quiz') {
+                    e.preventDefault();
+                    e.returnValue = ''; // Standard browser confirmation text
+                }
+            };
+
             window.addEventListener('popstate', handlePopState);
+            window.addEventListener('beforeunload', handleBeforeUnload);
 
             return () => {
                 window.removeEventListener('popstate', handlePopState);
+                window.removeEventListener('beforeunload', handleBeforeUnload);
             };
         }
     }, [currentView]);
@@ -135,43 +154,67 @@ const StudyEraDashboard = () => {
                 const dataSnap = await getDoc(dataRef);
                 if (dataSnap.exists() && dataSnap.data().questions) {
                     const rawQuestions = dataSnap.data().questions;
-                    foundQuestions = Object.values(rawQuestions).map((sq: any) => ({
-                        id: sq.id,
-                        type: 'MCQ_SIMPLIFIED',
-                        text: sq.question,
-                        content: { prompt: { text: sq.question }, instruction: sq.instruction || "Select the best answer" },
-                        options: (() => {
-                            const mapped = sq.options.map((o: string, i: number) => ({ id: String(i + 1), text: o, isCorrect: o === sq.answer }));
-                            const specialRegex = /both.*and|all of the|none of the|a and b|options a|neither|a and c|b and c/i;
-                            const hasSpecial = mapped.some((o: any) => specialRegex.test(o.text));
+                    foundQuestions = Object.values(rawQuestions).map((sq: any) => {
+                        // 1. NUMERIC AUTO / INPUT (Preserve Type OR Infer if no options)
+                        // If type specifies Numeric, OR if it has an answer but NO options (Legacy Numeric)
+                        const isNumericType = sq.type === 'NUMERIC_AUTO' || sq.type === 'NUMERIC_INPUT' || sq.template_id === 'NUMERIC_AUTO';
+                        const isInferredNumeric = (!sq.options || sq.options.length === 0) && (sq.answer || sq.correct_answer);
 
-                            if (hasSpecial) {
-                                const special = mapped.filter((o: any) => specialRegex.test(o.text));
-                                const normal = mapped.filter((o: any) => !specialRegex.test(o.text));
-                                return [...normal, ...special];
-                            }
-                            return mapped.sort(() => 0.5 - Math.random());
-                        })(),
-                        interaction: {
-                            config: {
-                                options: (() => {
-                                    const mapped = sq.options.map((o: string, i: number) => ({ id: String(i + 1), text: o, isCorrect: o === sq.answer }));
-                                    const specialRegex = /both.*and|all of the|none of the|a and b|options a|neither|a and c|b and c/i;
-                                    const hasSpecial = mapped.some((o: any) => specialRegex.test(o.text));
+                        if (isNumericType || isInferredNumeric) {
+                            return {
+                                id: sq.id,
+                                type: 'NUMERIC_AUTO', // Force consistent type
+                                options: [], // Explicitly empty to prevent MCQ fallback
+                                content: {
+                                    prompt: { text: sq.question },
+                                    instruction: sq.instruction || "Calculate the answer"
+                                },
+                                answerKey: {
+                                    value: sq.answer || sq.correct_answer,
+                                    tolerance: sq.tolerance || 0.01
+                                },
+                                interaction: {
+                                    config: { unit: sq.unit, placeholder: 'Enter answer...' }
+                                },
+                                subject: querySubject,
+                                explanation: sq.explanation
+                            } as unknown as Question;
+                        }
 
-                                    if (hasSpecial) {
-                                        const special = mapped.filter((o: any) => specialRegex.test(o.text));
-                                        const normal = mapped.filter((o: any) => !specialRegex.test(o.text));
-                                        return [...normal, ...special];
-                                    }
-                                    return mapped.sort(() => 0.5 - Math.random());
-                                })()
-                            }
-                        },
-                        correctOptionId: null,
-                        subject: querySubject,
-                        explanation: sq.explanation,
-                    } as unknown as Question));
+                        // 2. MCQ (Default/Science Style)
+                        // Force everything else to MCQ_SIMPLIFIED
+                        const mappedOptions = sq.options?.map((o: string, i: number) => ({
+                            id: String(i + 1),
+                            text: o,
+                            isCorrect: o === sq.answer
+                        })) || [];
+
+                        const specialRegex = /both.*and|all of the|none of the|a and b|options a|neither|a and c|b and c/i;
+                        const hasSpecial = mappedOptions.some((o: any) => specialRegex.test(o.text));
+
+                        let finalOptions = mappedOptions;
+                        if (!hasSpecial) {
+                            finalOptions = mappedOptions.sort(() => 0.5 - Math.random());
+                        } else {
+                            // Keep special options at bottom if possible, or just don't shuffle
+                            const special = mappedOptions.filter((o: any) => specialRegex.test(o.text));
+                            const normal = mappedOptions.filter((o: any) => !specialRegex.test(o.text));
+                            finalOptions = [...normal, ...special];
+                        }
+
+                        return {
+                            id: sq.id,
+                            type: 'MCQ_SIMPLIFIED',
+                            text: sq.question,
+                            content: { prompt: { text: sq.question }, instruction: sq.instruction || "Select the best answer" },
+                            interaction: {
+                                config: { options: finalOptions }
+                            },
+                            subject: querySubject,
+                            explanation: sq.explanation,
+                        } as unknown as Question;
+                    });
+
                     if (foundQuestions.length > 20) foundQuestions = foundQuestions.sort(() => 0.5 - Math.random()).slice(0, 20);
                 }
             }
@@ -204,12 +247,7 @@ const StudyEraDashboard = () => {
 
         console.log(`🚀 Manual Start Quiz for: ${selectedSubject.id}`);
 
-        // Math Special Case: Use Daily Mission
-        if (selectedSubject.id === 'math' || selectedSubject.id === 'mathematics') {
-            setQuizSubject('math');
-            setCurrentView('quiz');
-            return;
-        }
+
 
         await fetchQuestions(selectedSubject.id);
 
@@ -229,23 +267,18 @@ const StudyEraDashboard = () => {
         setTimeout(() => setIsExpanding(true), 10);
 
         // 2. Parallel: Fetch Data AND Wait for Animation
-        // This removes the "dead time" between animation end and data load
         const targetId = subject.id || 'science';
-        const isMath = targetId === 'math' || targetId === 'mathematics';
+        // const isMath = targetId === 'math' || targetId === 'mathematics';
 
-        if (isMath) {
-            // Math relies on background useDailyMission hook
-            setQuizSubject('math');
-            await new Promise(resolve => setTimeout(resolve, 800));
-        } else {
-            await Promise.all([
-                fetchQuestions(targetId),
-                new Promise(resolve => setTimeout(resolve, 800)) // Wait at least 800ms for the animation to feel complete
-            ]);
-            setQuizSubject(targetId);
-            setCurrentQuestionIndex(0);
-            setQuizScore(0);
-        }
+        // UNIFIED ENGINE: All subjects use Direct Fetch (Science Style)
+        await Promise.all([
+            fetchQuestions(targetId),
+            new Promise(resolve => setTimeout(resolve, 800)) // Wait at least 800ms for the animation to feel complete
+        ]);
+
+        setQuizSubject(targetId);
+        setCurrentQuestionIndex(0);
+        setQuizScore(0);
 
         // 3. Smooth Handoff
         setCurrentView('quiz');
@@ -731,42 +764,13 @@ const StudyEraDashboard = () => {
 
                 {/* CONTENT SWITCHER */}
                 {currentView === 'quiz' ? (
-                    // Logic: If Subject is Math, use the "Old/Classic" MissionCard
-                    // Otherwise, use the new Gen Z EraQuizView
-                    (quizSubject === 'math' || quizSubject === 'mathematics') ? (
-                        <div className="fixed inset-0 z-50 bg-theme-bg">
-                            <MissionCard
-                                question={dailyMission.currentQuestion}
-                                currentIndex={dailyMission.currentIndex}
-                                totalQuestions={dailyMission.totalQuestions}
-                                onSubmit={async (answer, timeSpent, speedRating) => {
-                                    // Adapt MissionCard submit to useDailyMission hook
-                                    await dailyMission.submitDailyAnswer(
-                                        answer.isCorrect,
-                                        answer.selectedIndex, // Or logic to exact value
-                                        false, // isRecovered
-                                        'mission_card',
-                                        timeSpent,
-                                        speedRating || 'NORMAL'
-                                    );
-                                }}
-                            />
-                            {/* Close Button Overlay */}
-                            <button
-                                onClick={() => setCurrentView('dashboard')}
-                                className="absolute top-4 right-4 z-[60] bg-theme-bg-secondary p-2 rounded-full hover:bg-theme-border"
-                            >
-                                <X size={24} className="text-color-text-secondary" />
-                            </button>
-                        </div>
-                    ) : (
-                        <EraQuizView
-                            questions={quizQuestions}
-                            currentQuestionIndex={currentQuestionIndex}
-                            onAnswer={handleQuizAnswer}
-                            onClose={() => setCurrentView('dashboard')}
-                        />
-                    )
+                    <EraQuizView
+                        ref={quizViewRef}
+                        questions={quizQuestions}
+                        currentQuestionIndex={currentQuestionIndex}
+                        onAnswer={handleQuizAnswer}
+                        onClose={() => setCurrentView('dashboard')}
+                    />
                 ) : currentView === 'dashboard' ? (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-500">
                         <EraSubjectGrid

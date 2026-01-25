@@ -2,10 +2,14 @@
 export interface SimplifiedQuestion {
     id?: string; // Optional for upload, assigned by Firestore
     question: string; // Supports LaTeX/KaTeX
-    options: string[]; // List of options
+    options?: string[]; // List of options
     answer: string; // The correct option text
     difficulty: 'easy' | 'medium' | 'hard';
     explanation?: string; // Optional explanation
+    template_id?: string; // e.g. 'NUMERIC_AUTO'
+    visualType?: 'svg' | 'image' | null;
+    visualData?: string | null;
+    imageUrl?: string | null;
 
     // Metadata for tracking
     timeLimit?: number; // Optional custom time limit in seconds
