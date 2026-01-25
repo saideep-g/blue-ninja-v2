@@ -160,6 +160,10 @@ export const eraSessionService = {
                             finalOptions = [...normal, ...special];
                         }
 
+                        // Determine Correct ID after shuffle/construction
+                        const correctObj = finalOptions.find((o: any) => o.isCorrect);
+                        const correctId = correctObj ? correctObj.id : null;
+
                         return {
                             id: sq.id,
                             type: 'MCQ_SIMPLIFIED',
@@ -168,6 +172,8 @@ export const eraSessionService = {
                             interaction: {
                                 config: { options: finalOptions }
                             },
+                            correctOptionId: correctId,
+                            answerKey: { correctOptionId: correctId },
                             subject: querySubject,
                             explanation: sq.explanation,
                         } as unknown as Question;

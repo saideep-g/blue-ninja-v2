@@ -181,11 +181,11 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
     <div className="w-full space-y-8 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* ========== QUESTION PROMPT (HERO) ========== */}
       <div className="space-y-3">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight whitespace-pre-wrap">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white leading-tight whitespace-pre-wrap">
           <LatexRenderer text={prompt} />
         </h2>
         {instruction && (
-          <p className="text-base text-gray-600 leading-relaxed whitespace-pre-wrap">
+          <p className="text-base text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
             <LatexRenderer text={instruction} />
           </p>
         )}
@@ -222,15 +222,15 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
           const shouldHighlightCorrect = submitted && isCorrectOption;
 
           // Highlight logic
-          let borderClass = 'border-gray-200';
-          let bgClass = 'bg-white';
-          let textClass = 'text-gray-900';
+          let borderClass = 'border-gray-200 dark:border-slate-700';
+          let bgClass = 'bg-white dark:bg-slate-800';
+          let textClass = 'text-gray-900 dark:text-gray-100';
           let shadowClass = '';
 
           if (!submitted) {
             if (isSelected) {
               borderClass = 'border-blue-500';
-              bgClass = 'bg-blue-50';
+              bgClass = 'bg-blue-50 dark:bg-blue-900/30';
               shadowClass = 'shadow-md';
             } else {
               // Hover state handled in main className
@@ -240,19 +240,19 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
             if (shouldHighlightCorrect) {
               // ALWAYS Highlight the correct answer in Green
               borderClass = 'border-green-500';
-              bgClass = 'bg-green-50';
-              textClass = 'text-green-900';
+              bgClass = 'bg-green-50 dark:bg-green-900/30';
+              textClass = 'text-green-900 dark:text-green-100';
               shadowClass = 'shadow-md';
             } else if (isWrongSelected) {
               // Highlight selected wrong answer in Red
               borderClass = 'border-red-500';
-              bgClass = 'bg-red-50';
-              textClass = 'text-red-900';
+              bgClass = 'bg-red-50 dark:bg-red-900/30';
+              textClass = 'text-red-900 dark:text-red-100';
               shadowClass = 'shadow-md';
             } else {
               // Grey out everything else
-              bgClass = 'bg-gray-50';
-              textClass = 'text-gray-400';
+              bgClass = 'bg-gray-50 dark:bg-slate-900/50';
+              textClass = 'text-gray-400 dark:text-slate-500';
             }
           }
 
@@ -272,8 +272,8 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
                 <div
                   className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all 
                     ${!submitted
-                      ? (isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300 bg-white')
-                      : (shouldHighlightCorrect ? 'border-green-500 bg-green-500' : (isWrongSelected ? 'border-red-500 bg-red-500' : 'border-gray-300 bg-gray-100'))
+                      ? (isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300 dark:border-slate-500 bg-white dark:bg-slate-700')
+                      : (shouldHighlightCorrect ? 'border-green-500 bg-green-500' : (isWrongSelected ? 'border-red-500 bg-red-500' : 'border-gray-300 dark:border-slate-600 bg-gray-100 dark:bg-slate-700'))
                     }`}
                 >
                   {isSelected && !submitted && <div className="w-2 h-2 bg-white rounded-full" />}
@@ -304,16 +304,16 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
         <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
           <div
             className={`p-6 rounded-2xl flex gap-4 items-start ${feedback.isCorrect
-              ? 'bg-green-50 border-2 border-green-200'
-              : 'bg-red-50 border-2 border-red-200'
+              ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800'
+              : 'bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800'
               }`}
           >
-            <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${feedback.isCorrect ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}`}>
+            <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${feedback.isCorrect ? 'bg-green-200 text-green-700 dark:bg-green-800 dark:text-green-300' : 'bg-red-200 text-red-700 dark:bg-red-800 dark:text-red-300'}`}>
               {feedback.isCorrect ? <CheckCircle2 className="w-6 h-6" /> : <Lightbulb className="w-6 h-6" />}
             </div>
 
             <div className="flex-1 space-y-1 pt-1">
-              <h4 className={`font-bold text-lg ${feedback.isCorrect ? 'text-green-800' : 'text-red-800'}`}>
+              <h4 className={`font-bold text-lg ${feedback.isCorrect ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>
                 {feedback.isCorrect ? (
                   <span className="flex items-center gap-2">
                     {feedback.feedback}
@@ -325,10 +325,10 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
               {/* Show explanation text if INCORRECT */}
               {!feedback.isCorrect && (
                 <div className="space-y-2">
-                  <p className="text-xl font-bold text-green-700">
+                  <p className="text-xl font-bold text-green-700 dark:text-green-400">
                     <LatexRenderer text={options[correctIndex]?.text} />
                   </p>
-                  <p className="text-base text-red-700">
+                  <p className="text-base text-red-700 dark:text-red-400">
                     {feedback.feedback}
                   </p>
                 </div>
