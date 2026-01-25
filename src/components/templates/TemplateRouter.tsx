@@ -5,6 +5,7 @@ import { QuestionItem } from '../../types/curriculum.v3';
 
 // Import templates
 import { MCQTemplate } from './MCQTemplate';
+import { McqEraTemplate } from './McqEraTemplate';
 import { TwoTierTemplate } from './TwoTierTemplate';
 import { NumericInputTemplate } from './NumericInputTemplate';
 import { MatchingTemplate } from './MatchingTemplate';
@@ -136,7 +137,7 @@ const TwoTierAdapter: React.FC<TemplateRouterProps & { onAnswer: (result: any) =
 const TEMPLATE_REGISTRY: Record<string, React.ComponentType<any>> = {
   'MCQ_CONCEPT': MCQTemplate,
   'MCQ_SKILL': MCQTemplate,
-  'MCQ_SIMPLIFIED': MCQTemplate, // Explicit mapping
+  'MCQ_SIMPLIFIED': McqEraTemplate, // Restored Era-specific template with Sound & Vibe
   'TWO_TIER': TwoTierAdapter,
   'NUMERIC_INPUT': NumericAutoTemplate, // Force use of new Auto Template
   'NUMERIC_AUTO': NumericAutoTemplate,
@@ -165,9 +166,6 @@ export function TemplateRouter({ question, onSubmit, isSubmitting = false, readO
   }, [question]);
 
   // Fallback is handled above, so TemplateComponent is never null.
-  // We keep the "Under Construction" logic only if explicitly needed, 
-  // but User requested standard fallback to prevent crashes.
-
   return (
     <TemplateComponent
       question={question}

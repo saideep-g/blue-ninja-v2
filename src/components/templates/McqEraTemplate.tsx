@@ -74,7 +74,7 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
 
     // Safe Access
     const stage0 = (question as any).stages?.[0];
-    const interactionConfig = stage0?.interaction?.config || (question.content as any)?.interaction?.config || {}; // existing logic
+    const interactionConfig = stage0?.interaction?.config || (question as any).interaction?.config || (question.content as any)?.interaction?.config || {};
 
     // Updated Logic: Check robust paths including direct .options property used by MobileQuestDashboard bundles
     const options =
