@@ -1,17 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNinja } from '../../../context/NinjaContext';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import coreCurriculum from '../../../data/cbse7_core_curriculum_v3.json';
 import { collection, query, where, getDocs, onSnapshot, orderBy, doc, getDoc, limit, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../../../services/db/firebase';
 import { Bundle, Challenge, User as UserModel, Question } from '../../../types/models';
-import { SUBJECT_TEMPLATE, VOCAB_CHAPTERS, GEN_Z_GREETINGS, SCIENCE_CHAPTERS } from '../../../constants/studyEraData';
-import MissionCard from '../../dashboard/MissionCard';
-import { X, Sparkles, Trophy } from 'lucide-react';
+import { GEN_Z_GREETINGS } from '../../../constants/studyEraData';
 import { eraSessionService } from '../../../services/eraSessionService';
-import Confetti from 'react-confetti';
-import { calculateWeightedTableMastery } from '../../../utils/tablesLogic';
 
 // Components
 import { EraHeader } from './era/EraHeader';
@@ -19,6 +13,11 @@ import { EraSubjectGrid } from './era/EraSubjectGrid';
 import { EraDetailPanel } from './era/EraDetailPanel';
 import { EraArenaView } from './era/EraArenaView';
 import { EraQuizView, EraQuizViewHandle } from './era/EraQuizView';
+import { EraExpansionOverlay } from './era/EraExpansionOverlay';
+import { EraCelebration } from './era/EraCelebration';
+import { useSubjectData } from './era/hooks/useSubjectData';
+import { useDailyProgressSync } from './era/hooks/useDailyProgressSync';
+
 
 const StudyEraDashboard = () => {
     const { user, ninjaStats } = useNinja();
@@ -84,48 +83,10 @@ const StudyEraDashboard = () => {
     const [completedSubjects, setCompletedSubjects] = useState<Set<string>>(new Set());
 
     // --- 4 AM RESET & PERSISTENCE LOGIC ---
-    useEffect(() => {
-        if (!user) return;
-        const syncDailyProgress = async () => {
-            try {
-                const docRef = doc(db, 'students', user.uid);
-                const snap = await getDoc(docRef);
-                if (snap.exists()) {
-                    const data = snap.data();
-                    const lastDate = data.lastActive?.toDate();
-                    let daily = data.daily || {};
-
-                    // 4 AM Reset Check (Matches MobileQuestDashboard)
-                    const now = new Date();
-                    const resetTime = new Date();
-                    resetTime.setHours(4, 0, 0, 0);
-                    if (now < resetTime) resetTime.setDate(resetTime.getDate() - 1);
-
-                    if (lastDate && lastDate < resetTime) {
-                        // Logic says: Old Day. Reset View.
-                        // We don't necessarily wipe DB here (MobileQuest does it on load), 
-                        // but we treat local state as empty.
-                        setCompletedSubjects(new Set());
-                    } else {
-                        // Load Progress
-                        const restored = new Set<string>();
-                        if (daily.Math > 0) restored.add('math');
-                        if (daily.Science > 0) restored.add('science');
-                        if (daily.Words > 0) restored.add('vocabulary');
-                        if (daily.World > 0) restored.add('gk');
-                        if (daily.Tables > 0) restored.add('tables');
-                        setCompletedSubjects(restored);
-                    }
-                }
-            } catch (e) {
-                console.error("Failed to sync daily progress", e);
-            }
-        };
-        syncDailyProgress();
-    }, [user]);
+    useDailyProgressSync(user, setCompletedSubjects);
 
     // Data State
-    const [subjects, setSubjects] = useState<any[]>([]);
+    // const [subjects, setSubjects] = useState<any[]>([]); // Refactored to hook
     const [bundles, setBundles] = useState<Bundle[]>([]);
     const [friends, setFriends] = useState<UserModel[]>([]);
     const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
@@ -247,20 +208,7 @@ const StudyEraDashboard = () => {
         }, 4000);
     };
 
-    const handleMissionSubmit = async (result: any) => {
-        // MissionCard (old functionality) submit handler
-        const isCorrect = result.isCorrect;
-        if (isCorrect) setQuizScore(s => s + 10);
 
-        if (currentQuestionIndex < quizQuestions.length - 1) {
-            setCurrentQuestionIndex(i => i + 1);
-        } else {
-            setTimeout(() => {
-                setCurrentView('dashboard');
-            }, 2000);
-        }
-        return true;
-    };
 
     const handleEnterArena = async (challenge: Challenge) => {
         try {
@@ -311,155 +259,8 @@ const StudyEraDashboard = () => {
     */
 
     // 1. Build Subjects
-    useEffect(() => {
-        const enrolled = ninjaStats?.enrolledSubjects || [];
-        let activeSubjects: any[] = [];
-
-        // Math Logic
-        if (enrolled.includes('math') || enrolled.length === 0) {
-            const mathModules = coreCurriculum.modules.map(mod => {
-                const atoms = mod.atoms.map(atom => {
-                    const mScore = ninjaStats?.mastery?.[atom.atom_id] || 0;
-                    return {
-                        id: atom.atom_id,
-                        name: atom.title.split('(')[0].trim(),
-                        mastery: Math.min(100, Math.round(mScore * 100)),
-                        status: mScore > 0.8 ? 'Mastered' : mScore > 0.1 ? 'Learning' : 'New'
-                    };
-                });
-                const avgMastery = atoms.length > 0 ? Math.round(atoms.reduce((acc, curr) => acc + curr.mastery, 0) / atoms.length) : 0;
-                return {
-                    id: mod.module_id,
-                    name: mod.title.split(':')[0] === 'Chapter' ? mod.title.split(':')[1].trim() : mod.title.trim(),
-                    mastery: avgMastery,
-                    atoms
-                };
-            });
-
-            activeSubjects.push({
-                id: 'math',
-                name: 'Maths Era',
-                icon: '🎀',
-                color: 'from-[#FFDEE9] to-[#B5FFFC]',
-                accent: '#FF8DA1',
-                hasAtoms: true,
-                completedToday: completedSubjects.has('math'),
-                modules: mathModules
-            });
-        }
-
-        // Vocabulary Logic (Distinct from English)
-        if (enrolled.includes('english') || enrolled.length === 0) {
-            const vocabModules = VOCAB_CHAPTERS.map(ch => ({
-                id: ch.id,
-                name: `${ch.e} ${ch.n}`,
-                mastery: 0, // Default 0 for now
-                status: 'New',
-                description: ch.details
-            }));
-
-            activeSubjects.push({
-                id: 'vocabulary',
-                name: 'Vocabulary Era',
-                icon: '📚',
-                color: 'from-[#a18cd1] to-[#fbc2eb]', // Misty Purple -> Pink
-                accent: '#a18cd1',
-                hasAtoms: false,
-                completedToday: completedSubjects.has('vocabulary'),
-                modules: vocabModules
-            });
-        }
-
-        // Science Logic
-        if (enrolled.includes('science') || enrolled.length === 0) {
-            const scienceModules = SCIENCE_CHAPTERS.map(ch => ({
-                id: ch.id,
-                name: `${ch.e} ${ch.n}`,
-                mastery: 0,
-                status: 'New',
-                description: ch.details,
-                atoms: []
-            }));
-
-            activeSubjects.push({
-                id: 'science',
-                name: 'Science Era',
-                icon: '🌸',
-                color: 'from-[#E0C3FC] to-[#8EC5FC]',
-                accent: '#A18CD1',
-                hasAtoms: false,
-                completedToday: completedSubjects.has('science'),
-                modules: scienceModules
-            });
-        }
-
-
-
-        // Tables Era Logic (Dynamic)
-        const hasTablesData = !!(ninjaStats as any).tables_config;
-
-        if (enrolled.includes('tables') || enrolled.length === 0 || hasTablesData) {
-            let tablesScore = 0;
-            const tConfig = (ninjaStats as any).tables_config;
-
-            if (tConfig && tConfig.tableStats) {
-                // New System Calculation
-                const userClass = parseInt(String((ninjaStats as any).class || (ninjaStats as any).grade || 2));
-                const isAdvanced = userClass >= 7;
-                const maxTable = isAdvanced ? 20 : 12;
-                const minTable = 2;
-                const totalTables = maxTable - minTable + 1;
-
-                let masteredCount = 0;
-                for (let i = minTable; i <= maxTable; i++) {
-                    const s = tConfig.tableStats[i];
-                    const isMastered = s && (s.status === 'MASTERED' || (s.accuracy >= 90 && s.totalAttempts > 10));
-                    if (isMastered) {
-                        masteredCount++;
-                    }
-                }
-                tablesScore = Math.round((masteredCount / totalTables) * 100);
-            } else {
-                // Legacy System Fallback
-                tablesScore = calculateWeightedTableMastery(ninjaStats?.mastery || {});
-            }
-
-            activeSubjects.push({
-                id: 'tables',
-                name: 'Table Era',
-                icon: '🍬',
-                color: 'from-[#84fab0] to-[#8fd3f4]',
-                accent: '#43e97b',
-                completedToday: completedSubjects.has('tables'),
-                modules: [
-                    {
-                        id: 't_comprehensive',
-                        name: 'Tables 1-20',
-                        mastery: tablesScore,
-                        atoms: []
-                    }
-                ]
-            });
-        }
-
-        // Other Subjects
-        SUBJECT_TEMPLATE.forEach(tpl => {
-            // Filter duplicate/conflicting IDs
-            if (tpl.id === 'vocabulary') return;
-            if (tpl.id === 'science') return;
-            if (tpl.id === 'tables') return; // Handled explicitly above
-
-            if (enrolled.includes(tpl.id) || enrolled.length === 0) {
-                // Clone and properly set completedToday
-                activeSubjects.push({
-                    ...tpl,
-                    completedToday: completedSubjects.has(tpl.id)
-                });
-            }
-        });
-
-        setSubjects(activeSubjects);
-    }, [ninjaStats, user, completedSubjects]);
+    // 1. Build Subjects (Refactored to Hook)
+    const subjects = useSubjectData(ninjaStats, user, completedSubjects);
 
     // 2. Fetch Bundles
     useEffect(() => {
@@ -543,120 +344,19 @@ const StudyEraDashboard = () => {
 
             {/* EXPANSION OVERLAY */}
             {/* EXPANSION OVERLAY (Framer Motion) */}
-            <AnimatePresence mode="wait">
-                {expandingSubject && expansionRect && (
-                    <motion.div
-                        key="expansion-overlay"
-                        className="fixed z-[1000] pointer-events-none overflow-hidden"
-                        initial={{
-                            top: expansionRect.top,
-                            left: expansionRect.left,
-                            width: expansionRect.width,
-                            height: expansionRect.height,
-                            borderRadius: '3rem',
-                        }}
-                        animate={{
-                            top: isExpanding ? 0 : expansionRect.top,
-                            left: isExpanding ? 0 : expansionRect.left,
-                            width: isExpanding ? '100vw' : expansionRect.width,
-                            height: isExpanding ? '100vh' : expansionRect.height,
-                            borderRadius: isExpanding ? '0rem' : '3rem',
-                        }}
-                        exit={{
-                            opacity: 0,
-                            scale: 1.05,
-                            transition: { duration: 0.4 }
-                        }}
-                        transition={{
-                            type: "spring",
-                            stiffness: 120,
-                            damping: 20,
-                            mass: 0.8
-                        }}
-                    >
-                        {/* Background */}
-                        <motion.div
-                            className={`absolute inset-0 bg-gradient-to-br ${expandingSubject.color}`}
-                        />
-
-                        {/* WAVES / RIPPLES */}
-                        <motion.div
-                            className="absolute inset-0 flex items-center justify-center opacity-30"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 0.3 }}
-                        >
-                            <motion.div
-                                className="w-[50vw] h-[50vw] border-4 border-white/20 rounded-full"
-                                animate={{ scale: [0.8, 1.2], opacity: [0.5, 0] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                            />
-                            <motion.div
-                                className="absolute w-[40vw] h-[40vw] border-4 border-white/30 rounded-full"
-                                animate={{ scale: [0.8, 1.3], opacity: [0.6, 0] }}
-                                transition={{ duration: 2, delay: 0.5, repeat: Infinity }}
-                            />
-                        </motion.div>
-
-                        {/* Icon Scaling with Rotation */}
-                        <motion.div
-                            className="absolute inset-0 flex items-center justify-center"
-                            initial={{ scale: 1, opacity: 1, rotate: 0 }}
-                            animate={{
-                                scale: isExpanding ? 4 : 1,
-                                opacity: isExpanding ? 0.2 : 1,
-                                rotate: isExpanding ? 360 : 0
-                            }}
-                            transition={{ duration: 1.2, ease: "anticipate" }}
-                        >
-                            <span className="text-6xl">{expandingSubject.icon}</span>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* EXPANSION OVERLAY */}
+            <EraExpansionOverlay
+                isExpanding={isExpanding}
+                expandingSubject={expandingSubject}
+                expansionRect={expansionRect}
+            />
 
             {/* CELEBRATION OVERLAY */}
-            <AnimatePresence>
-                {showCelebration && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-md pointer-events-none"
-                    >
-                        <Confetti
-                            width={window.innerWidth}
-                            height={window.innerHeight}
-                            numberOfPieces={400}
-                            recycle={false}
-                            colors={['#A78BFA', '#F472B6', '#34D399', '#FBBF24']}
-                        />
-                        <motion.div
-                            initial={{ scale: 0.5, y: 100 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 1.5, opacity: 0 }}
-                            transition={{ type: "spring", bounce: 0.5 }}
-                            className="bg-theme-card rounded-[3rem] p-12 text-center shadow-[0_0_100px_rgba(167,139,250,0.5)] border-4 border-white relative overflow-hidden"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-100 via-pink-100 to-yellow-100 opacity-50" />
-                            <div className="relative z-10">
-                                <motion.div
-                                    animate={{ rotate: [0, 10, -10, 0] }}
-                                    transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-                                    className="text-8xl mb-6"
-                                >
-                                    👑
-                                </motion.div>
-                                <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4 tracking-tighter">
-                                    {celebrationMessage}
-                                </h1>
-                                <p className="text-xl font-bold text-color-text-secondary uppercase tracking-widest">
-                                    Era Conquered
-                                </p>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* CELEBRATION OVERLAY */}
+            <EraCelebration
+                showCelebration={showCelebration}
+                celebrationMessage={celebrationMessage}
+            />
 
             {/* BACKGROUND DECORATION */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
