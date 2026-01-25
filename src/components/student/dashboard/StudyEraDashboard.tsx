@@ -554,7 +554,7 @@ const StudyEraDashboard = () => {
     }, 0);
 
     return (
-        <div className="min-h-screen bg-[#FAF9F6] text-[#4A4A4A] font-sans selection:bg-pink-100 overflow-x-hidden relative">
+        <div className="min-h-screen bg-theme-bg text-theme-text font-sans selection:bg-pink-100 overflow-x-hidden relative transition-colors duration-300">
             <style>
                 {`
                 .cubic-bezier {
@@ -663,7 +663,7 @@ const StudyEraDashboard = () => {
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 1.5, opacity: 0 }}
                             transition={{ type: "spring", bounce: 0.5 }}
-                            className="bg-white rounded-[3rem] p-12 text-center shadow-[0_0_100px_rgba(167,139,250,0.5)] border-4 border-white relative overflow-hidden"
+                            className="bg-theme-card rounded-[3rem] p-12 text-center shadow-[0_0_100px_rgba(167,139,250,0.5)] border-4 border-white relative overflow-hidden"
                         >
                             <div className="absolute inset-0 bg-gradient-to-br from-purple-100 via-pink-100 to-yellow-100 opacity-50" />
                             <div className="relative z-10">
@@ -677,7 +677,7 @@ const StudyEraDashboard = () => {
                                 <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4 tracking-tighter">
                                     {celebrationMessage}
                                 </h1>
-                                <p className="text-xl font-bold text-slate-500 uppercase tracking-widest">
+                                <p className="text-xl font-bold text-color-text-secondary uppercase tracking-widest">
                                     Era Conquered
                                 </p>
                             </div>
@@ -711,7 +711,7 @@ const StudyEraDashboard = () => {
                     // Logic: If Subject is Math, use the "Old/Classic" MissionCard
                     // Otherwise, use the new Gen Z EraQuizView
                     (quizSubject === 'math' || quizSubject === 'mathematics') ? (
-                        <div className="fixed inset-0 z-50 bg-white">
+                        <div className="fixed inset-0 z-50 bg-theme-bg">
                             <MissionCard
                                 question={dailyMission.currentQuestion}
                                 currentIndex={dailyMission.currentIndex}
@@ -731,9 +731,9 @@ const StudyEraDashboard = () => {
                             {/* Close Button Overlay */}
                             <button
                                 onClick={() => setCurrentView('dashboard')}
-                                className="absolute top-4 right-4 z-[60] bg-gray-100 p-2 rounded-full hover:bg-gray-200"
+                                className="absolute top-4 right-4 z-[60] bg-theme-bg-secondary p-2 rounded-full hover:bg-theme-border"
                             >
-                                <X size={24} className="text-gray-600" />
+                                <X size={24} className="text-color-text-secondary" />
                             </button>
                         </div>
                     ) : (
@@ -767,8 +767,8 @@ const StudyEraDashboard = () => {
                                 />
                             )}
                             {!selectedSubject && !isExpanding && (
-                                <div className="bg-white/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white h-full flex items-center justify-center text-center">
-                                    <p className="text-gray-400 font-serif italic text-lg">Select an Era to view details<br />or start a quiz instantly.</p>
+                                <div className="bg-theme-card/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-theme-border h-full flex items-center justify-center text-center">
+                                    <p className="text-color-text-secondary font-serif italic text-lg">Select an Era to view details<br />or start a quiz instantly.</p>
                                 </div>
                             )}
                         </div>

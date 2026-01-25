@@ -132,7 +132,7 @@ export default function StudyEraProfile() {
     };
 
     return (
-        <div className="min-h-screen bg-[#FAF9F6] text-[#4A4A4A] font-sans selection:bg-pink-100 overflow-x-hidden p-6 md:p-12">
+        <div className="min-h-screen bg-theme-bg text-theme-text font-sans selection:bg-pink-100 overflow-x-hidden p-6 md:p-12 transition-colors duration-300">
             {/* --- BACKGROUND DECORATION (Aura Blobs) --- */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-pink-100/50 rounded-full blur-[120px] animate-pulse"></div>
@@ -163,21 +163,21 @@ export default function StudyEraProfile() {
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="bg-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-sm text-pink-400 border border-pink-50">Level {ninjaStats?.heroLevel || 1}</span>
                                 </div>
-                                <h1 className="text-4xl font-serif italic text-gray-800">
+                                <h1 className="text-4xl font-serif italic text-theme-text">
                                     {ninjaStats?.username || user?.displayName || 'Student Era'}
                                 </h1>
-                                <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">
+                                <p className="text-color-text-secondary text-xs font-bold uppercase tracking-widest mt-1">
                                     {ninjaStats?.currentQuest || 'Scholar Journey'}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="flex bg-white/60 backdrop-blur-md rounded-2xl p-1 shadow-sm border border-white">
+                        <div className="flex bg-theme-card/80 backdrop-blur-md rounded-2xl p-1 shadow-sm border border-theme-border">
                             <button
                                 onClick={() => setActiveTab('overview')}
                                 className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'overview'
-                                    ? 'bg-[#1A1A1A] text-white shadow-md'
-                                    : 'text-gray-400 hover:text-gray-600'
+                                    ? 'bg-theme-text text-theme-bg shadow-md'
+                                    : 'text-color-text-secondary hover:text-theme-text'
                                     }`}
                             >
                                 Overview
@@ -185,8 +185,8 @@ export default function StudyEraProfile() {
                             <button
                                 onClick={() => setActiveTab('settings')}
                                 className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'settings'
-                                    ? 'bg-[#1A1A1A] text-white shadow-md'
-                                    : 'text-gray-400 hover:text-gray-600'
+                                    ? 'bg-theme-text text-theme-bg shadow-md'
+                                    : 'text-color-text-secondary hover:text-theme-text'
                                     }`}
                             >
                                 Config
@@ -206,18 +206,18 @@ export default function StudyEraProfile() {
                             exit={{ opacity: 0, y: 20 }}
                         >
                             {/* Consistency Card */}
-                            <div className="bg-white/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.03)]">
+                            <div className="bg-theme-card/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-theme-border shadow-[0_20px_50px_rgba(0,0,0,0.03)] transition-colors duration-300">
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
-                                        <h3 className="font-serif italic text-xl text-gray-800">Consistency</h3>
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">Study Streak</p>
+                                        <h3 className="font-serif italic text-xl text-theme-text">Consistency</h3>
+                                        <p className="text-[9px] font-black text-color-text-secondary uppercase tracking-widest mt-1">Study Streak</p>
                                     </div>
                                     <Flame className="text-orange-400" size={24} fill="currentColor" />
                                 </div>
 
                                 <div className="grid grid-cols-7 gap-2 mb-6">
                                     {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                                        <div key={i} className="text-center text-[9px] font-black text-gray-300">{d}</div>
+                                        <div key={i} className="text-center text-[9px] font-black text-color-text-secondary">{d}</div>
                                     ))}
                                     {calendarGrid.map((date) => {
                                         const dateStr = date.toISOString().split('T')[0];
@@ -229,7 +229,7 @@ export default function StudyEraProfile() {
                                                 className={`aspect-square rounded-full flex items-center justify-center text-[10px] font-bold transition-all
                                                 ${isActive
                                                         ? 'bg-pink-300 text-white shadow-sm scale-105'
-                                                        : 'bg-white/50 text-gray-300'
+                                                        : 'bg-theme-bg text-color-text-secondary'
                                                     } ${isToday ? 'ring-2 ring-pink-100 ring-offset-2' : ''}`}
                                             >
                                                 {date.getDate()}
@@ -239,12 +239,12 @@ export default function StudyEraProfile() {
                                 </div>
 
                                 <div className="flex items-center gap-3 p-4 bg-orange-50/50 rounded-2xl border border-orange-100">
-                                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-orange-400 font-black shadow-sm">
+                                    <div className="w-10 h-10 bg-theme-card rounded-full flex items-center justify-center text-orange-400 font-black shadow-sm">
                                         {ninjaStats?.streakCount || 0}
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold text-gray-700">Day Streak</p>
-                                        <p className="text-[9px] font-medium text-gray-400">Keep the flame alive!</p>
+                                        <p className="text-xs font-bold text-theme-text">Day Streak</p>
+                                        <p className="text-[9px] font-medium text-color-text-secondary">Keep the flame alive!</p>
                                     </div>
                                 </div>
                             </div>
@@ -276,7 +276,7 @@ export default function StudyEraProfile() {
                     ) : (
                         <motion.div
                             key="settings"
-                            className="bg-white/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.03)]"
+                            className="bg-theme-card/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-theme-border shadow-[0_20px_50px_rgba(0,0,0,0.03)]"
                             variants={itemVariants}
                             initial="hidden"
                             animate="visible"
@@ -285,11 +285,11 @@ export default function StudyEraProfile() {
                             <div className="space-y-8 max-w-2xl mx-auto">
                                 <div className="flex items-center gap-3 pb-6 border-b border-gray-100">
                                     <div className="p-2 bg-pink-50 rounded-xl text-pink-400"><Settings size={20} /></div>
-                                    <h3 className="font-serif italic text-xl text-gray-800">Configuration</h3>
+                                    <h3 className="font-serif italic text-xl text-theme-text">Configuration</h3>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Grade Level</label>
+                                    <label className="block text-[10px] font-black text-color-text-secondary uppercase tracking-widest mb-4">Grade Level</label>
                                     <div className="flex gap-2 overflow-x-auto pb-2">
                                         {['6', '7', '8'].map(g => (
                                             <button
@@ -297,7 +297,7 @@ export default function StudyEraProfile() {
                                                 onClick={() => setFormData({ ...formData, grade: g })}
                                                 className={`w-12 h-12 rounded-2xl font-black text-sm flex items-center justify-center transition-all ${formData.grade === g
                                                     ? 'bg-gradient-to-br from-pink-400 to-rose-400 text-white shadow-lg shadow-pink-200'
-                                                    : 'bg-white border border-gray-100 text-gray-400 hover:border-pink-200'
+                                                    : 'bg-theme-bg border border-theme-border text-color-text-secondary hover:border-pink-200'
                                                     }`}
                                             >
                                                 {g}
@@ -307,7 +307,7 @@ export default function StudyEraProfile() {
                                 </div>
 
                                 <div className="space-y-4">
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Daily Goal</label>
+                                    <label className="block text-[10px] font-black text-color-text-secondary uppercase tracking-widest">Daily Goal</label>
                                     <div className="flex items-center gap-4">
                                         <input
                                             type="range"
@@ -317,16 +317,39 @@ export default function StudyEraProfile() {
                                             onChange={(e) => setFormData({ ...formData, dailyQuestionCount: parseInt(e.target.value) })}
                                             className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-pink-400"
                                         />
-                                        <span className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center font-black text-gray-800 border border-gray-100 shadow-sm">
+                                        <span className="w-12 h-12 bg-theme-bg rounded-2xl flex items-center justify-center font-black text-theme-text border border-theme-border shadow-sm">
                                             {formData.dailyQuestionCount}
                                         </span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <label className="block text-[10px] font-black text-color-text-secondary uppercase tracking-widest">Theme Preference</label>
+                                    <div className="flex gap-4">
+                                        {[
+                                            { id: 'light', icon: Sun, label: 'Light' },
+                                            { id: 'dark', icon: Moon, label: 'Dark' },
+                                            { id: 'system', icon: Settings, label: 'System' },
+                                        ].map(t => (
+                                            <button
+                                                key={t.id}
+                                                onClick={() => setFormData({ ...formData, theme: t.id as any })}
+                                                className={`flex-1 flex flex-col items-center gap-2 py-4 rounded-3xl border-2 transition-all duration-300 ${formData.theme === t.id
+                                                    ? 'border-pink-300 bg-pink-50 text-pink-500 shadow-lg'
+                                                    : 'border-transparent bg-theme-bg text-color-text-secondary hover:bg-theme-border'
+                                                    }`}
+                                            >
+                                                <t.icon size={20} />
+                                                <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
 
                                 <button
                                     onClick={handleSave}
                                     disabled={isSaving}
-                                    className={`w-full py-5 bg-[#1A1A1A] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-pink-500 transition-all shadow-xl active:scale-95 ${isSaving ? 'opacity-80' : ''}`}
+                                    className={`w-full py-5 bg-theme-text text-theme-bg rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-pink-500 hover:text-white transition-all shadow-xl active:scale-95 ${isSaving ? 'opacity-80' : ''}`}
                                 >
                                     {saveSuccess ? <Check size={18} /> : <Save size={18} />}
                                     {saveSuccess ? 'Changes Saved' : (isSaving ? 'Saving...' : 'Save Configuration')}

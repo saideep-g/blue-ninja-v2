@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { NinjaProvider, useNinja } from './context/NinjaContext';
-import { BlueNinjaTheme } from './theme/themeConfig';
+import { ThemeProvider } from './theme/provider';
 
 // Components
 import Login from './components/auth/Login';
@@ -72,44 +72,36 @@ function ProfileRedirector() {
 }
 
 export default function App() {
-  // Global Theme Init
-  useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty('--color-primary', BlueNinjaTheme.colors.primary);
-    root.style.setProperty('--color-accent', BlueNinjaTheme.colors.accent);
-    root.style.setProperty('--color-surface', BlueNinjaTheme.colors.surface);
-    root.style.setProperty('--color-text', BlueNinjaTheme.colors.text);
-    root.style.setProperty('--color-card', BlueNinjaTheme.colors.card);
-  }, []);
-
   return (
     <Router>
-      <NinjaProvider>
+      <ThemeProvider>
+        <NinjaProvider>
 
-        <Routes>
-          {/* Main Entry Point - Handles Role Check */}
-          <Route path="/" element={<RootRedirector />} />
+          <Routes>
+            {/* Main Entry Point - Handles Role Check */}
+            <Route path="/" element={<RootRedirector />} />
 
-          {/* Admin Module - Delegated Routing */}
-          <Route path="/admin/*" element={<AdminRoutes />} />
+            {/* Admin Module - Delegated Routing */}
+            <Route path="/admin/*" element={<AdminRoutes />} />
 
-          <Route path="/tables/*" element={<TablesFeature />} />
+            <Route path="/tables/*" element={<TablesFeature />} />
 
-          <Route
-            path="/curriculum"
-            element={
-              <CurriculumViewer
-                coreCurriculum={coreCurriculum as any}
-                templateLibrary={templateLibrary as any}
-                assessmentGuide={assessmentGuide as any}
-              />
-            }
-          />
-          <Route path="/template/:templateId" element={<TemplateWorkbench />} />
-          <Route path="/profile" element={<ProfileRedirector />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </NinjaProvider>
+            <Route
+              path="/curriculum"
+              element={
+                <CurriculumViewer
+                  coreCurriculum={coreCurriculum as any}
+                  templateLibrary={templateLibrary as any}
+                  assessmentGuide={assessmentGuide as any}
+                />
+              }
+            />
+            <Route path="/template/:templateId" element={<TemplateWorkbench />} />
+            <Route path="/profile" element={<ProfileRedirector />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </NinjaProvider>
+      </ThemeProvider>
     </Router>
   );
 }
