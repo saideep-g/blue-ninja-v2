@@ -12,8 +12,8 @@ export interface EraSession {
     version: number;
 }
 
-const SESSION_VERSION = 1;
-const SESSION_CACHE_PREFIX = 'era_session_v1_';
+const SESSION_VERSION = 3; // Bumped to force refresh for SVG updates
+const SESSION_CACHE_PREFIX = 'era_session_v1_'; // Prefix can stay same or change, checking prop is safer
 
 export const eraSessionService = {
     /**
@@ -31,8 +31,14 @@ export const eraSessionService = {
             const cached = localStorage.getItem(cacheKey);
             if (cached) {
                 const session = JSON.parse(cached) as EraSession;
+
+                // Version Check
+                if (session.version !== SESSION_VERSION) {
+                    console.log(`[EraSession] Cache version mismatch (Cached: ${session.version}, Current: ${SESSION_VERSION}). Invalidating.`);
+                    localStorage.removeItem(cacheKey);
+                }
                 // Safety check: ensure questions exist
-                if (session.questions && session.questions.length > 0) {
+                else if (session.questions && session.questions.length > 0) {
                     console.log(`[EraSession] Resumed ${subjectId} session from cache.`);
                     return session;
                 }
@@ -129,6 +135,9 @@ export const eraSessionService = {
                                     prompt: { text: sq.question },
                                     instruction: sq.instruction || "Calculate the answer"
                                 },
+                                visualType: sq.visualType,
+                                visualData: sq.visualData,
+                                imageUrl: sq.imageUrl,
                                 answerKey: {
                                     value: sq.answer || sq.correct_answer,
                                     tolerance: sq.tolerance || 0.01

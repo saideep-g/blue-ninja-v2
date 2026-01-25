@@ -50,6 +50,36 @@ const LatexRenderer = ({ text }: { text: string | null }) => {
     );
 };
 
+const ExplanationStepRenderer = ({ text }: { text: string }) => {
+    // Split by newline, filter empty
+    const lines = text.split('\n').filter(l => l.trim());
+    return (
+        <div className="space-y-3 pt-2">
+            {lines.map((line, idx) => {
+                // Check for "1. ", "1) ", "(1) " style numbering
+                const match = line.match(/^(\d+)[\.)]\s*(.*)/) || line.match(/^\((\d+)\)\s*(.*)/);
+                if (match) {
+                    return (
+                        <div key={idx} className="flex gap-3 items-start group">
+                            <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-bold ring-1 ring-indigo-200 dark:ring-indigo-500/40 mt-0.5 group-hover:scale-110 transition-transform">
+                                {match[1]}
+                            </span>
+                            <span className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                                <LatexRenderer text={match[2]} />
+                            </span>
+                        </div>
+                    );
+                }
+                return (
+                    <p key={idx} className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                        <LatexRenderer text={line} />
+                    </p>
+                );
+            })}
+        </div>
+    );
+};
+
 /**
  * NUMERIC AUTO TEMPLATE
  * Enhanced numeric input with SVG/Image support and "Solve on Paper" focus.
@@ -78,6 +108,19 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
         setResult(null);
         setIsAutoAdvancing(false);
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+        // Debug Visuals (Once per question load)
+        const qContent = question.content || {};
+        const rawType = (question as any).visualType || qContent.visualType;
+        const vData = (question as any).visualData || qContent.visualData;
+
+        console.log('[NumericTemplate] Visual Debug:', {
+            id: question.id,
+            rawType: rawType,
+            hasVisualData: !!vData,
+            dataHead: vData ? String(vData).substring(0, 25) : 'None'
+        });
+
     }, [question.id]);
 
     // Extract content
@@ -118,9 +161,15 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
 
     // Visuals
     // Check top level or inside content
-    const visualType = (question as any).visualType || qContent.visualType;
+    const rawVisualType = (question as any).visualType || qContent.visualType;
     const visualData = (question as any).visualData || qContent.visualData;
     const imageUrl = (question as any).imageUrl || qContent.imageUrl || question.imageUrl;
+
+    // Infer type if missing
+    let visualType = rawVisualType;
+    if (!visualType && visualData && typeof visualData === 'string' && visualData.trim().startsWith('<svg')) {
+        visualType = 'svg';
+    }
 
     const parseValue = (val: string | number | undefined): number | null => {
         if (typeof val === 'number') return val;
@@ -327,18 +376,20 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
                         <div className="bg-red-100 p-2 rounded-full h-fit">
                             <Lightbulb className="w-6 h-6 text-red-600" />
                         </div>
-                        <div className="space-y-2">
-                            <p className="font-bold text-red-800">Not quite.</p>
-                            <p className="text-slate-600">{feedback?.feedback}</p>
-                            <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200 inline-block">
-                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Correct Answer</span>
-                                <span className="text-xl font-mono font-bold text-slate-800">{correctValue} {unit}</span>
+                        <div className="space-y-4 w-full">
+                            <div>
+                                <h4 className="font-bold text-red-800 dark:text-red-300 text-lg mb-1">
+                                    Let's review this! 🧐
+                                </h4>
+                                <div className="mt-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 inline-block shadow-sm">
+                                    <span className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block mb-1">Correct Answer</span>
+                                    <span className="text-xl font-mono font-bold text-slate-800 dark:text-white">{correctValue} {unit}</span>
+                                </div>
                             </div>
 
                             {question.explanation && (
-                                <div className="mt-4 pt-4 border-t border-slate-100 text-slate-600">
-                                    <span className="font-bold text-slate-800">Explanation: </span>
-                                    <LatexRenderer text={question.explanation} />
+                                <div className="mt-2 pt-4 border-t border-red-100/50 dark:border-white/10">
+                                    <ExplanationStepRenderer text={question.explanation} />
                                 </div>
                             )}
                         </div>
