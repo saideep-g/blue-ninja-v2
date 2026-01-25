@@ -31,6 +31,19 @@ export default function TablesMasteryDashboard() {
     const userClass = parseInt(String(rawClass), 10);
     const isAdvanced = userClass >= 7;
     const maxTable = isAdvanced ? 20 : 12;
+    // Logic for Visible Tables
+    // Standard: 2-12
+    // Advanced: 2-9, 11-20 (Skip 10)
+    let visibleTables: number[] = [];
+    if (isAdvanced) {
+        // 2..9
+        visibleTables.push(...Array.from({ length: 8 }, (_, i) => i + 2));
+        // 11..20
+        visibleTables.push(...Array.from({ length: 10 }, (_, i) => i + 11));
+    } else {
+        // 2..12
+        visibleTables.push(...Array.from({ length: 11 }, (_, i) => i + 2));
+    }
 
     const theme = isAdvanced ? {
         bg: "bg-[#FAF9F6]",
@@ -56,35 +69,32 @@ export default function TablesMasteryDashboard() {
             setLoading(true);
             try {
                 // Parallel Fetch
-                const [fetchedConfig, tableStats, detailed] = await Promise.all([
+                const [fetchedConfig, detailed] = await Promise.all([
                     getTableSettings(user.uid),
-                    getStudentTableStats(user.uid),
                     getDetailedTableStats(user.uid)
                 ]);
 
-                if (fetchedConfig) setConfig(fetchedConfig);
-
-                // Process Table Stats for Dashboard
-                const processedStats: DashboardStat[] = [];
-                for (let i = 2; i <= maxTable; i++) {
-                    const found = tableStats.find(s => s.table === i);
-                    if (found) {
-                        let status: DashboardStat['status'] = 'PRACTICING';
-                        if (found.accuracy >= 90 && found.avgTime < 4 && found.totalAttempts > 20) status = 'MASTERED';
-                        else if (found.accuracy < 75 || found.avgTime > 10) status = 'FOCUS_NEEDED';
-
-                        processedStats.push({
-                            table: i,
-                            accuracy: found.accuracy,
-                            totalAttempts: found.totalAttempts,
-                            avgTime: found.avgTime,
-                            status
-                        });
-                    } else {
-                        processedStats.push({ table: i, accuracy: 0, totalAttempts: 0, avgTime: 0, status: 'NOT_STARTED' });
-                    }
+                if (fetchedConfig) {
+                    setConfig(fetchedConfig);
+                    // Process Table Stats for Dashboard (Using Ledger)
+                    const processedStats: DashboardStat[] = [];
+                    visibleTables.forEach(i => {
+                        const found = fetchedConfig.tableStats?.[i];
+                        if (found) {
+                            processedStats.push({
+                                table: i,
+                                accuracy: found.accuracy,
+                                totalAttempts: found.totalAttempts,
+                                avgTime: found.avgTime > 0 ? parseFloat((found.avgTime / 1000).toFixed(1)) : 0, // Convert ms to s
+                                status: found.status
+                            });
+                        } else {
+                            processedStats.push({ table: i, accuracy: 0, totalAttempts: 0, avgTime: 0, status: 'NOT_STARTED' });
+                        }
+                    });
+                    setStats(processedStats);
                 }
-                setStats(processedStats);
+
                 setDetailedStats(detailed);
 
             } catch (e) {
@@ -95,8 +105,7 @@ export default function TablesMasteryDashboard() {
         };
 
         fetchData();
-    }, [user, maxTable]);
-
+    }, [user]);
 
     // Derived Metrics
     const activeStats = stats.filter(s => s.status !== 'NOT_STARTED');
@@ -284,25 +293,25 @@ export default function TablesMasteryDashboard() {
                                 </div>
                                 {activeFact && (
                                     <div className="text-xs font-bold bg-slate-800 text-white px-3 py-1 rounded-full animate-pulse shadow-lg">
-                                        {activeFact.t} × {activeFact.m} : {activeFact.avgTime > 0 ? (activeFact.avgTime / 1000).toFixed(1) + 's' : 'N/A'}
+                                        {activeFact.t} × {activeFact.m} : {activeFact.avgTime > 0 ? (activeFact.avgTime / 1000).toFixed(1) + 's' : 'N/A'}`;
                                     </div>
                                 )}
                             </div>
 
                             <div className="grid grid-cols-6 gap-1" onMouseLeave={() => setActiveFact(null)}>
-                                {Array.from({ length: maxTable }, (_, i) => i + 1).map(r => ( // Rows (Multipliers)
-                                    Array.from({ length: maxTable }, (_, j) => j + 1).map(c => { // Cols (Tables)
-                                        const factStat = detailedStats[c]?.[r]; // Table c, Multiplier r
+                                {visibleTables.map(t => ( // Loop 1: Tables (t) - Use Visible List
+                                    Array.from({ length: maxTable - 1 }, (_, j) => j + 2).map(m => { // Loop 2: Multipliers (m) - Start at 2
+                                        const factStat = detailedStats[t]?.[m];
                                         const avgT = factStat?.avgTime || 0;
-                                        const tooltip = `${c} x ${r}: ${avgT > 0 ? (avgT / 1000).toFixed(1) + 's' : 'N/A'}`;
+                                        const tooltip = `${t} x ${m}: ${avgT > 0 ? (avgT / 1000).toFixed(1) + 's' : 'N/A'}`;
 
                                         return (
                                             <div
-                                                key={`${c}x${r}`}
+                                                key={`${t}x${m}`}
                                                 title={tooltip}
-                                                onClick={() => setActiveFact({ t: c, m: r, avgTime: avgT })}
-                                                onMouseEnter={() => setActiveFact({ t: c, m: r, avgTime: avgT })}
-                                                className={`aspect-square rounded-sm ${getHeatmapColor(avgT)} hover:scale-150 transition-transform cursor-pointer ${activeFact?.t === c && activeFact?.m === r ? 'ring-2 ring-slate-800 z-10 scale-125' : ''}`}
+                                                onClick={() => setActiveFact({ t, m, avgTime: avgT })}
+                                                onMouseEnter={() => setActiveFact({ t, m, avgTime: avgT })}
+                                                className={`aspect-square rounded-sm ${getHeatmapColor(avgT)} hover:scale-150 transition-transform cursor-pointer ${activeFact?.t === t && activeFact?.m === m ? 'ring-2 ring-slate-800 z-10 scale-125' : ''}`}
                                             ></div>
                                         )
                                     })
