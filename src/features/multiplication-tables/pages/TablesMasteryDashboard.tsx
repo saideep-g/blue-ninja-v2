@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Activity, Zap, Timer, AlertCircle, Play, ChevronRight, Grid } from 'lucide-react';
+import { Trophy, Activity, Zap, Timer, AlertCircle, Play, ChevronRight, Grid, TrendingUp } from 'lucide-react';
 import { useNinja } from '../../../context/NinjaContext';
 import { getStudentTableStats, getDetailedTableStats, getTableSettings } from '../services/tablesFirestore';
 import { TablesConfig, DEFAULT_TABLES_CONFIG } from '../logic/types';
@@ -22,6 +22,7 @@ export default function TablesMasteryDashboard() {
     const [stats, setStats] = useState<DashboardStat[]>([]);
     const [detailedStats, setDetailedStats] = useState<Record<number, Record<number, any>>>({});
     const [loading, setLoading] = useState(true);
+    const [activeFact, setActiveFact] = useState<{ t: number, m: number, avgTime: number } | null>(null);
 
     // Theme Logic
     const statsAny = ninjaStats as any;
@@ -140,9 +141,18 @@ export default function TablesMasteryDashboard() {
 
                 {/* Header */}
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-3xl md:text-4xl font-black mb-1">Mastery Path</h1>
-                        <p className="opacity-60 font-medium">Identify gaps, build speed, and conquer the tables.</p>
+                    <div className="flex items-center gap-4">
+                        <div>
+                            <h1 className="text-3xl md:text-4xl font-black mb-1">Mastery Path</h1>
+                            <p className="opacity-60 font-medium">Identify gaps, build speed, and conquer the tables.</p>
+                        </div>
+                        <button
+                            onClick={() => navigate('/tables/parent')}
+                            className="p-2 bg-white/50 hover:bg-white rounded-xl transition-colors text-slate-500 hover:text-indigo-600"
+                            title="Parent Dashboard / Analytics"
+                        >
+                            <TrendingUp className="w-6 h-6" />
+                        </button>
                     </div>
                     <div className={`${theme.card} px-6 py-3 rounded-2xl flex items-center gap-4`}>
                         <div className="flex flex-col items-end">
@@ -267,30 +277,21 @@ export default function TablesMasteryDashboard() {
                     {/* Column 3: Heatmap & Side Widgets */}
                     <div className="lg:col-span-1 space-y-8">
                         <div className={`${theme.card} p-6 rounded-3xl`}>
-                            <div className="flex items-center gap-2 mb-6">
-                                <Grid className="w-5 h-5 opacity-50" />
-                                <h3 className="font-bold text-lg">Fact Heatmap</h3>
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-2">
+                                    <Grid className="w-5 h-5 opacity-50" />
+                                    <h3 className="font-bold text-lg">Fact Heatmap</h3>
+                                </div>
+                                {activeFact && (
+                                    <div className="text-xs font-bold bg-slate-800 text-white px-3 py-1 rounded-full animate-pulse shadow-lg">
+                                        {activeFact.t} × {activeFact.m} : {activeFact.avgTime > 0 ? (activeFact.avgTime / 1000).toFixed(1) + 's' : 'N/A'}
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="grid grid-cols-6 gap-1">
-                                {/* Only showing up to 12x12 even for advanced to fit in sidebar? Or scrollable?
-                                    Let's do scrollable or responsive grid.
-                                    If 12x12, 144 items. 6 cols -> 24 rows.
-                                    Let's try dynamic columns based on width or just flex wrap.
-                                */}
+                            <div className="grid grid-cols-6 gap-1" onMouseLeave={() => setActiveFact(null)}>
                                 {Array.from({ length: maxTable }, (_, i) => i + 1).map(r => ( // Rows (Multipliers)
                                     Array.from({ length: maxTable }, (_, j) => j + 1).map(c => { // Cols (Tables)
-                                        // Note: Heatmap usually Table x Multiplier
-                                        // Let's iterate table (c) then multiplier (r) or vice versa.
-                                        // Let's do a simple 1D list of balls for now, or true grid.
-                                        // True grid 12x12 is hard in sidebar.
-                                        // Let's show "Table Heatmap" - Avg time for each table? 
-                                        // The Requirement said "Grid... representing every multiplication fact".
-                                        // A 12x12 grid in 1 column sidebar? 
-                                        // 250px width / 12 = 20px per cell. Doable.
-
-                                        // However, let's just render it and see.
-                                        // We need data: detailedStats[table][multiplier].
                                         const factStat = detailedStats[c]?.[r]; // Table c, Multiplier r
                                         const avgT = factStat?.avgTime || 0;
                                         const tooltip = `${c} x ${r}: ${avgT > 0 ? (avgT / 1000).toFixed(1) + 's' : 'N/A'}`;
@@ -299,7 +300,9 @@ export default function TablesMasteryDashboard() {
                                             <div
                                                 key={`${c}x${r}`}
                                                 title={tooltip}
-                                                className={`aspect-square rounded-sm ${getHeatmapColor(avgT)} hover:scale-150 transition-transform cursor-help`}
+                                                onClick={() => setActiveFact({ t: c, m: r, avgTime: avgT })}
+                                                onMouseEnter={() => setActiveFact({ t: c, m: r, avgTime: avgT })}
+                                                className={`aspect-square rounded-sm ${getHeatmapColor(avgT)} hover:scale-150 transition-transform cursor-pointer ${activeFact?.t === c && activeFact?.m === r ? 'ring-2 ring-slate-800 z-10 scale-125' : ''}`}
                                             ></div>
                                         )
                                     })

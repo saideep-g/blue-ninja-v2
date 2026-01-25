@@ -103,10 +103,12 @@ function getBucketId(date: Date = new Date()): string {
  * Unified Log Reader
  * Reads both old individual docs and new bucketed docs transparently.
  */
-async function fetchAllLogsUnsorted(studentId: string): Promise<FirestorePracticeLog[]> {
+export async function fetchAllLogsUnsorted(studentId: string): Promise<FirestorePracticeLog[]> {
     const logsCol = collection(db, COLLECTION_USERS, studentId, SUBCOLLECTION_LOGS);
     const snap = await getDocs(logsCol);
     let allLogs: FirestorePracticeLog[] = [];
+
+    // ... (rest of implementation) ...
 
     snap.forEach(docSnap => {
         const data = docSnap.data();
@@ -256,6 +258,46 @@ export async function savePracticeSession(studentId: string, logs: Omit<Firestor
  * Get Aggregated Stats for Dashboard
  */
 // --- REWRITTEN READ FUNCTIONS (STATS) ---
+
+/**
+ * Get Daily Activity for Last 7 Days (or 30)
+ */
+export async function getDailyActivity(studentId: string, days: number = 7): Promise<{ date: string, count: number }[]> {
+    const allLogs = await fetchAllLogsUnsorted(studentId);
+
+    // Filter for last 'days'
+    const now = new Date();
+    const cutoff = new Date();
+    cutoff.setDate(now.getDate() - days);
+
+    const relevantLogs = allLogs.filter(l => {
+        const ts = l.timestamp instanceof Timestamp ? l.timestamp.toMillis() : (l.timestamp || 0);
+        return ts >= cutoff.getTime();
+    });
+
+    const grouped: Record<string, number> = {};
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // Initialize all days to 0 to show gaps
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const dayStr = `${months[d.getMonth()]} ${d.getDate()}`;
+        grouped[dayStr] = 0;
+    }
+
+    // Fill counts
+    relevantLogs.forEach(l => {
+        const ts = l.timestamp instanceof Timestamp ? l.timestamp.toMillis() : (l.timestamp || 0);
+        const d = new Date(ts);
+        const dayStr = `${months[d.getMonth()]} ${d.getDate()}`;
+        if (grouped[dayStr] !== undefined) {
+            grouped[dayStr]++;
+        }
+    });
+
+    return Object.entries(grouped).map(([date, count]) => ({ date, count }));
+}
 
 /**
  * Get Aggregated Stats for Dashboard (Bucketed)
@@ -456,4 +498,62 @@ export async function migrateLogsToBuckets(studentId: string): Promise<{ migrate
     await Promise.all(deletePromises);
 
     return { migrated: logsToMigrate.length, errors: 0 };
+}
+
+/**
+ * Re-calculate Table Stats from Scratch
+ * Useful for updating existing students to new Mastery logic (Fast-Track, etc.)
+ * reads ALL logs -> resets ledger -> replays history -> saves.
+ */
+export async function rehydrateStudentStats(studentId: string): Promise<boolean> {
+    try {
+        // 1. Fetch All Logs
+        const allLogs = await fetchAllLogsUnsorted(studentId);
+        if (allLogs.length === 0) return false;
+
+        // Sort chronologically
+        const sortedLogs = allLogs.sort((a, b) => {
+            const tA = a.timestamp?.toMillis ? a.timestamp.toMillis() : new Date(a.timestamp).getTime();
+            const tB = b.timestamp?.toMillis ? b.timestamp.toMillis() : new Date(b.timestamp).getTime();
+            return tA - tB;
+        });
+
+        // 2. Fetch Grade Context
+        const studentRef = doc(db, COLLECTION_USERS, studentId);
+        const studentDoc = await getDoc(studentRef);
+        let isAdvanced = false;
+
+        // Reset Config to Default
+        let runningConfig = JSON.parse(JSON.stringify(DEFAULT_TABLES_CONFIG));
+
+        if (studentDoc.exists()) {
+            const d = studentDoc.data();
+            const grade = d.class || d.grade || d.profile?.class || 2;
+            isAdvanced = parseInt(grade) >= 6;
+        }
+
+        // 3. Replay History
+        sortedLogs.forEach(log => {
+            const ts = log.timestamp?.toMillis ? log.timestamp.toMillis() : new Date(log.timestamp).getTime();
+            const logForLedger = {
+                table: log.table,
+                multiplier: log.multiplier,
+                isCorrect: log.isCorrect,
+                timeTaken: log.timeTaken,
+                timestamp: ts
+            };
+            // Run update
+            runningConfig = updateLedger(runningConfig, logForLedger, isAdvanced);
+        });
+
+        // 4. Save Fresh Ledger
+        await setDoc(studentRef, {
+            tables_config: runningConfig
+        }, { merge: true });
+
+        return true;
+    } catch (e) {
+        console.error("Rehydration failed:", e);
+        return false;
+    }
 }

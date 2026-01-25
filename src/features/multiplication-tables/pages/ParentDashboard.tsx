@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, TrendingUp, Clock, AlertCircle, Save, Check } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNinja } from '../../../context/NinjaContext';
-import { getStudentTableStats, getTableSettings, saveTableSettings, TableSettings } from '../services/tablesFirestore';
+import { getStudentTableStats, getTableSettings, saveTableSettings, getDailyActivity, TableSettings } from '../services/tablesFirestore';
 import { DEFAULT_TABLES_CONFIG } from '../logic/types';
 
 interface TableStat {
@@ -16,17 +17,18 @@ interface TableStat {
 export default function ParentDashboard() {
     const navigate = useNavigate();
     const { user, ninjaStats } = useNinja();
+
+    // State
     const [stats, setStats] = useState<TableStat[]>([]);
+    const [chartData, setChartData] = useState<{ date: string, count: number }[]>([]);
     const [settings, setSettings] = useState<TableSettings>(DEFAULT_TABLES_CONFIG);
     const [saving, setSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
     // Determine Grade Level / Mode
-    // Robust detection logic matching TableSelection
     const statsAny = ninjaStats as any;
     const userAny = user as any;
 
-    // Check all potential locations
     const rawClass =
         statsAny?.class ||
         statsAny?.grade ||
@@ -35,7 +37,7 @@ export default function ParentDashboard() {
         userAny?.class ||
         2;
 
-    const userClass = parseInt(String(rawClass), 10); // Ensure integer
+    const userClass = parseInt(String(rawClass), 10);
     const isAdvanced = userClass >= 7;
     const maxTable = isAdvanced ? 20 : 12;
 
@@ -44,38 +46,40 @@ export default function ParentDashboard() {
 
         console.log(`[ParentDashboard] Loaded user class: ${userClass} (Raw: ${rawClass}), Max Table: ${maxTable}`);
 
-        // Load Stats
-        getStudentTableStats(user.uid).then(data => {
-            const fullStats: TableStat[] = [];
-            // Dynamic loop based on maxTable
-            for (let i = 2; i <= maxTable; i++) {
-                const found = data.find(d => d.table === i);
-                if (found) {
-                    let status: TableStat['status'] = 'IN_PROGRESS';
-                    if (found.accuracy >= 90 && found.totalAttempts > 20) status = 'MASTERED';
-                    else if (found.accuracy < 70 && found.totalAttempts > 5) status = 'STRUGGLING';
+        // 1. Load Activity Chart Data
+        getDailyActivity(user.uid, 15).then(data => setChartData(data));
 
-                    fullStats.push({
-                        table: i,
-                        accuracy: found.accuracy,
-                        totalAttempts: found.totalAttempts,
-                        status,
-                        avgTime: found.avgTime
-                    });
-                } else {
-                    fullStats.push({ table: i, accuracy: 0, totalAttempts: 0, status: 'NOT_STARTED' });
-                }
-            }
-            setStats(fullStats);
-        });
-
-        // Load Settings
+        // 2. Load Settings (Mastery Ledger)
         getTableSettings(user.uid).then(loadedSettings => {
-            if (loadedSettings) setSettings(loadedSettings);
-            else setSettings(prev => ({ ...prev, selectedTables: [2, 3, 4, 5] })); // Defaults
+            if (loadedSettings) {
+                setSettings(loadedSettings);
+
+                // Derive Stats from tables_config.tableStats
+                const ledger = loadedSettings.tableStats || {};
+                const fullStats: TableStat[] = [];
+
+                for (let i = 2; i <= maxTable; i++) {
+                    const s = ledger[i];
+                    if (s) {
+                        fullStats.push({
+                            table: i,
+                            accuracy: Math.round(s.accuracy),
+                            totalAttempts: s.totalAttempts,
+                            status: s.status as any,
+                            avgTime: s.avgTime ? parseFloat((s.avgTime / 1000).toFixed(1)) : 0
+                        });
+                    } else {
+                        fullStats.push({ table: i, accuracy: 0, totalAttempts: 0, status: 'NOT_STARTED' });
+                    }
+                }
+                setStats(fullStats);
+            } else {
+                // Initial Default
+                setSettings(prev => ({ ...prev, selectedTables: [2, 3, 4, 5] }));
+            }
         });
 
-    }, [user, maxTable, userClass, rawClass]); // Added rawClass dependency
+    }, [user, maxTable, userClass, rawClass]);
 
     const toggleTable = (num: number) => {
         setSettings(prev => ({
@@ -111,9 +115,14 @@ export default function ParentDashboard() {
                         </button>
                         <div>
                             <h1 className="text-3xl font-bold text-slate-800">Parent Dashboard</h1>
-                            <p className="text-slate-500">
-                                Monitor progress and configure settings
-                                {isAdvanced && <span className="ml-2 text-xs font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded">Grade {userClass} Mode</span>}
+                            <div className="flex items-center gap-3 mt-1">
+                                <span className="text-sm font-bold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200">
+                                    Current Stage: x{settings.currentPathStage || 2}
+                                </span>
+                                {isAdvanced && <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded">Grade {userClass} Mode</span>}
+                            </div>
+                            <p className="text-slate-500 mt-2">
+                                Monitor student progress and mastery.
                             </p>
                         </div>
                     </div>
@@ -123,57 +132,20 @@ export default function ParentDashboard() {
 
                     {/* Left Column: Configuration */}
                     <div className="lg:col-span-1 space-y-6">
-                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4">Practice Configuration</h2>
-                            <p className="text-sm text-slate-500 mb-6">Select the tables your child should practice during their sessions.</p>
-
-                            <div className="grid grid-cols-4 gap-2 mb-8">
-                                {/* Dynamic Grid for Tables */}
-                                {Array.from({ length: maxTable - 1 }, (_, i) => i + 2).map(num => (
-                                    <button
-                                        key={num}
-                                        onClick={() => toggleTable(num)}
-                                        className={`h-10 rounded-lg font-bold transition-all border-2 text-sm
-                                    ${settings.selectedTables.includes(num)
-                                                ? 'bg-indigo-100 border-indigo-500 text-indigo-700'
-                                                : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300'
-                                            }
-                                `}
-                                    >
-                                        {num}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <button
-                                onClick={handleSave}
-                                disabled={saving}
-                                className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all text-white
-                            ${saveSuccess ? 'bg-green-500' : 'bg-indigo-600 hover:bg-indigo-700'}
-                        `}
-                            >
-                                {saveSuccess ? <Check className="w-5 h-5" /> : <Save className="w-5 h-5" />}
-                                {saveSuccess ? 'Saved!' : 'Save Settings'}
-                            </button>
-
-                            {/* Debug info invisible unless inspected or needed later */}
-                            <div className="mt-4 text-[10px] text-slate-300 font-mono text-center">
-                                Class Detection: {userClass} (from {String(rawClass)})
-                            </div>
-                        </div>
-
+                        {/* Insights Block */}
                         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
                             <h3 className="font-bold text-slate-800 mb-2">Insights</h3>
                             {struggling.length > 0 ? (
                                 <div className="p-3 bg-red-50 text-red-700 rounded-xl text-sm mb-2">
-                                    Child is struggling with tables {struggling.join(', ')}. Try selecting only these for a few days.
+                                    Child is struggling with tables {struggling.join(', ')}. These will be prioritized in review.
                                 </div>
                             ) : (
                                 <div className="p-3 bg-green-50 text-green-700 rounded-xl text-sm">
-                                    Progress looks good! Consider adding a new table to the mix.
+                                    Progress looks good! The Mastery Path is adapting automatically.
                                 </div>
                             )}
                         </div>
+
                     </div>
 
                     {/* Right Column: Stats */}
@@ -182,14 +154,14 @@ export default function ParentDashboard() {
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                                 <div className="flex items-center gap-3 mb-2 text-indigo-600">
                                     <TrendingUp className="w-5 h-5" />
-                                    <h3 className="font-bold">Accuracy</h3>
+                                    <h3 className="font-bold">Avg Accuracy</h3>
                                 </div>
                                 <div className="text-4xl font-black text-slate-800">{avgAccuracy}%</div>
                             </div>
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                                 <div className="flex items-center gap-3 mb-2 text-blue-600">
                                     <Clock className="w-5 h-5" />
-                                    <h3 className="font-bold">Total Answers</h3>
+                                    <h3 className="font-bold">Total Attempts</h3>
                                 </div>
                                 <div className="text-4xl font-black text-slate-800">{totalAttempts}</div>
                             </div>
@@ -241,6 +213,34 @@ export default function ParentDashboard() {
                                 </table>
                             </div>
                         </div>
+
+                        {/* Activity Chart */}
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                            <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5 text-indigo-500" /> Consistency (Last 15 Days)
+                            </h2>
+                            <div className="h-64 w-full min-w-0">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                    <LineChart data={chartData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="count"
+                                            stroke="#6366f1"
+                                            strokeWidth={4}
+                                            dot={{ r: 6, fill: '#6366f1', strokeWidth: 2, stroke: '#fff' }}
+                                            activeDot={{ r: 8 }}
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>

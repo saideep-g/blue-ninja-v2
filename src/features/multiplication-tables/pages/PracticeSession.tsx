@@ -229,7 +229,12 @@ export default function PracticeSession() {
                     timeTaken,
                     timestamp: Date.now()
                 };
-                navigate('/tables/summary', { state: { logs: [...sessionLogs, currentLog] } });
+                navigate('/tables/summary', {
+                    state: {
+                        logs: [...sessionLogs, currentLog],
+                        initialConfig: config
+                    }
+                });
             }
         }, isCorrect ? (isAdvanced ? 600 : 1000) : 2500);
 
