@@ -14,6 +14,8 @@ import { TemplateManager } from '../features/questions/admin/TemplateManager';
 import QuestionBundleCreator from '../components/admin/QuestionBundleCreator';
 import ReviewQueue from '../components/admin/ReviewQueue';
 
+import StudentLogsDownloader from '../components/admin/tools/StudentLogsDownloader';
+
 export default function AdminRoutes() {
     return (
         <Routes>
@@ -33,6 +35,7 @@ export default function AdminRoutes() {
                 <Route path="templates" element={<TemplateManager />} />
                 <Route path="question-bundles" element={<QuestionBundleCreator />} />
                 <Route path="review" element={<ReviewQueue />} />
+                <Route path="export-table-logs" element={<StudentLogsDownloader />} />
             </Route>
         </Routes>
     );

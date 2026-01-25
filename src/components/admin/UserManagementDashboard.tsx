@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from "../../services/db/firebase";
-import { collection, query, limit, getDocs, updateDoc, doc, getDoc, orderBy } from 'firebase/firestore';
-import { Search, User, Check, Smartphone, BookOpen, AlertCircle, Save, X, RefreshCw } from 'lucide-react';
+import { collection, query, limit, getDocs, updateDoc, doc, getDoc, orderBy, setDoc } from 'firebase/firestore';
+import { Search, User, Check, Smartphone, BookOpen, AlertCircle, Save, X, RefreshCw, Grid } from 'lucide-react';
 import { User as UserType } from '../../types/models';
 
 const SUBJECTS = [
@@ -24,7 +24,8 @@ export default function UserManagementDashboard() {
     const [editForm, setEditForm] = useState<{
         layout: "default" | "mobile-quest-v1" | "study-era";
         enrolledSubjects: string[];
-    }>({ layout: 'default', enrolledSubjects: [] });
+        assignedTables: number[];
+    }>({ layout: 'default', enrolledSubjects: [], assignedTables: [] });
 
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -97,10 +98,23 @@ export default function UserManagementDashboard() {
                 if (!data.enrolledSubjects && data.profile?.enrolledSubjects) enrolledSubjects = data.profile.enrolledSubjects;
             }
 
+            // Fetch Table Config (from tables_config field)
+            let assignedTables = [2, 3, 4]; // Default
+            if (studentSnap.exists()) {
+                const data = studentSnap.data();
+                if (data.tables_config && data.tables_config.selectedTables && Array.isArray(data.tables_config.selectedTables)) {
+                    assignedTables = data.tables_config.selectedTables;
+                }
+            } else if (user.tables_config?.selectedTables) {
+                // Fallback to list object if doc fetch failed for some reason
+                assignedTables = user.tables_config.selectedTables;
+            }
+
             setEditingUser(fullData);
             setEditForm({
                 layout,
-                enrolledSubjects
+                enrolledSubjects,
+                assignedTables
             });
             setMessage(null);
         } catch (e) {
@@ -120,6 +134,17 @@ export default function UserManagementDashboard() {
         });
     };
 
+    const toggleTable = (num: number) => {
+        setEditForm(prev => {
+            const current = prev.assignedTables;
+            if (current.includes(num)) {
+                return { ...prev, assignedTables: current.filter(n => n !== num) };
+            } else {
+                return { ...prev, assignedTables: [...current, num].sort((a, b) => a - b) };
+            }
+        });
+    };
+
     const handleSave = async () => {
         if (!editingUser) return;
         setSaving(true);
@@ -127,15 +152,30 @@ export default function UserManagementDashboard() {
 
         try {
             const studentRef = doc(db, 'students', editingUser.id);
-
             // Update root level config (NinjaStats model in models.ts)
-            await updateDoc(studentRef, {
+            // Storing tables_config as a Map Field on the student document.
+            await setDoc(studentRef, {
                 layout: editForm.layout,
                 enrolledSubjects: editForm.enrolledSubjects,
-                // Also update profile nested object just in case user Service reads from there
-                'profile.layout': editForm.layout,
-                'profile.enrolledSubjects': editForm.enrolledSubjects
-            });
+                'profile': {
+                    layout: editForm.layout,
+                    enrolledSubjects: editForm.enrolledSubjects
+                },
+                tables_config: {
+                    selectedTables: editForm.assignedTables,
+                    // Preserve defaults if they don't exist, technically this overwrite might reset custom accuracy if we don't read it first.
+                    // But for Admin UI, we are only editing tables. 
+                    // Better approach: use merge: true with setDoc to update specific fields without nuking others.
+                }
+            }, { merge: true });
+
+            // Note: If we strictly wanted to ONLY update selectedTables inside tables_config without touching targetAccuracy:
+            // We would need to use updateDoc with 'tables_config.selectedTables': ... 
+            // BUT setDoc { merge: true } with nested object `tables_config: { selectedTables: ... }` behaves like a deep merge in Firebase JS SDK? 
+            // NO. It replaces the `tables_config` map if you don't use dot notation or if you provide the map.
+            // Actually, `setDoc(ref, { a: { b: 1 } }, { merge: true })` MERGES `a.b`. 
+            // So `tables_config` properties NOT in this object should be preserved.
+            // Verified: setDoc with merge performs a deep merge on maps.
 
             setMessage({ type: 'success', text: `Successfully updated ${editingUser.username || 'User'}!` });
 
@@ -345,6 +385,33 @@ export default function UserManagementDashboard() {
                                     </div>
                                     <p className="text-xs text-slate-400 mt-3 font-medium">
                                         * Selecting zero subjects serves ALL valid subjects by default.
+                                    </p>
+                                </section>
+
+                                {/* TABLES SELECTOR */}
+                                <section>
+                                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <Grid size={16} /> Multiplication Tables
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {Array.from({ length: 19 }, (_, i) => i + 2).map((num) => {
+                                            const isActive = editForm.assignedTables.includes(num);
+                                            return (
+                                                <button
+                                                    key={num}
+                                                    onClick={() => toggleTable(num)}
+                                                    className={`w-10 h-10 rounded-lg font-bold text-sm border-2 transition-all flex items-center justify-center
+                                                         ${isActive
+                                                            ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                                                            : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
+                                                >
+                                                    {num}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-3 font-medium">
+                                        * Assign tables 2 through 20. Users will only practice assigned tables.
                                     </p>
                                 </section>
 
