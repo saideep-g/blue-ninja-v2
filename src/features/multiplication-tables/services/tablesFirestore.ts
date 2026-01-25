@@ -19,11 +19,11 @@ import {
     arrayUnion
 } from 'firebase/firestore';
 
-export interface TableSettings {
-    selectedTables: number[];
-    targetAccuracy: number; // e.g., 90
-    dailyGoalMinutes: number; // e.g., 10
-}
+import { TablesConfig, DEFAULT_TABLES_CONFIG } from '../logic/types';
+import { updateLedger } from '../logic/ledgerUpdates';
+
+export type TableSettings = TablesConfig; // Alias for backward compat in naming
+
 
 export interface FirestorePracticeLog {
     // studentId removed as it's redundant in subcollection
@@ -79,8 +79,8 @@ export async function getTableSettings(studentId: string): Promise<TableSettings
             return data.tables_config as TableSettings;
         }
     }
-    // Default Tables 2, 3, 4 if not configured
-    return { selectedTables: [2, 3, 4], targetAccuracy: 90, dailyGoalMinutes: 10 };
+    // Default Tables 2, 3, 4 if not configured, using new Default Config
+    return DEFAULT_TABLES_CONFIG;
 }
 
 /**
@@ -125,22 +125,61 @@ async function fetchAllLogsUnsorted(studentId: string): Promise<FirestorePractic
 /**
  * Save a single practice log immediately (Optimized Wrapper)
  */
+/**
+ * Save a single practice log immediately (Optimized Wrapper with Ledger Update)
+ */
 export async function saveSinglePracticeLog(studentId: string, log: Omit<FirestorePracticeLog, 'timestamp'>) {
     if (!studentId) return;
 
-    // Remove questionId and ensure no studentId
-    const { questionId, ...cleanLog } = log as any;
-    delete cleanLog.studentId; // Explicit safety
+    // 1. Fetch Current State (Config + Grade) to update Ledger
+    const studentRef = doc(db, COLLECTION_USERS, studentId);
+    const studentSnap = await getDoc(studentRef);
+    let currentConfig = DEFAULT_TABLES_CONFIG;
+    let isAdvanced = false;
 
+    if (studentSnap.exists()) {
+        const data = studentSnap.data();
+        if (data.tables_config) currentConfig = data.tables_config as TablesConfig;
+
+        // Determine Advanced (Grade 6+)
+        const grade = data.class || data.grade || data.profile?.class || 2;
+        isAdvanced = parseInt(grade) >= 6;
+    }
+
+    // 2. Format Log
+    const { questionId, ...cleanLog } = log as any;
+    delete cleanLog.studentId;
+
+    // Add timestamp for calculations
+    const now = Date.now();
+    const logForLedger = {
+        table: cleanLog.table,
+        multiplier: cleanLog.multiplier,
+        isCorrect: cleanLog.isCorrect,
+        timeTaken: cleanLog.timeTaken,
+        timestamp: now
+    };
+
+    // 3. Update Ledger (Write-Ahead)
+    const newConfig = updateLedger(currentConfig, logForLedger, isAdvanced);
+
+    // 4. Save Updates (Ledger + Daily Progress)
+    // We update student doc (ledger) AND daily counter
+    await setDoc(studentRef, {
+        tables_config: newConfig,
+        'daily.Tables': increment(1),
+        lastActive: serverTimestamp()
+    }, { merge: true });
+
+    // 5. Save Log to Bucket (Audit Trail)
     const finalLog = {
         ...cleanLog,
-        timestamp: Timestamp.now()
+        timestamp: Timestamp.fromMillis(now)
     };
 
     const bucketId = getBucketId(new Date());
     const docRef = doc(db, COLLECTION_USERS, studentId, SUBCOLLECTION_LOGS, bucketId);
 
-    // Merge: true ensures creation if missing. arrayUnion appends.
     await setDoc(docRef, {
         logs: arrayUnion(finalLog),
         lastUpdated: serverTimestamp()
@@ -150,36 +189,67 @@ export async function saveSinglePracticeLog(studentId: string, log: Omit<Firesto
 /**
  * Save a batch of practice logs (Legacy/Bulk Import)
  */
+/**
+ * Save a batch of practice logs (Legacy/Bulk Import)
+ * Updates ledger for each log sequentially (or batched)
+ */
 export async function savePracticeSession(studentId: string, logs: Omit<FirestorePracticeLog, 'timestamp'>[]) {
     if (!studentId || logs.length === 0) return;
 
+    // 1. Fetch Context
+    const studentRef = doc(db, COLLECTION_USERS, studentId);
+    const studentSnap = await getDoc(studentRef);
+    let currentConfig = DEFAULT_TABLES_CONFIG;
+    let isAdvanced = false;
+
+    if (studentSnap.exists()) {
+        const data = studentSnap.data();
+        if (data.tables_config) currentConfig = data.tables_config as TablesConfig;
+        const grade = data.class || data.grade || data.profile?.class || 2;
+        isAdvanced = parseInt(grade) >= 6;
+    }
+
+    // 2. Process Ledger Updates
+    // We must process sequentially to respect streaks
+    let runningConfig = currentConfig;
+    const now = Date.now();
+    const cleanLogs: any[] = [];
+
+    logs.forEach((l, idx) => {
+        const { questionId, ...rest } = l as any;
+        delete rest.studentId;
+
+        // Ledger Update
+        const logForLedger = {
+            table: rest.table,
+            multiplier: rest.multiplier,
+            isCorrect: rest.isCorrect,
+            timeTaken: rest.timeTaken,
+            timestamp: now + idx // Slight offset to preserve order conceptually
+        };
+        runningConfig = updateLedger(runningConfig, logForLedger, isAdvanced);
+
+        cleanLogs.push({
+            ...rest,
+            timestamp: Timestamp.fromMillis(now + idx)
+        });
+    });
+
+    // 3. Save Ledger & Daily
+    await setDoc(studentRef, {
+        tables_config: runningConfig,
+        'daily.Tables': increment(logs.length),
+        lastActive: serverTimestamp()
+    }, { merge: true });
+
+    // 4. Save Logs to Bucket
     const bucketId = getBucketId(new Date());
     const docRef = doc(db, COLLECTION_USERS, studentId, SUBCOLLECTION_LOGS, bucketId);
-
-    const cleanLogs = logs.map(l => {
-        const { questionId, ...rest } = l as any;
-        delete rest.studentId; // Explicit safety
-        return {
-            ...rest,
-            timestamp: Timestamp.now()
-        };
-    });
 
     await setDoc(docRef, {
         logs: arrayUnion(...cleanLogs),
         lastUpdated: serverTimestamp()
     }, { merge: true });
-
-    // Sync with Main Dashboard Daily Progress
-    try {
-        const studentRef = doc(db, COLLECTION_USERS, studentId);
-        await updateDoc(studentRef, {
-            'daily.Tables': increment(logs.length),
-            lastActive: serverTimestamp()
-        });
-    } catch (e) {
-        console.error("Failed to sync daily tables progress", e);
-    }
 }
 
 /**
@@ -301,6 +371,7 @@ export async function migrateLogsToBuckets(studentId: string): Promise<{ migrate
     const logsToMigrate: any[] = [];
     const docsToDelete: string[] = [];
 
+    // 1. Identify Legacy Docs
     snap.forEach(docSnap => {
         const data = docSnap.data();
         // Identify Legacy Docs: They have 'table' at top level and NO 'logs' array
@@ -318,29 +389,53 @@ export async function migrateLogsToBuckets(studentId: string): Promise<{ migrate
         return { migrated: 0, errors: 0 };
     }
 
-    // Group logs by bucket (though we mostly expect 'archive' for now)
+    // 2. Fetch Grade/Context for Ledger
+    const studentDoc = await getDoc(doc(db, COLLECTION_USERS, studentId));
+    let isAdvanced = false;
+    let runningConfig = DEFAULT_TABLES_CONFIG;
+
+    if (studentDoc.exists()) {
+        const d = studentDoc.data();
+        const grade = d.class || d.grade || d.profile?.class || 2;
+        isAdvanced = parseInt(grade) >= 6;
+        // If config already exists, start from it? OR reset?
+        if (d.tables_config) runningConfig = d.tables_config;
+    }
+
+    // 3. Sort Logs Chronologically for Replay
+    logsToMigrate.sort((a, b) => {
+        const tA = a.timestamp?.toMillis ? a.timestamp.toMillis() : new Date(a.timestamp).getTime();
+        const tB = b.timestamp?.toMillis ? b.timestamp.toMillis() : new Date(b.timestamp).getTime();
+        return tA - tB;
+    });
+
+    // 4. Process Buckets & Ledger
     const batches: Record<string, any[]> = {};
 
     logsToMigrate.forEach(log => {
-        // Convert timestamp to Date for bucket calc
-        const date = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
-        const bucket = getBucketId(date);
+        // A. Ledger Update
+        const ts = log.timestamp?.toMillis ? log.timestamp.toMillis() : new Date(log.timestamp).getTime();
+        const logForLedger = {
+            table: log.table,
+            multiplier: log.multiplier,
+            isCorrect: log.isCorrect,
+            timeTaken: log.timeTaken,
+            timestamp: ts
+        };
+        runningConfig = updateLedger(runningConfig, logForLedger, isAdvanced);
 
+        // B. Bucket Grouping
+        const bucket = getBucketId(new Date(ts));
         if (!batches[bucket]) batches[bucket] = [];
 
-        // Clean log (remove id if it was stuck there, remove questionId, remove studentId)
+        // Clean log
         const { questionId, studentId, ...clean } = log;
         batches[bucket].push(clean);
     });
 
-    // Write Buckets
+    // 5. Write Buckets
     for (const [bucket, logs] of Object.entries(batches)) {
         const docRef = doc(db, COLLECTION_USERS, studentId, SUBCOLLECTION_LOGS, bucket);
-        // We use setDoc with merge to be safe, but arrayUnion for the logs
-        // Note: arrayUnion limits? 
-        // Firestore max write size is 1MB. 5000 logs might be close if we send all at once.
-        // We should chunk them.
-
         const CHUNK_SIZE = 500;
         for (let i = 0; i < logs.length; i += CHUNK_SIZE) {
             const chunk = logs.slice(i, i + CHUNK_SIZE);
@@ -351,8 +446,12 @@ export async function migrateLogsToBuckets(studentId: string): Promise<{ migrate
         }
     }
 
-    // Delete Old Docs
-    // Delete in chunks/parallel
+    // 6. Save Final Ledger
+    await setDoc(doc(db, COLLECTION_USERS, studentId), {
+        tables_config: runningConfig
+    }, { merge: true });
+
+    // 7. Delete Old Docs
     const deletePromises = docsToDelete.map(id => deleteDoc(doc(db, COLLECTION_USERS, studentId, SUBCOLLECTION_LOGS, id)));
     await Promise.all(deletePromises);
 

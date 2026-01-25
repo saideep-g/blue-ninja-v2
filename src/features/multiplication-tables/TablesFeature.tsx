@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import TableSelection from './pages/TableSelection';
+import TablesMasteryDashboard from './pages/TablesMasteryDashboard';
 import PracticeSession from './pages/PracticeSession';
 import SessionSummary from './pages/SessionSummary';
 import ParentDashboard from './pages/ParentDashboard';
@@ -11,7 +11,7 @@ export default function TablesFeature() {
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
             <Routes>
-                <Route path="/" element={<TableSelection />} />
+                <Route path="/" element={<TablesMasteryDashboard />} />
                 <Route path="/practice" element={<PracticeSession />} />
                 <Route path="/summary" element={<SessionSummary />} />
                 <Route path="/parent" element={<ParentDashboard />} />

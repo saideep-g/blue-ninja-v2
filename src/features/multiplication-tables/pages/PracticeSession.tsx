@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Send, Sparkles, Zap } from 'lucide-react';
+import { ChevronLeft, Send, Sparkles, Zap, Ghost, Grid } from 'lucide-react';
 import { useNinja } from '../../../context/NinjaContext';
-// Static import to resolve build warning (was mixed with dynamic/static in other files)
-import { getStudentTableStats, saveSinglePracticeLog, getDetailedTableStats } from '../services/tablesFirestore';
+import { saveSinglePracticeLog, getTableSettings } from '../services/tablesFirestore';
 import { playCorrectSound, playIncorrectSound, playCompletionSound } from '../utils/sounds';
+import { generatePathQuestions } from '../logic/inputEngine';
+import { TablesConfig, DEFAULT_TABLES_CONFIG } from '../logic/types';
 
 type QuestionType = 'DIRECT' | 'MISSING_MULTIPLIER';
 
@@ -15,6 +16,7 @@ interface Question {
     multiplier: number;
     type: QuestionType;
     correctAnswer: number;
+    personalBest?: number; // For Ghost Mode
 }
 
 interface InteractionLog {
@@ -24,6 +26,17 @@ interface InteractionLog {
     timeTaken: number;
     timestamp: number;
 }
+
+const FEEDBACK_MESSAGES = {
+    standard: {
+        correct: ["Awesome!", "Super!", "Great Job!", "Bingo!", "Nice!", "Yay!", "Whoa!"],
+        ghost: ["Ghost Busted!", "Too Fast!", "Speedy!", "Zap!", "Bye Ghost!"]
+    },
+    advanced: {
+        correct: ["Slay.", "Sharp.", "Clean.", "Solid.", "On Point.", "W.", "Crisp."],
+        ghost: ["Ghosted.", "Vaporized.", "Untouchable.", "Mach 1.", "Phantom Crushed."]
+    }
+};
 
 export default function PracticeSession() {
     const location = useLocation();
@@ -78,154 +91,48 @@ export default function PracticeSession() {
         feedbackBg: "bg-white/80"
     };
 
-    // State from navigation - initialized once to maintain stability and prevent infinite loops
-    const [selectedTables] = useState<number[]>(() =>
-        (location.state as { tables: number[] })?.tables || [2]
-    );
-
     // Session State
+    const [config, setConfig] = useState<TablesConfig | null>(null);
     const [questions, setQuestions] = useState<Question[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [userAnswer, setUserAnswer] = useState<string>('');
     const [startTime, setStartTime] = useState<number>(Date.now());
-    const [showFeedback, setShowFeedback] = useState<'CORRECT' | 'INCORRECT' | null>(null);
+    const [showFeedback, setShowFeedback] = useState<'CORRECT' | 'INCORRECT' | 'GHOST_DEFEATED' | null>(null);
+    const [feedbackText, setFeedbackText] = useState('');
     const [sessionLogs, setSessionLogs] = useState<InteractionLog[]>([]);
     const [streak, setStreak] = useState(0);
-    const [masteryFetched, setMasteryFetched] = useState(false);
-    const [masteryLimit, setMasteryLimit] = useState(10); // Default for Advanced
-    const [detailedStats, setDetailedStats] = useState<Record<number, Record<number, any>>>({}); // New detailed stats
+    const [isGhostDefeated, setIsGhostDefeated] = useState(false);
+    const [showHeatmap, setShowHeatmap] = useState(false); // Modal state
 
-    // Fetch Mastery Stats for Advanced Mode
+    // Initialize Session & Config
     useEffect(() => {
-        if (!user) {
-            setMasteryFetched(true);
-            return;
-        }
+        if (!user) return;
 
-        const loadStats = async () => {
-            // 1. General Stats for Limit
-            if (isAdvanced) {
-                console.log('[PracticeSession] Fetching mastery stats for dynamic limits...');
-                try {
-                    const stats = await getStudentTableStats(user.uid);
-                    let maxMastered = 10;
-                    stats.forEach(s => {
-                        if (s.accuracy >= 80 && s.totalAttempts >= 20) {
-                            if (s.table > maxMastered) maxMastered = s.table;
-                        }
-                    });
-                    const limit = Math.max(10, maxMastered);
-                    setMasteryLimit(limit);
+        const initSession = async () => {
+            // 1. Load Config (Ledger)
+            const fetchedConfig = await getTableSettings(user.uid) || DEFAULT_TABLES_CONFIG;
+            setConfig(fetchedConfig);
 
-                    // 2. Detailed Stats for Adaptive Selection
-                    const detailed = await getDetailedTableStats(user.uid);
-                    setDetailedStats(detailed);
-                } catch (e) {
-                    console.error("Error fetching stats", e);
-                }
-            }
-            setMasteryFetched(true);
+            // 2. Generate Pool
+            const sessionLength = isAdvanced ? 25 : 20;
+            const candidates = generatePathQuestions(fetchedConfig, isAdvanced, sessionLength);
+
+            // 3. Map to Question Objects
+            const newQuestions: Question[] = candidates.map((c, i) => ({
+                id: `${c.table}-x-${c.multiplier}-${c.type}-${i}`,
+                table: c.table,
+                multiplier: c.multiplier,
+                type: c.type,
+                correctAnswer: c.type === 'MISSING_MULTIPLIER' ? c.multiplier : (c.table * c.multiplier),
+                personalBest: fetchedConfig.tableStats?.[c.table]?.avgTime || 5000 // Default 5s if no stats
+            }));
+
+            setQuestions(newQuestions);
+            setStartTime(Date.now()); // Reset start time for first q
         };
 
-        loadStats();
-
-    }, [user, isAdvanced]);
-
-    // Initialize Session with Adaptive Logic
-    useEffect(() => {
-        if (!masteryFetched) return; // Wait for mastery check
-
-        console.log(`[PracticeSession] Generating questions. Tables: ${selectedTables.join(', ')}`);
-
-        // 1. Build Candidate Pool with Weights
-        const candidates: { table: number, multiplier: number, weight: number }[] = [];
-
-        selectedTables.forEach(t => {
-            // Multiplier Range
-            const limit = isAdvanced ? masteryLimit : 12;
-            for (let m = 1; m <= limit; m++) {
-                // Exclusion Logic for Advanced Mode: No x1 or x10
-                if (isAdvanced && (m === 1 || m === 10)) continue;
-
-                // Weight Calculation
-                let weight = 10; // Base Weight
-
-                if (isAdvanced) {
-                    // Get stats
-                    const stat = detailedStats && detailedStats[t] && detailedStats[t][m];
-                    if (stat) {
-                        // Heavily penalize low accuracy to force practice
-                        if (stat.accuracy < 70) weight += 100;
-                        else if (stat.accuracy < 90) weight += 50;
-
-                        // Prioritize slow answers
-                        if (stat.avgTime > 6000) weight += 40; // >6 seconds
-                        else if (stat.avgTime > 4000) weight += 20; // >4 seconds
-
-                        // Ensure we revisit "mastered" ones occasionally (base weight handles this)
-
-                        // If total attempts is low, boost it to categorize it
-                        if (stat.total < 5) weight += 30;
-                    } else {
-                        // Completely new/unseen
-                        weight += 50;
-                    }
-                }
-
-                candidates.push({ table: t, multiplier: m, weight });
-            }
-        });
-
-        // Helper: Weighted Random Picker
-        const pickWeighted = (): { table: number, multiplier: number } => {
-            if (candidates.length === 0) return { table: 2, multiplier: 2 }; // Fallback
-
-            const totalWeight = candidates.reduce((s, c) => s + c.weight, 0);
-            let random = Math.random() * totalWeight;
-
-            for (const cand of candidates) {
-                random -= cand.weight;
-                if (random <= 0) return cand;
-            }
-            return candidates[candidates.length - 1];
-        };
-
-        const newQuestions: Question[] = [];
-        const sessionLength = isAdvanced ? 25 : 20;
-
-        // Generate Questions
-        const usedIds = new Set<string>();
-
-        for (let i = 0; i < sessionLength; i++) {
-            let selected = pickWeighted();
-            let uniqueKey = `${selected.table}x${selected.multiplier}`;
-
-            // Try to avoid immediate duplicates if pool is large enough
-            let retries = 5;
-            while (usedIds.has(uniqueKey) && candidates.length > 5 && retries > 0) {
-                selected = pickWeighted();
-                uniqueKey = `${selected.table}x${selected.multiplier}`;
-                retries--;
-            }
-            usedIds.add(uniqueKey);
-
-            // Determine Type
-            // Grade 2: 20% Missing Mutliplier
-            // Grade 7 (Advanced): 40% Missing Multiplier
-            const missingChance = isAdvanced ? 0.4 : 0.2;
-            const type: QuestionType = Math.random() < missingChance ? 'MISSING_MULTIPLIER' : 'DIRECT';
-
-            newQuestions.push({
-                id: `${selected.table}-x-${selected.multiplier}-${type}-${i}`, // Unique ID even if duplicate fact
-                table: selected.table,
-                multiplier: selected.multiplier,
-                type: type,
-                correctAnswer: type === 'MISSING_MULTIPLIER' ? selected.multiplier : (selected.table * selected.multiplier)
-            });
-        }
-
-        setQuestions(newQuestions);
-    }, [selectedTables, isAdvanced, masteryFetched, masteryLimit, detailedStats]);
+        initSession();
+    }, [user, isAdvanced]); // Removed dependnecies on old stats
 
     // Intercept Back Button
     useEffect(() => {
@@ -283,7 +190,20 @@ export default function PracticeSession() {
         }
 
         if (isCorrect) {
-            setShowFeedback('CORRECT');
+            // Check Ghost Defeated
+            const beatGhost = currentQuestion.personalBest && timeTaken < currentQuestion.personalBest;
+            const messages = isAdvanced ? FEEDBACK_MESSAGES.advanced : FEEDBACK_MESSAGES.standard;
+
+            if (beatGhost) {
+                const msg = messages.ghost[Math.floor(Math.random() * messages.ghost.length)];
+                setFeedbackText(msg);
+                setShowFeedback('GHOST_DEFEATED');
+            } else {
+                const msg = messages.correct[Math.floor(Math.random() * messages.correct.length)];
+                setFeedbackText(msg);
+                setShowFeedback('CORRECT');
+            }
+
             setStreak(s => s + 1);
             playCorrectSound();
         } else {
@@ -295,6 +215,7 @@ export default function PracticeSession() {
         setTimeout(() => {
             setShowFeedback(null);
             setUserAnswer('');
+            setIsGhostDefeated(false); // Reset ghost flag if used
 
             if (currentIndex < questions.length - 1) {
                 setCurrentIndex(prev => prev + 1);
@@ -310,7 +231,7 @@ export default function PracticeSession() {
                 };
                 navigate('/tables/summary', { state: { logs: [...sessionLogs, currentLog] } });
             }
-        }, isCorrect ? (isAdvanced ? 600 : 1000) : 2500); // Faster transition for advanced users
+        }, isCorrect ? (isAdvanced ? 600 : 1000) : 2500);
 
     }, [currentIndex, currentQuestion, userAnswer, startTime, questions, sessionLogs, navigate, user, isAdvanced]);
 
@@ -358,9 +279,15 @@ export default function PracticeSession() {
                     </div>
                     <span className={`text-xs font-bold ${isAdvanced ? 'text-pink-400' : 'text-slate-400'}`}>{currentIndex + 1}/{questions.length}</span>
                 </div>
-                <div className={`flex items-center gap-1 font-bold ${isAdvanced ? 'text-[#FF8DA1]' : 'text-orange-500'}`}>
-                    {isAdvanced ? <Zap className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-                    <span>{streak}</span>
+
+                <div className="flex items-center gap-3">
+                    <button onClick={() => setShowHeatmap(true)} className={`p-2 rounded-full hover:bg-opacity-80 transition ${isAdvanced ? 'bg-white shadow-sm text-pink-400' : 'bg-white text-slate-600'}`}>
+                        <Grid className="w-5 h-5" />
+                    </button>
+                    <div className={`flex items-center gap-1 font-bold ${isAdvanced ? 'text-[#FF8DA1]' : 'text-orange-500'}`}>
+                        {isAdvanced ? <Zap className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                        <span>{streak}</span>
+                    </div>
                 </div>
             </div>
 
@@ -377,7 +304,7 @@ export default function PracticeSession() {
                         className={`${theme.cardBg} w-full rounded-3xl p-8 mb-8 flex flex-col items-center justify-center min-h-[220px] transition-colors duration-300 relative overflow-hidden`}
                     >
                         {isAdvanced && <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-pink-300/50 to-transparent" />}
-                        <div className={`text-6xl font-black tracking-tighter flex items-center gap-4 ${theme.text}`}>
+                        <div className={`text-6xl font-black tracking-tighter flex items-center gap-4 ${theme.text} relative z-10`}>
                             {currentQuestion.type === 'DIRECT' ? (
                                 <>
                                     <span>{currentQuestion.table}</span>
@@ -400,6 +327,22 @@ export default function PracticeSession() {
                                 </>
                             )}
                         </div>
+
+                        {/* Ghost Bar */}
+                        {currentQuestion.personalBest && (
+                            <div className="absolute bottom-0 left-0 h-2 bg-slate-100 w-full overflow-hidden">
+                                <motion.div
+                                    key={currentQuestion.id} // Reset animation on new question
+                                    initial={{ width: "0%" }}
+                                    animate={{ width: "100%" }}
+                                    transition={{ duration: currentQuestion.personalBest / 1000, ease: "linear" }}
+                                    className="h-full bg-slate-300"
+                                />
+                                <div className="absolute right-2 top-0 bottom-0 flex items-center">
+                                    <Ghost size={12} className="text-slate-400 -mt-3" />
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
                 </AnimatePresence>
 
@@ -412,9 +355,22 @@ export default function PracticeSession() {
                             exit={{ opacity: 0 }}
                             className={`absolute inset-0 flex items-center justify-center ${theme.feedbackBg} backdrop-blur-sm z-20 pointer-events-none`}
                         >
-                            <div className={`${theme.feedbackCorrect} font-black text-6xl flex flex-col items-center gap-4 text-center`}>
-                                {isAdvanced ? <Zap size={64} /> : null}
-                                {isAdvanced ? "SLAY!" : "AWESOME!"}
+                            <div className={`${theme.feedbackCorrect} font-black text-4xl md:text-6xl flex flex-col items-center gap-4 text-center p-4`}>
+                                {isAdvanced ? <Zap className="w-12 h-12 md:w-16 md:h-16" /> : null}
+                                {feedbackText}
+                            </div>
+                        </motion.div>
+                    )}
+                    {showFeedback === 'GHOST_DEFEATED' && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: 1, scale: 1.2 }}
+                            exit={{ opacity: 0 }}
+                            className={`absolute inset-0 flex items-center justify-center ${theme.feedbackBg} backdrop-blur-sm z-20 pointer-events-none`}
+                        >
+                            <div className={`text-purple-500 font-black text-3xl md:text-6xl flex flex-col items-center gap-4 text-center p-4`}>
+                                <Ghost className="w-12 h-12 md:w-16 md:h-16" />
+                                {feedbackText}
                             </div>
                         </motion.div>
                     )}
@@ -463,6 +419,53 @@ export default function PracticeSession() {
                 </div>
 
             </div>
+
+            {/* Heatmap Modal */}
+            <AnimatePresence>
+                {showHeatmap && config && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl max-h-[80vh] overflow-y-auto"
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold text-slate-800">Mastery Heatmap</h2>
+                                <button onClick={() => setShowHeatmap(false)} className="text-slate-400 hover:text-slate-600">close</button>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4">
+                                {Object.entries(config.tableStats).map(([table, stat]) => {
+                                    const t = parseInt(table);
+                                    if (t > 12 && !isAdvanced) return null; // Hide >12 for basics
+
+                                    // Color logic
+                                    let bg = "bg-slate-100";
+                                    let text = "text-slate-400";
+
+                                    if (stat.avgTime > 0) {
+                                        if (stat.avgTime < 2000) { bg = "bg-emerald-400"; text = "text-emerald-900"; }
+                                        else if (stat.avgTime < 4000) { bg = "bg-green-200"; text = "text-green-800"; }
+                                        else if (stat.avgTime < 10000) { bg = "bg-amber-100"; text = "text-amber-800"; }
+                                        else { bg = "bg-red-100"; text = "text-red-800"; }
+                                    }
+
+                                    return (
+                                        <div key={t} className={`${bg} ${text} p-4 rounded-xl flex flex-col items-center justify-center gap-1`}>
+                                            <span className="text-2xl font-black">x{t}</span>
+                                            <span className="text-xs font-mono font-bold">
+                                                {stat.avgTime > 0 ? (stat.avgTime / 1000).toFixed(1) + 's' : '-'}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
         </div>
     );
 }

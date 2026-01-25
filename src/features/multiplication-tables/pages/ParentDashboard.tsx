@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, TrendingUp, Clock, AlertCircle, Save, Check } from 'lucide-react';
 import { useNinja } from '../../../context/NinjaContext';
 import { getStudentTableStats, getTableSettings, saveTableSettings, TableSettings } from '../services/tablesFirestore';
+import { DEFAULT_TABLES_CONFIG } from '../logic/types';
 
 interface TableStat {
     table: number;
@@ -16,11 +17,7 @@ export default function ParentDashboard() {
     const navigate = useNavigate();
     const { user, ninjaStats } = useNinja();
     const [stats, setStats] = useState<TableStat[]>([]);
-    const [settings, setSettings] = useState<TableSettings>({
-        selectedTables: [],
-        targetAccuracy: 90,
-        dailyGoalMinutes: 10
-    });
+    const [settings, setSettings] = useState<TableSettings>(DEFAULT_TABLES_CONFIG);
     const [saving, setSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
