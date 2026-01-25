@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, Activity, Zap, Timer, AlertCircle, Play, ChevronRight, Grid, TrendingUp, Home } from 'lucide-react';
 import { useNinja } from '../../../context/NinjaContext';
-import { getStudentTableStats, getDetailedTableStats, getTableSettings } from '../services/tablesFirestore';
+import { getStudentTableStats, getDetailedTableStats, getTableSettings, fetchAllLogsUnsorted, FirestorePracticeLog } from '../services/tablesFirestore';
+import { FluencyHeatmap } from '../components/FluencyHeatmap';
 import { TablesConfig, DEFAULT_TABLES_CONFIG } from '../logic/types';
 
 interface DashboardStat {
@@ -21,6 +22,7 @@ export default function TablesMasteryDashboard() {
     const [config, setConfig] = useState<TablesConfig>(DEFAULT_TABLES_CONFIG);
     const [stats, setStats] = useState<DashboardStat[]>([]);
     const [detailedStats, setDetailedStats] = useState<Record<number, Record<number, any>>>({});
+    const [logs, setLogs] = useState<FirestorePracticeLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeFact, setActiveFact] = useState<{ t: number, m: number, avgTime: number } | null>(null);
 
@@ -69,10 +71,13 @@ export default function TablesMasteryDashboard() {
             setLoading(true);
             try {
                 // Parallel Fetch
-                const [fetchedConfig, detailed] = await Promise.all([
+                const [fetchedConfig, detailed, fetchedLogs] = await Promise.all([
                     getTableSettings(user.uid),
-                    getDetailedTableStats(user.uid)
+                    getDetailedTableStats(user.uid),
+                    fetchAllLogsUnsorted(user.uid)
                 ]);
+
+                setLogs(fetchedLogs);
 
                 if (fetchedConfig) {
                     setConfig(fetchedConfig);
@@ -292,45 +297,7 @@ export default function TablesMasteryDashboard() {
 
                     {/* Column 3: Heatmap & Side Widgets */}
                     <div className="lg:col-span-1 space-y-8">
-                        <div className={`${theme.card} p-6 rounded-3xl`}>
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-2">
-                                    <Grid className="w-5 h-5 opacity-50" />
-                                    <h3 className="font-bold text-lg">Fact Heatmap</h3>
-                                </div>
-                                {activeFact && (
-                                    <div className="text-xs font-bold bg-slate-800 text-white px-3 py-1 rounded-full animate-pulse shadow-lg">
-                                        {activeFact.t} × {activeFact.m} : {activeFact.avgTime > 0 ? (activeFact.avgTime / 1000).toFixed(1) + 's' : 'N/A'}`;
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-6 gap-1" onMouseLeave={() => setActiveFact(null)}>
-                                {visibleTables.map(t => ( // Loop 1: Tables (t) - Use Visible List
-                                    Array.from({ length: maxTable - 1 }, (_, j) => j + 2).map(m => { // Loop 2: Multipliers (m) - Start at 2
-                                        const factStat = detailedStats[t]?.[m];
-                                        const avgT = factStat?.avgTime || 0;
-                                        const tooltip = `${t} x ${m}: ${avgT > 0 ? (avgT / 1000).toFixed(1) + 's' : 'N/A'}`;
-
-                                        return (
-                                            <div
-                                                key={`${t}x${m}`}
-                                                title={tooltip}
-                                                onClick={() => setActiveFact({ t, m, avgTime: avgT })}
-                                                onMouseEnter={() => setActiveFact({ t, m, avgTime: avgT })}
-                                                className={`aspect-square rounded-sm ${getHeatmapColor(avgT)} hover:scale-150 transition-transform cursor-pointer ${activeFact?.t === t && activeFact?.m === m ? 'ring-2 ring-slate-800 z-10 scale-125' : ''}`}
-                                            ></div>
-                                        )
-                                    })
-                                ))}
-                            </div>
-                            <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-bold opacity-50">
-                                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-emerald-400"></div> &lt;2s</span>
-                                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-green-300"></div> 2-4s</span>
-                                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-amber-300"></div> 4-10s</span>
-                                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-red-300"></div> &gt;10s</span>
-                            </div>
-                        </div>
+                        <FluencyHeatmap logs={logs} className={`${theme.card} p-6 rounded-3xl`} layout="grid" />
 
                         {/* Legend / Tips */}
                         <div className={`${theme.card} p-6 rounded-3xl opacity-80`}>

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, TrendingUp, Clock, AlertCircle, Save, Check } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNinja } from '../../../context/NinjaContext';
-import { getStudentTableStats, getTableSettings, saveTableSettings, getDailyActivity, TableSettings } from '../services/tablesFirestore';
+import { getStudentTableStats, getTableSettings, saveTableSettings, getDailyActivity, fetchAllLogsUnsorted, TableSettings, FirestorePracticeLog } from '../services/tablesFirestore';
+import { FluencyHeatmap } from '../components/FluencyHeatmap';
 import { DEFAULT_TABLES_CONFIG } from '../logic/types';
 
 interface TableStat {
@@ -20,6 +21,7 @@ export default function ParentDashboard() {
 
     // State
     const [stats, setStats] = useState<TableStat[]>([]);
+    const [logs, setLogs] = useState<FirestorePracticeLog[]>([]);
     const [chartData, setChartData] = useState<{ date: string, count: number }[]>([]);
     const [settings, setSettings] = useState<TableSettings>(DEFAULT_TABLES_CONFIG);
     const [saving, setSaving] = useState(false);
@@ -44,12 +46,13 @@ export default function ParentDashboard() {
     useEffect(() => {
         if (!user) return;
 
-        console.log(`[ParentDashboard] Loaded user class: ${userClass} (Raw: ${rawClass}), Max Table: ${maxTable}`);
-
         // 1. Load Activity Chart Data
         getDailyActivity(user.uid, 15).then(data => setChartData(data));
 
-        // 2. Load Settings (Mastery Ledger)
+        // 2. Load Raw Logs for Heatmap
+        fetchAllLogsUnsorted(user.uid).then(data => setLogs(data));
+
+        // 3. Load Settings (Mastery Ledger)
         getTableSettings(user.uid).then(loadedSettings => {
             if (loadedSettings) {
                 setSettings(loadedSettings);
@@ -165,6 +168,11 @@ export default function ParentDashboard() {
                                 </div>
                                 <div className="text-4xl font-black text-slate-800">{totalAttempts}</div>
                             </div>
+                        </div>
+
+                        {/* Fluency Heatmap */}
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                            <FluencyHeatmap logs={logs} />
                         </div>
 
                         <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
