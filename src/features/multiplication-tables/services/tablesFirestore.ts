@@ -166,12 +166,39 @@ export async function saveSinglePracticeLog(studentId: string, log: Omit<Firesto
     const newConfig = updateLedger(currentConfig, logForLedger, isAdvanced);
 
     // 4. Save Updates (Ledger + Daily Progress)
-    // We update student doc (ledger) AND daily counter
-    await setDoc(studentRef, {
+    // Check for New Day Reset (4 AM Cutoff) to prevent "Ghost Progress" from previous day
+    let isNewDay = false;
+    const sData = studentSnap.exists() ? studentSnap.data() : null;
+    const lastDate = sData?.lastActive?.toDate();
+
+    if (lastDate) {
+        const nowDt = new Date();
+        const resetTime = new Date();
+        resetTime.setHours(4, 0, 0, 0);
+        if (nowDt < resetTime) resetTime.setDate(resetTime.getDate() - 1);
+
+        if (lastDate < resetTime) isNewDay = true;
+    } else {
+        isNewDay = true; // First time or missing date
+    }
+
+    const updatePayload: any = {
         tables_config: newConfig,
-        'daily.Tables': increment(1),
         lastActive: serverTimestamp()
-    }, { merge: true });
+    };
+
+    if (isNewDay) {
+        // Reset Logic: Wipe daily stats for the new day, start Tables at 1
+        updatePayload.daily = { Tables: 1 };
+        // We leave streak management to the main dashboard for now to avoid logic duplication/conflicts,
+        // but updating lastActive ensures the dashboard knows "Today is active".
+        // Use setDoc with merge:true to overwrite 'daily' map but keep other fields.
+    } else {
+        // Standard Update: Increment Tables count
+        updatePayload['daily.Tables'] = increment(1);
+    }
+
+    await setDoc(studentRef, updatePayload, { merge: true });
 
     // 5. Save Log to Bucket (Audit Trail)
     const finalLog = {

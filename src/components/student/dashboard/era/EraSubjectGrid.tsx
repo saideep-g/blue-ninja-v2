@@ -24,7 +24,7 @@ export const EraSubjectGrid: React.FC<EraSubjectGridProps> = ({
 }) => {
     const tablesSubject = subjects.find(s => s.id === 'tables');
     const tablesMastery = tablesSubject ? Math.round(tablesSubject.modules.reduce((a: any, b: any) => {
-        if (b.atoms) {
+        if (b.atoms && b.atoms.length > 0) {
             return a + b.atoms.reduce((x: any, y: any) => x + y.mastery, 0) / (b.atoms.length || 1);
         }
         return a + (b.mastery || 0);
@@ -103,7 +103,7 @@ export const EraSubjectGrid: React.FC<EraSubjectGridProps> = ({
                     {/* Other Subjects */}
                     {subjects.filter(s => s.id !== 'tables').map((subject) => {
                         const mastery = Math.round(subject.modules.reduce((a: any, b: any) => {
-                            if (b.atoms) {
+                            if (b.atoms && b.atoms.length > 0) {
                                 return a + b.atoms.reduce((x: any, y: any) => x + y.mastery, 0) / (b.atoms.length || 1);
                             }
                             return a + (b.mastery || 0);

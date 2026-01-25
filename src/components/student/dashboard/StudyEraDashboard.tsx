@@ -447,8 +447,33 @@ const StudyEraDashboard = () => {
 
 
         // Tables Era Logic (Dynamic)
-        if (enrolled.includes('tables') || enrolled.length === 0) {
-            const tablesScore = calculateWeightedTableMastery(ninjaStats?.mastery || {});
+        const hasTablesData = !!(ninjaStats as any).tables_config;
+
+        if (enrolled.includes('tables') || enrolled.length === 0 || hasTablesData) {
+            let tablesScore = 0;
+            const tConfig = (ninjaStats as any).tables_config;
+
+            if (tConfig && tConfig.tableStats) {
+                // New System Calculation
+                const userClass = parseInt(String((ninjaStats as any).class || (ninjaStats as any).grade || 2));
+                const isAdvanced = userClass >= 7;
+                const maxTable = isAdvanced ? 20 : 12;
+                const minTable = 2;
+                const totalTables = maxTable - minTable + 1;
+
+                let masteredCount = 0;
+                for (let i = minTable; i <= maxTable; i++) {
+                    const s = tConfig.tableStats[i];
+                    const isMastered = s && (s.status === 'MASTERED' || (s.accuracy >= 90 && s.totalAttempts > 10));
+                    if (isMastered) {
+                        masteredCount++;
+                    }
+                }
+                tablesScore = Math.round((masteredCount / totalTables) * 100);
+            } else {
+                // Legacy System Fallback
+                tablesScore = calculateWeightedTableMastery(ninjaStats?.mastery || {});
+            }
 
             activeSubjects.push({
                 id: 'tables',
@@ -462,8 +487,6 @@ const StudyEraDashboard = () => {
                         id: 't_comprehensive',
                         name: 'Tables 1-20',
                         mastery: tablesScore,
-                        // We could break this down into "Easy", "Hard" modules if we wanted to visualize breakdown,
-                        // but user asked for "progress bar weighting logic". A single module with the calculated mastery is sufficient.
                         atoms: []
                     }
                 ]

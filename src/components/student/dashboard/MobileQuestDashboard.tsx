@@ -108,9 +108,26 @@ export default function MobileQuestDashboard() {
                     const snap = await getDoc(docRef);
                     if (snap.exists()) {
                         const data = snap.data();
-                        if (data.mastery) {
-                            setChapterProgress(prev => ({ ...prev, ...data.mastery })); // Merge
-                            // Calculate Weighted Tables Score
+                        if (data.tables_config && data.tables_config.tableStats) {
+                            // Calculate Real Table Mastery
+                            const stats = data.tables_config.tableStats;
+                            const userClass = parseInt(String(data.class || data.grade || 2));
+                            const isAdvanced = userClass >= 7;
+                            const maxTable = isAdvanced ? 20 : 12;
+                            const minTable = 2; // We start at 2
+                            const totalTables = maxTable - minTable + 1;
+
+                            let masteredCount = 0;
+                            // Count tables with status 'MASTERED' or high accuracy
+                            for (let i = minTable; i <= maxTable; i++) {
+                                const s = stats[i];
+                                if (s && (s.status === 'MASTERED' || (s.accuracy >= 90 && s.totalAttempts > 10))) {
+                                    masteredCount++;
+                                }
+                            }
+                            setTablesMasteryScore(Math.round((masteredCount / totalTables) * 100));
+                        } else if (data.mastery) {
+                            // Fallback to old logic if no new tables config
                             const tScore = calculateWeightedTableMastery(data.mastery || {});
                             setTablesMasteryScore(tScore);
                         }

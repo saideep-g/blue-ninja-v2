@@ -109,6 +109,7 @@ export interface NinjaStats {
     profile?: UserProfile;
     username?: string;
     email?: string;
+    tables_config?: any; // Tables Configuration
 }
 
 export interface QuestionLog {

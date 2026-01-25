@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Activity, Zap, Timer, AlertCircle, Play, ChevronRight, Grid, TrendingUp } from 'lucide-react';
+import { Trophy, Activity, Zap, Timer, AlertCircle, Play, ChevronRight, Grid, TrendingUp, Home } from 'lucide-react';
 import { useNinja } from '../../../context/NinjaContext';
 import { getStudentTableStats, getDetailedTableStats, getTableSettings } from '../services/tablesFirestore';
 import { TablesConfig, DEFAULT_TABLES_CONFIG } from '../logic/types';
@@ -156,6 +156,13 @@ export default function TablesMasteryDashboard() {
                             <p className="opacity-60 font-medium">Identify gaps, build speed, and conquer the tables.</p>
                         </div>
                         <button
+                            onClick={() => navigate('/student')}
+                            className="p-2 bg-white/50 hover:bg-white rounded-xl transition-colors text-slate-500 hover:text-indigo-600"
+                            title="Back to Dashboard"
+                        >
+                            <Home className="w-6 h-6" />
+                        </button>
+                        <button
                             onClick={() => navigate('/tables/parent')}
                             className="p-2 bg-white/50 hover:bg-white rounded-xl transition-colors text-slate-500 hover:text-indigo-600"
                             title="Parent Dashboard / Analytics"
@@ -186,7 +193,7 @@ export default function TablesMasteryDashboard() {
                         <div>
                             <p className="text-xs font-bold opacity-50 uppercase">Top Strength</p>
                             <p className="text-xl font-bold">{topTable ? `Table ${topTable.table}` : 'None Yet'}</p>
-                            <p className="text-xs text-green-600 font-bold">{topTable ? `${topTable.accuracy}% Accuracy` : ''}</p>
+                            <p className="text-xs text-green-600 font-bold">{topTable ? `${Math.round(topTable.accuracy)}% Accuracy` : ''}</p>
                         </div>
                     </div>
                     <div className={`${theme.card} p-5 rounded-2xl flex items-center gap-4`}>
@@ -194,7 +201,7 @@ export default function TablesMasteryDashboard() {
                         <div>
                             <p className="text-xs font-bold opacity-50 uppercase">Focus Area</p>
                             <p className="text-xl font-bold">{focusTable && focusTable.status !== 'NOT_STARTED' ? `Table ${focusTable.table}` : 'None'}</p>
-                            <p className="text-xs text-orange-600 font-bold">{focusTable ? `${focusTable.accuracy}% Accuracy` : ''}</p>
+                            <p className="text-xs text-orange-600 font-bold">{focusTable ? `${Math.round(focusTable.accuracy)}% Accuracy` : ''}</p>
                         </div>
                     </div>
                     <div className={`${theme.card} p-5 rounded-2xl flex items-center gap-4`}>
@@ -265,7 +272,7 @@ export default function TablesMasteryDashboard() {
                                                             style={{ width: `${s.accuracy}%` }}
                                                         ></div>
                                                     </div>
-                                                    <div className="mt-1 text-xs font-bold opacity-50">{s.accuracy}% Accuracy</div>
+                                                    <div className="mt-1 text-xs font-bold opacity-50">{Math.round(s.accuracy)}% Accuracy</div>
                                                 </td>
                                                 <td className="px-6 py-4 font-mono text-sm font-bold opacity-60">
                                                     {s.avgTime > 0 ? `${s.avgTime}s` : '-'}
