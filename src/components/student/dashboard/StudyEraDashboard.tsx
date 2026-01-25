@@ -9,7 +9,7 @@ import { Bundle, Challenge, User as UserModel, Question } from '../../../types/m
 import { SUBJECT_TEMPLATE, VOCAB_CHAPTERS, GEN_Z_GREETINGS, SCIENCE_CHAPTERS } from '../../../constants/studyEraData';
 import MissionCard from '../../dashboard/MissionCard';
 import { X, Sparkles, Trophy } from 'lucide-react';
-import { useDailyMission } from '../../../hooks/useDailyMission';
+import { eraSessionService } from '../../../services/eraSessionService';
 import Confetti from 'react-confetti';
 import { calculateWeightedTableMastery } from '../../../utils/tablesLogic';
 
@@ -72,8 +72,8 @@ const StudyEraDashboard = () => {
     const [greeting, setGreeting] = useState("Loading vibes...");
     const [quizSubject, setQuizSubject] = useState<string | null>(null);
 
-    // Math Mission Hook
-    const dailyMission = useDailyMission();
+    // Math Mission Hook - REMOVED (Replaced by EraSessionService)
+    // const dailyMission = useDailyMission();
 
     // Quiz State
     const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
@@ -138,123 +138,22 @@ const StudyEraDashboard = () => {
     // --- QUIZ HANDLERS ---
 
     // --- DATA FETCHING (Separated) ---
-    const fetchQuestions = async (targetSubjectId: string) => {
-        const querySubject = targetSubjectId.toLowerCase();
-        let foundQuestions: Question[] = [];
-
-        try {
-            // Strategy A: Bundles
-            const bundlesRef = collection(db, 'question_bundles');
-            const qBundle = query(bundlesRef, where('subject', '==', querySubject), where('grade', '==', 7), limit(1));
-            const bundleSnap = await getDocs(qBundle);
-
-            if (!bundleSnap.empty) {
-                const bundleDoc = bundleSnap.docs[0];
-                const dataRef = doc(db, 'question_bundle_data', bundleDoc.id);
-                const dataSnap = await getDoc(dataRef);
-                if (dataSnap.exists() && dataSnap.data().questions) {
-                    const rawQuestions = dataSnap.data().questions;
-                    foundQuestions = Object.values(rawQuestions).map((sq: any) => {
-                        // 1. NUMERIC AUTO / INPUT (Preserve Type OR Infer if no options)
-                        // If type specifies Numeric, OR if it has an answer but NO options (Legacy Numeric)
-                        const isNumericType = sq.type === 'NUMERIC_AUTO' || sq.type === 'NUMERIC_INPUT' || sq.template_id === 'NUMERIC_AUTO';
-                        const isInferredNumeric = (!sq.options || sq.options.length === 0) && (sq.answer || sq.correct_answer);
-
-                        if (isNumericType || isInferredNumeric) {
-                            return {
-                                id: sq.id,
-                                type: 'NUMERIC_AUTO', // Force consistent type
-                                options: [], // Explicitly empty to prevent MCQ fallback
-                                content: {
-                                    prompt: { text: sq.question },
-                                    instruction: sq.instruction || "Calculate the answer"
-                                },
-                                answerKey: {
-                                    value: sq.answer || sq.correct_answer,
-                                    tolerance: sq.tolerance || 0.01
-                                },
-                                interaction: {
-                                    config: { unit: sq.unit, placeholder: 'Enter answer...' }
-                                },
-                                subject: querySubject,
-                                explanation: sq.explanation
-                            } as unknown as Question;
-                        }
-
-                        // 2. MCQ (Default/Science Style)
-                        // Force everything else to MCQ_SIMPLIFIED
-                        const mappedOptions = sq.options?.map((o: string, i: number) => ({
-                            id: String(i + 1),
-                            text: o,
-                            isCorrect: o === sq.answer
-                        })) || [];
-
-                        const specialRegex = /both.*and|all of the|none of the|a and b|options a|neither|a and c|b and c/i;
-                        const hasSpecial = mappedOptions.some((o: any) => specialRegex.test(o.text));
-
-                        let finalOptions = mappedOptions;
-                        if (!hasSpecial) {
-                            finalOptions = mappedOptions.sort(() => 0.5 - Math.random());
-                        } else {
-                            // Keep special options at bottom if possible, or just don't shuffle
-                            const special = mappedOptions.filter((o: any) => specialRegex.test(o.text));
-                            const normal = mappedOptions.filter((o: any) => !specialRegex.test(o.text));
-                            finalOptions = [...normal, ...special];
-                        }
-
-                        return {
-                            id: sq.id,
-                            type: 'MCQ_SIMPLIFIED',
-                            text: sq.question,
-                            content: { prompt: { text: sq.question }, instruction: sq.instruction || "Select the best answer" },
-                            interaction: {
-                                config: { options: finalOptions }
-                            },
-                            subject: querySubject,
-                            explanation: sq.explanation,
-                        } as unknown as Question;
-                    });
-
-                    if (foundQuestions.length > 20) foundQuestions = foundQuestions.sort(() => 0.5 - Math.random()).slice(0, 20);
-                }
-            }
-
-            // Strategy B: Direct
-            if (foundQuestions.length === 0) {
-                const qDirect = query(collection(db, 'questions'), where('subject', '==', querySubject), limit(10));
-                const directSnap = await getDocs(qDirect);
-                if (!directSnap.empty) foundQuestions = directSnap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
-            }
-        } catch (e) { console.error(e); }
-
-        // Fallback
-        if (foundQuestions.length === 0) {
-            foundQuestions = [{
-                id: 'mock_fail_1', type: 'MCQ_SIMPLIFIED',
-                content: { prompt: { text: "No questions found. Check internet or admin uploads." } },
-                interaction: { config: { options: [{ text: 'Okay', id: '1', isCorrect: true }] } },
-                subject: querySubject
-            } as any];
-        }
-
-        const shuffled = foundQuestions.sort(() => Math.random() - 0.5);
-        setQuizQuestions(shuffled);
-        setQuizSubject(querySubject);
-    };
+    // --- DATA FETCHING (Delegated to Service) ---
+    // fetchQuestions removed - migrated to eraSessionService.ts
 
     const handleStartQuiz = async () => {
         if (!selectedSubject) return;
 
         console.log(`🚀 Manual Start Quiz for: ${selectedSubject.id}`);
 
-
-
-        await fetchQuestions(selectedSubject.id);
-
-        setCurrentQuestionIndex(0);
-        setQuizScore(0);
-        setQuizSubject(selectedSubject.id);
-        setCurrentView('quiz');
+        if (user) {
+            const session = await eraSessionService.startOrResumeSession(user.uid, selectedSubject.id);
+            setQuizQuestions(session.questions);
+            setCurrentQuestionIndex(session.currentIndex);
+            setQuizScore(session.score);
+            setQuizSubject(selectedSubject.id);
+            setCurrentView('quiz');
+        }
     };
 
     const handleEraClick = async (subject: any, e: React.MouseEvent) => {
@@ -270,15 +169,16 @@ const StudyEraDashboard = () => {
         const targetId = subject.id || 'science';
         // const isMath = targetId === 'math' || targetId === 'mathematics';
 
-        // UNIFIED ENGINE: All subjects use Direct Fetch (Science Style)
-        await Promise.all([
-            fetchQuestions(targetId),
-            new Promise(resolve => setTimeout(resolve, 800)) // Wait at least 800ms for the animation to feel complete
+        // UNIFIED ENGINE with PERSISTENCE via Service
+        const [session, _] = await Promise.all([
+            eraSessionService.startOrResumeSession(user?.uid || 'guest', targetId),
+            new Promise(resolve => setTimeout(resolve, 800))
         ]);
 
         setQuizSubject(targetId);
-        setCurrentQuestionIndex(0);
-        setQuizScore(0);
+        setQuizQuestions(session.questions);
+        setCurrentQuestionIndex(session.currentIndex);
+        setQuizScore(session.score);
 
         // 3. Smooth Handoff
         setCurrentView('quiz');
@@ -290,12 +190,26 @@ const StudyEraDashboard = () => {
 
     const handleQuizAnswer = (result: any) => {
         const isCorrect = result.isCorrect;
-        if (isCorrect) setQuizScore(s => s + 10);
+        let newScore = quizScore;
+        if (isCorrect) newScore = quizScore + 10;
+        setQuizScore(newScore);
 
         if (currentQuestionIndex < quizQuestions.length - 1) {
-            setCurrentQuestionIndex(i => i + 1);
+            const newIndex = currentQuestionIndex + 1;
+            setCurrentQuestionIndex(newIndex);
+
+            // Save Progress
+            if (user && quizSubject) {
+                eraSessionService.updateProgress(user.uid, quizSubject, {
+                    currentIndex: newIndex,
+                    score: newScore
+                });
+            }
         } else {
             // Finish
+            if (user && quizSubject) {
+                eraSessionService.clearSession(user.uid, quizSubject);
+            }
             triggerCelebration();
         }
     };
@@ -387,12 +301,14 @@ const StudyEraDashboard = () => {
         setGreeting(randomGreeting);
     }, []);
 
-    // Math Completion Listener
+    // Math Completion Listener - REMOVED (Handled internally by handleQuizAnswer)
+    /* 
     useEffect(() => {
-        if (quizSubject === 'math' && dailyMission.isComplete && currentView === 'quiz' && !showCelebration) { // Added checks to prevent loop
+        if (quizSubject === 'math' && dailyMission.isComplete && currentView === 'quiz' && !showCelebration) { 
             triggerCelebration();
         }
-    }, [dailyMission.isComplete, quizSubject, currentView]);
+    }, [dailyMission.isComplete, quizSubject, currentView]); 
+    */
 
     // 1. Build Subjects
     useEffect(() => {
@@ -427,7 +343,7 @@ const StudyEraDashboard = () => {
                 color: 'from-[#FFDEE9] to-[#B5FFFC]',
                 accent: '#FF8DA1',
                 hasAtoms: true,
-                completedToday: dailyMission.isComplete,
+                completedToday: completedSubjects.has('math'),
                 modules: mathModules
             });
         }
@@ -543,7 +459,7 @@ const StudyEraDashboard = () => {
         });
 
         setSubjects(activeSubjects);
-    }, [ninjaStats, user, dailyMission.isComplete, completedSubjects]);
+    }, [ninjaStats, user, completedSubjects]);
 
     // 2. Fetch Bundles
     useEffect(() => {

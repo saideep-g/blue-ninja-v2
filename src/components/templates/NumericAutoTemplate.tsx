@@ -1,5 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
+import 'katex/dist/katex.min.css';
+import { InlineMath } from 'react-katex';
 import { CheckCircle2, XCircle, Lightbulb, Calculator, ArrowRight, ArrowRightCircle, Loader2, PenTool, Hash } from 'lucide-react';
 import { Question } from '../../types';
 import { useProfileStore } from '../../store/profile';
@@ -17,6 +19,36 @@ interface Feedback {
     value: string;
     feedback: string;
 }
+
+const LatexRenderer = ({ text }: { text: string | null }) => {
+    if (!text) return null;
+    const parts = text.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g);
+    return (
+        <>
+            {parts.map((part, i) => {
+                if ((part.startsWith('$$') && part.endsWith('$$')) || (part.startsWith('$') && part.endsWith('$'))) {
+                    const math = part.startsWith('$$') ? part.slice(2, -2) : part.slice(1, -1);
+                    return <InlineMath key={i} math={math} />;
+                }
+                if (part.includes('^')) {
+                    const subParts = part.split(/([a-zA-Z0-9\(\)\+\-\.\\,\/\=\<\>_]+(?:\^[a-zA-Z0-9\(\)\+\-\.\\,\/\=\<\>_\^]+)+)/g);
+                    return (
+                        <span key={i}>
+                            {subParts.map((sub, j) => {
+                                if (sub.includes('^')) {
+                                    const fixedSub = sub.replace(/\^(\([^\)]+\))/g, '^{$1}');
+                                    return <InlineMath key={`${i}-${j}`} math={fixedSub} />;
+                                }
+                                return <span key={`${i}-${j}`}>{sub}</span>;
+                            })}
+                        </span>
+                    );
+                }
+                return <span key={i}>{part}</span>;
+            })}
+        </>
+    );
+};
 
 /**
  * NUMERIC AUTO TEMPLATE
@@ -37,6 +69,16 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
         };
     }, []);
+
+    // FORCE RESET when question ID changes
+    useEffect(() => {
+        setInputValue('');
+        setSubmitted(false);
+        setFeedback(null);
+        setResult(null);
+        setIsAutoAdvancing(false);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    }, [question.id]);
 
     // Extract content
     // Check both standard location and content object
@@ -179,7 +221,7 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
                     {/* Question Text */}
                     <div className="prose prose-lg prose-slate max-w-none">
                         <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight">
-                            {prompt}
+                            <LatexRenderer text={prompt} />
                         </h2>
                     </div>
 
@@ -201,7 +243,7 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
 
                     {instruction && (
                         <p className="text-lg text-slate-500 font-medium italic border-l-4 border-indigo-200 pl-4 py-1">
-                            {instruction}
+                            <LatexRenderer text={instruction} />
                         </p>
                     )}
                 </div>
@@ -296,7 +338,7 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
                             {question.explanation && (
                                 <div className="mt-4 pt-4 border-t border-slate-100 text-slate-600">
                                     <span className="font-bold text-slate-800">Explanation: </span>
-                                    {question.explanation}
+                                    <LatexRenderer text={question.explanation} />
                                 </div>
                             )}
                         </div>
