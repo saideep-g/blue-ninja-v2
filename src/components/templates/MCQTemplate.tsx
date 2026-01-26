@@ -10,6 +10,7 @@ import { getRandomPraise } from '../../utils/feedbackUtils';
 interface MCQTemplateProps {
   question: Question;
   onAnswer: (result: any) => void;
+  onInteract?: (log: any) => void;
   isSubmitting: boolean;
   readOnly?: boolean;
   isPreview?: boolean;
@@ -65,7 +66,7 @@ const LatexRenderer = ({ text }: { text: string | null }) => {
  * - Encouraging feedback
  * - No anxiety-inducing metadata
  */
-export function MCQTemplate({ question, onAnswer, isSubmitting, readOnly, isPreview = false }: MCQTemplateProps) {
+export function MCQTemplate({ question, onAnswer, onInteract, isSubmitting, readOnly, isPreview = false }: MCQTemplateProps) {
   const { autoAdvance } = useProfileStore();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -73,6 +74,7 @@ export function MCQTemplate({ question, onAnswer, isSubmitting, readOnly, isPrev
 
   // New State for Control Flow
   const [result, setResult] = useState<any>(null);
+  const [firstThoughtLogged, setFirstThoughtLogged] = useState(false);
   const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -82,6 +84,7 @@ export function MCQTemplate({ question, onAnswer, isSubmitting, readOnly, isPrev
     setSubmitted(false);
     setFeedback(null);
     setResult(null);
+    setFirstThoughtLogged(false);
     setIsAutoAdvancing(false);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     console.log(`[MCQTemplate] Mounted/Reset for Question: ${question.id}`);
@@ -139,6 +142,18 @@ export function MCQTemplate({ question, onAnswer, isSubmitting, readOnly, isPrev
   const handleSelect = (index: number) => {
     if (!submitted && !isSubmitting) {
       setSelectedIndex(index);
+
+      // LOG INTERACTION (Step 4)
+      if (onInteract) {
+        onInteract({
+          type: 'select_option',
+          payload: {
+            index,
+            isFirstThought: !firstThoughtLogged
+          }
+        });
+      }
+      if (!firstThoughtLogged) setFirstThoughtLogged(true);
     }
   };
 

@@ -78,6 +78,7 @@ const StudyEraDashboard = () => {
     const [celebrationMessage, setCelebrationMessage] = useState("");
     const [completedSubjects, setCompletedSubjects] = useState<Set<string>>(new Set());
     const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+    const [loggedQuestions] = useState<Set<string>>(new Set()); // Dedup Logs per session
 
     // --- 4 AM RESET & PERSISTENCE LOGIC ---
     useDailyProgressSync(user, setCompletedSubjects);
@@ -100,7 +101,9 @@ const StudyEraDashboard = () => {
             setCurrentQuestionIndex(session.currentIndex);
             setQuizScore(session.score);
             setQuizSubject(selectedSubject.id);
+            setQuizSubject(selectedSubject.id);
             setQuestionStartTime(Date.now());
+            loggedQuestions.clear();
             navigate('/quiz');
         }
     };
@@ -123,19 +126,23 @@ const StudyEraDashboard = () => {
         setQuizScore(session.score);
 
         setQuestionStartTime(Date.now());
+        loggedQuestions.clear();
         navigate('/quiz');
         setExpandingSubject(null);
         setIsExpanding(false);
     };
 
-    const handleQuizAnswer = (result: any) => {
+    const handleQuizAnswer = (result: any, shouldAdvance = true) => {
         const isCorrect = result.isCorrect;
-        let newScore = quizScore;
-        if (isCorrect) newScore = quizScore + 10;
-        setQuizScore(newScore);
-
         const currentQuestion = quizQuestions[currentQuestionIndex];
-        if (currentQuestion && logQuestionResultLocal) {
+        const qId = currentQuestion?.id || `q-${currentQuestionIndex}`;
+
+        // 1. Log Result (If not already logged)
+        if (currentQuestion && !loggedQuestions.has(qId)) {
+            let newScore = quizScore;
+            if (isCorrect) newScore = quizScore + 10;
+            if (shouldAdvance) setQuizScore(newScore); // Only update score on advance or immediate? Usually score updates on correct.
+
             // Robust extraction of correct answer for various question types
             const extractCorrectAnswer = () => {
                 if (result.correctAnswerText) return result.correctAnswerText;
@@ -171,48 +178,59 @@ const StudyEraDashboard = () => {
                 return 'N/A';
             };
 
-            const duration = (Date.now() - questionStartTime) / 1000;
-            logQuestionResultLocal({
-                questionId: currentQuestion.id || `q-${currentQuestionIndex}`,
-                questionText: currentQuestion.question_text || (currentQuestion as any).question || currentQuestion.content?.prompt?.text || 'Question',
-                studentAnswer: result.studentAnswerText || result.value || result.selectedValue || 'Answer',
-                correctAnswer: extractCorrectAnswer(),
-                isCorrect: isCorrect,
-                timestamp: new Date(),
-                subject: quizSubject || 'unknown',
-                timeSpent: duration,
-                questionType: (() => {
-                    const q = currentQuestion as any;
-                    let type = q.type || q.templateId || q.template_id || q.template;
+            const duration = result.durationSeconds !== undefined ? result.durationSeconds : (Date.now() - questionStartTime) / 1000;
 
-                    if (!type) {
-                        const hasAnswer = q.answer || q.correct_answer || q.correctAnswer || (q.answerKey && (q.answerKey.correctValue || q.answerKey.value));
-                        const hasOptions = q.options && Array.isArray(q.options) && q.options.length > 0;
-                        type = (hasAnswer && !hasOptions) ? 'NUMERIC_AUTO' : 'MCQ_SIMPLIFIED';
-                    }
+            if (logQuestionResultLocal) {
+                logQuestionResultLocal({
+                    questionId: qId,
+                    questionText: currentQuestion.question_text || (currentQuestion as any).question || currentQuestion.content?.prompt?.text || 'Question',
+                    studentAnswer: result.studentAnswerText || result.value || result.selectedValue || 'Answer',
+                    correctAnswer: extractCorrectAnswer(),
+                    isCorrect: isCorrect,
+                    timestamp: new Date(),
+                    subject: quizSubject || 'unknown',
+                    timeSpent: duration,
+                    questionType: (() => {
+                        const q = currentQuestion as any;
+                        let type = q.type || q.templateId || q.template_id || q.template;
 
-                    return typeof type === 'string' ? type.toUpperCase() : 'UNKNOWN';
-                })()
-            }, currentQuestionIndex);
+                        if (!type) {
+                            const hasAnswer = q.answer || q.correct_answer || q.correctAnswer || (q.answerKey && (q.answerKey.correctValue || q.answerKey.value));
+                            const hasOptions = q.options && Array.isArray(q.options) && q.options.length > 0;
+                            type = (hasAnswer && !hasOptions) ? 'NUMERIC_AUTO' : 'MCQ_SIMPLIFIED';
+                        }
+
+                        return typeof type === 'string' ? type.toUpperCase() : 'UNKNOWN';
+                    })()
+                }, currentQuestionIndex);
+
+                loggedQuestions.add(qId);
+            }
         }
 
-        if (currentQuestionIndex < quizQuestions.length - 1) {
-            const newIndex = currentQuestionIndex + 1;
-            setCurrentQuestionIndex(newIndex);
-            setQuestionStartTime(Date.now());
-            if (user && quizSubject) {
-                eraSessionService.updateProgress(user.uid, quizSubject, {
-                    currentIndex: newIndex,
-                    score: newScore
-                });
+        // 2. Advance Question (Optional)
+        if (shouldAdvance) {
+            // Update score visually here if we want strict flow
+            if (isCorrect) setQuizScore(s => s + 10);
+
+            if (currentQuestionIndex < quizQuestions.length - 1) {
+                const newIndex = currentQuestionIndex + 1;
+                setCurrentQuestionIndex(newIndex);
+                setQuestionStartTime(Date.now());
+                if (user && quizSubject) {
+                    eraSessionService.updateProgress(user.uid, quizSubject, {
+                        currentIndex: newIndex,
+                        score: quizScore + (isCorrect ? 10 : 0)
+                    });
+                }
+            } else {
+                if (user && quizSubject) {
+                    eraSessionService.clearSession(user.uid, quizSubject);
+                }
+                // Trigger Final Sync when Quiz completes
+                syncToCloud(true).catch(e => console.error("Final sync failed", e));
+                triggerCelebration();
             }
-        } else {
-            if (user && quizSubject) {
-                eraSessionService.clearSession(user.uid, quizSubject);
-            }
-            // Trigger Final Sync when Quiz completes
-            syncToCloud(true).catch(e => console.error("Final sync failed", e));
-            triggerCelebration();
         }
     };
 

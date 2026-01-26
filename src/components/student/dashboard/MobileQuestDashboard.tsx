@@ -75,6 +75,8 @@ export default function MobileQuestDashboard() {
     const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
     const [loadingQuestions, setLoadingQuestions] = useState(false);
     const [qStartTime, setQStartTime] = useState<number>(Date.now());
+    const [seconds, setSeconds] = useState(0);
+    const [isActive, setIsActive] = useState(true);
 
     // --- EFFECTS ---
 
@@ -102,7 +104,31 @@ export default function MobileQuestDashboard() {
     useEffect(() => {
         setSelectedAnswer(null);
         setFeedback(null);
+        setSeconds(0);
     }, [currentQIndex]);
+
+    // IDLE DETECTION (Step 5)
+    useEffect(() => {
+        const handleFocus = () => setIsActive(true);
+        const handleBlur = () => setIsActive(false);
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('blur', handleBlur);
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('blur', handleBlur);
+        };
+    }, []);
+
+    // TIMER ENGINE
+    useEffect(() => {
+        if (view !== 'quiz') return;
+        const timer = setInterval(() => {
+            if (isActive) {
+                setSeconds(s => s + 1);
+            }
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [view, isActive]);
 
     useEffect(() => {
         if (user?.uid) {
@@ -399,7 +425,7 @@ export default function MobileQuestDashboard() {
         }
 
         const ansText = currentQ.options.find(o => o.id === answerId)?.text || answerId;
-        const duration = (Date.now() - qStartTime) / 1000;
+        const duration = seconds || (Date.now() - qStartTime) / 1000;
         logQuestionResult({
             questionId: currentQ.id as string,
             studentAnswer: ansText,

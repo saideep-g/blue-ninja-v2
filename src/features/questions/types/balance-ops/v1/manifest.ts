@@ -28,7 +28,7 @@ export const BalanceOpsManifestV1: QuestionManifest<BalanceOpsDataV1> = {
 
   analytics: {
     computeMetrics: (data: BalanceOpsDataV1, logs: RawInteractionLog[], context): PlatinumAnalytics => {
-      const startLog = logs.find(l => l.type === 'mount');
+      const startLog = logs.find(l => l.type === 'view') || logs[0];
       const submitLog = logs.find(l => l.type === 'submit');
       const startTime = startLog?.timestamp || 0;
       const endTime = submitLog?.timestamp || Date.now();

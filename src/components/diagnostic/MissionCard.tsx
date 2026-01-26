@@ -17,7 +17,7 @@ function MissionCard({ question, onAnswer, onStartRecovery }) {
         startTimeRef.current = Date.now();
     }, [question?.id || question?.item_id]);
 
-    const handleTemplateSubmit = (result: any) => {
+    const handleTemplateSubmit = (result: any, shouldAdvance = true) => {
         const timeSpentMs = Date.now() - startTimeRef.current;
         const timeSpentSeconds = Math.round(timeSpentMs / 1000);
 
@@ -37,7 +37,8 @@ function MissionCard({ question, onAnswer, onStartRecovery }) {
             choice,
             isRecovered,
             null, // tag default (TODO: extract form diagnostic info if needed)
-            timeSpentSeconds
+            timeSpentSeconds,
+            shouldAdvance // Pass this down if supported by onAnswer
         );
     };
 

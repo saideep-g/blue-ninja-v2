@@ -59,9 +59,9 @@ export default function StudentApp() {
         else if (isRecovered) updatePower(5);
     };
 
-    const handleDailyAnswer = (isCorrect: boolean, choice: string | number, isRecovered: boolean, tag: string, timeSpentSeconds: number) => {
+    const handleDailyAnswer = (isCorrect: boolean, choice: string | number, isRecovered: boolean, tag: string, timeSpentSeconds: number, shouldAdvance = true) => {
         const speedRating = timeSpentSeconds < 3 ? 'SPRINT' : (timeSpentSeconds < 15 ? 'NORMAL' : 'SLOW');
-        submitDailyAnswer(isCorrect, choice, isRecovered, tag, timeSpentSeconds, speedRating);
+        submitDailyAnswer(isCorrect, choice, isRecovered, tag, timeSpentSeconds, speedRating, shouldAdvance);
         if (isCorrect) updatePower(15);
         else if (isRecovered) updatePower(7);
     };

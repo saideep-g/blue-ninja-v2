@@ -23,6 +23,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
 
     // VALIDATION: Global session history to prevent duplicates across multiple flights
     const servedIdsRef = useRef<Set<string>>(new Set());
+    const loggedDailyQuestions = useRef<Set<string>>(new Set()); // Dedup per question execution
 
     const [questionStartTime, setQuestionStartTime] = useState(Date.now());
     const [sessionResults, setSessionResults] = useState({
@@ -379,71 +380,90 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
         isRecovered: boolean,
         tag: string,
         timeSpent: number,
-        speedRating: string
+        speedRating: string,
+        shouldAdvance = true // Log Separation
     ) => {
         if (!auth.currentUser) return;
         if (currentIndex >= missionQuestions.length) return;
         const currentQuestion = missionQuestions[currentIndex];
 
-        logQuestionResultLocal({
-            questionId: currentQuestion.id,
-            studentAnswer: choice,
-            isCorrect,
-            isRecovered,
-            recoveryVelocity: 0,
-            diagnosticTag: tag,
-            timeSpent,
-            cappedThinkingTime: Math.min(timeSpent, 60),
-            speedRating,
-            masteryBefore: 0.5,
-            masteryAfter: 0.5,
-            atomId: currentQuestion.atom || 'UNKNOWN',
-            mode: 'DAILY',
-            selectionRationale: currentQuestion.metadata?.selectionRationale
-        }, currentIndex);
+        // 1. Log (If not already logged)
+        if (!loggedDailyQuestions.current.has(currentQuestion.id)) {
+            logQuestionResultLocal({
+                questionId: currentQuestion.id,
+                studentAnswer: choice,
+                isCorrect,
+                isRecovered,
+                recoveryVelocity: 0,
+                diagnosticTag: tag,
+                timeSpent,
+                cappedThinkingTime: Math.min(timeSpent, 60),
+                speedRating,
+                masteryBefore: 0.5,
+                masteryAfter: 0.5,
+                atomId: currentQuestion.atom || 'UNKNOWN',
+                mode: 'DAILY',
+                selectionRationale: currentQuestion.metadata?.selectionRationale
+            }, currentIndex);
 
-        const gain = isCorrect ? 15 : (isRecovered ? 7 : 0);
-        updatePower(gain);
+            const gain = isCorrect ? 15 : (isRecovered ? 7 : 0);
+            updatePower(gain);
 
-        if (currentQuestion.metadata?.missionId) {
-            const missionId = currentQuestion.metadata.missionId;
+            // Only update session flow metrics once per question
+            setSessionResults(prev => ({
+                ...prev,
+                correctCount: isCorrect ? prev.correctCount + 1 : prev.correctCount,
+                flowGained: prev.flowGained + gain,
+                sprintCount: speedRating === 'SPRINT' ? prev.sprintCount + 1 : prev.sprintCount
+            }));
 
-            // Track granular progress to prevent rollback
-            missionsService.markQuestionComplete(auth.currentUser.uid, missionId, currentQuestion.id).catch(console.error);
-
-            const questionsInThisMission = missionQuestions.filter(q => q.metadata?.missionId === missionId);
-            const myIndexInMission = questionsInThisMission.findIndex(q => q === currentQuestion);
-            const isLastInMission = myIndexInMission === questionsInThisMission.length - 1;
-
-            if (isLastInMission) {
-                try {
-                    await missionsService.completeMission(auth.currentUser.uid, missionId, 100);
-                } catch (e) {
-                    console.error('Failed to complete mission in service', e);
-                }
-            } else if (myIndexInMission === 0) {
-                missionsService.startMission(missionId).catch(console.error);
+            // Log completion in mission tracking
+            if (currentQuestion.metadata?.missionId) {
+                const missionId = currentQuestion.metadata.missionId;
+                missionsService.markQuestionComplete(auth.currentUser.uid, missionId, currentQuestion.id).catch(console.error);
             }
+
+            loggedDailyQuestions.current.add(currentQuestion.id);
         }
 
-        setSessionResults(prev => ({
-            ...prev,
-            correctCount: isCorrect ? prev.correctCount + 1 : prev.correctCount,
-            flowGained: prev.flowGained + gain,
-            sprintCount: speedRating === 'SPRINT' ? prev.sprintCount + 1 : prev.sprintCount
-        }));
+        // 2. Advance (If requested)
+        if (shouldAdvance) {
+            // Handle Mission Completion logic only on advance? Or on log? 
+            // Usually on log is safer for data, but advancement handles the UI state.
+            // We do mission status application here if it affects navigation flow (e.g. End of mission).
 
-        if (currentIndex >= missionQuestions.length - 1) {
-            setIsComplete(true);
-            await syncToCloud(true);
-            await refreshSessionLogs();
-        } else {
-            setCurrentIndex(prev => prev + 1);
-            setQuestionStartTime(Date.now());
+            if (currentQuestion.metadata?.missionId) {
+                const missionId = currentQuestion.metadata.missionId;
+                const questionsInThisMission = missionQuestions.filter(q => q.metadata?.missionId === missionId);
+                const myIndexInMission = questionsInThisMission.findIndex(q => q === currentQuestion);
+                const isLastInMission = myIndexInMission === questionsInThisMission.length - 1;
+
+                if (isLastInMission) {
+                    try {
+                        await missionsService.completeMission(auth.currentUser.uid, missionId, 100);
+                    } catch (e) {
+                        console.error('Failed to complete mission in service', e);
+                    }
+                } else if (myIndexInMission === 0) {
+                    missionsService.startMission(missionId).catch(console.error);
+                }
+            }
+
+            if (currentIndex >= missionQuestions.length - 1) {
+                setIsComplete(true);
+                await syncToCloud(true);
+                await refreshSessionLogs();
+            } else {
+                setCurrentIndex(prev => prev + 1);
+                setQuestionStartTime(Date.now());
+            }
         }
     };
 
-    const startNewSession = () => generateMission({ bypassHistory: true });
+    const startNewSession = () => {
+        loggedDailyQuestions.current.clear();
+        generateMission({ bypassHistory: true });
+    };
 
     return {
         currentQuestion: missionQuestions[currentIndex],

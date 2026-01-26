@@ -10,6 +10,7 @@ import { getRandomPraise } from '../../utils/feedbackUtils';
 interface NumericAutoTemplateProps {
     question: Question;
     onAnswer: (result: any) => void;
+    onInteract?: (log: any) => void;
     isSubmitting: boolean;
     readOnly?: boolean;
     isPreview?: boolean;
@@ -85,13 +86,14 @@ const ExplanationStepRenderer = ({ text }: { text: string }) => {
  * NUMERIC AUTO TEMPLATE
  * Enhanced numeric input with SVG/Image support and "Solve on Paper" focus.
  */
-export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly, isPreview = false }: NumericAutoTemplateProps) {
+export function NumericAutoTemplate({ question, onAnswer, onInteract, isSubmitting, readOnly, isPreview = false }: NumericAutoTemplateProps) {
     const { autoAdvance } = useProfileStore();
 
     const [inputValue, setInputValue] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [feedback, setFeedback] = useState<Feedback | null>(null);
     const [result, setResult] = useState<any>(null);
+    const [interactionLogged, setInteractionLogged] = useState(false);
     const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -110,6 +112,7 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
         setSubmitted(false);
         setFeedback(null);
         setResult(null);
+        setInteractionLogged(false);
         setIsAutoAdvancing(false);
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
@@ -245,10 +248,15 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
         setSubmitted(true);
         setResult(resultData);
 
+        // IMMEDIATE LOG (Step 2)
+        if (onAnswer) {
+            onAnswer(resultData, false); // Log only
+        }
+
         if (isCorrect && autoAdvance !== false) {
             setIsAutoAdvancing(true);
             timeoutRef.current = setTimeout(() => {
-                if (onAnswer) onAnswer(resultData);
+                if (onAnswer) onAnswer(resultData, true); // Advance
             }, 2000);
         }
     };
@@ -256,7 +264,7 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
     const handleContinue = () => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         if (result && onAnswer) {
-            onAnswer(result);
+            onAnswer(result, true); // Advance = true
         }
     };
 
@@ -336,6 +344,12 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
                                 const val = e.target.value;
                                 if (val === '' || /^[0-9./\s:-]*$/.test(val)) {
                                     setInputValue(val);
+
+                                    // LOG INTERACTION (Step 4)
+                                    if (val !== '' && !interactionLogged && onInteract) {
+                                        onInteract({ type: 'keypress', payload: { firstKey: true } });
+                                        setInteractionLogged(true);
+                                    }
                                 }
                             }}
                             className="w-full p-4 md:p-6 text-2xl md:text-3xl font-bold text-slate-800 placeholder:text-slate-300 bg-transparent outline-none text-center md:text-left font-mono"

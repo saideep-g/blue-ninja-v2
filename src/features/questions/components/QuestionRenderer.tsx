@@ -35,6 +35,11 @@ export const QuestionRenderer: React.FC<Props> = ({
 }) => {
     const { logs, logInteraction } = useInteractionLogger();
 
+    // 0. LOG VIEW EVENT
+    React.useEffect(() => {
+        logInteraction('view', { timestamp: Date.now() });
+    }, [logInteraction]);
+
     // 1. RESOLVE MANIFEST
     const manifest = useMemo(() => {
         // Normalize Type

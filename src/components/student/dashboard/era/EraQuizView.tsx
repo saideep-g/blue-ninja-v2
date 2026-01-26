@@ -7,7 +7,7 @@ import { Question } from '../../../../types/models';
 interface EraQuizViewProps {
     questions: Question[];
     currentQuestionIndex: number;
-    onAnswer: (result: any) => void;
+    onAnswer: (result: any, shouldAdvance?: boolean) => void;
     onClose: () => void;
 }
 
@@ -22,6 +22,7 @@ export const EraQuizView = forwardRef<EraQuizViewHandle, EraQuizViewProps>(({
     onClose
 }, ref) => {
     const [seconds, setSeconds] = React.useState(0);
+    const [isActive, setIsActive] = React.useState(true);
     const [showExitConfirm, setShowExitConfirm] = React.useState(false);
 
     useImperativeHandle(ref, () => ({
@@ -31,9 +32,28 @@ export const EraQuizView = forwardRef<EraQuizViewHandle, EraQuizViewProps>(({
     }));
 
     React.useEffect(() => {
-        const timer = setInterval(() => setSeconds(s => s + 1), 1000);
-        return () => clearInterval(timer);
+        const handleFocus = () => setIsActive(true);
+        const handleBlur = () => setIsActive(false);
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('blur', handleBlur);
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('blur', handleBlur);
+        };
     }, []);
+
+    React.useEffect(() => {
+        setSeconds(0);
+    }, [currentQuestionIndex]);
+
+    React.useEffect(() => {
+        const timer = setInterval(() => {
+            if (isActive) {
+                setSeconds(s => s + 1);
+            }
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [isActive]);
 
     const formatTime = (totalSeconds: number) => {
         const m = Math.floor(totalSeconds / 60);
@@ -73,7 +93,7 @@ export const EraQuizView = forwardRef<EraQuizViewHandle, EraQuizViewProps>(({
                 <TemplateRouter
                     question={questions[currentQuestionIndex]}
                     isSubmitting={false}
-                    onSubmit={onAnswer}
+                    onSubmit={(result, shouldAdvance) => onAnswer({ ...result, durationSeconds: seconds }, shouldAdvance)}
                 />
             )}
 

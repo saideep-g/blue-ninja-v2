@@ -19,7 +19,8 @@ import { NumericAutoTemplate } from './NumericAutoTemplate';
 
 interface TemplateRouterProps {
   question: Question;
-  onSubmit: (result: any) => void;
+  onSubmit: (result: any, shouldAdvance?: boolean) => void;
+  onInteract?: (log: any) => void;
   isSubmitting?: boolean;
   readOnly?: boolean;
   isPreview?: boolean;
@@ -153,7 +154,7 @@ const TEMPLATE_REGISTRY: Record<string, React.ComponentType<any>> = {
   'BALANCE_OPS': BalanceOpsTemplate,
 };
 
-export function TemplateRouter({ question, onSubmit, isSubmitting = false, readOnly = false, isPreview = false }: TemplateRouterProps) {
+export function TemplateRouter({ question, onSubmit, onInteract, isSubmitting = false, readOnly = false, isPreview = false }: TemplateRouterProps) {
   const TemplateComponent = useMemo(() => {
     const q = question as any;
     // Check all possible ID locations (V2 camelCase, V3 snake_case, legacy type)
@@ -183,6 +184,7 @@ export function TemplateRouter({ question, onSubmit, isSubmitting = false, readO
     <TemplateComponent
       question={question}
       onAnswer={onSubmit} // Pass onAnswer for V2 templates
+      onInteract={onInteract}
       isSubmitting={isSubmitting}
       readOnly={readOnly}
       isPreview={isPreview}

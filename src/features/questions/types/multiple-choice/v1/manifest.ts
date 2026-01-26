@@ -27,7 +27,7 @@ export const MCQManifestV1: QuestionManifest<MCQDataV1> = {
     analytics: {
         computeMetrics: (data: MCQDataV1, logs: RawInteractionLog[], context): PlatinumAnalytics => {
             // 1. EXTRACT BASIC SIGNALS
-            const startLog = logs.find(l => l.type === 'mount');
+            const startLog = logs.find(l => l.type === 'view') || logs[0];
             const submitLog = logs.find(l => l.type === 'submit');
             const startTime = startLog?.timestamp || 0;
             const endTime = submitLog?.timestamp || Date.now();

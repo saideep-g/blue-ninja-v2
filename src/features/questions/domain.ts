@@ -191,7 +191,7 @@ export interface PlatinumAnalytics {
  * The 'manifest.analytics.mapToGlobal' function digests these into PlatinumAnalytics.
  */
 export interface RawInteractionLog {
-    type: 'mount' | 'focus' | 'blur' | 'click' | 'keypress' | 'answer_select' | 'submit'
+    type: 'mount' | 'view' | 'focus' | 'blur' | 'click' | 'keypress' | 'answer_select' | 'submit'
     | 'transition' | 'select_option' | 'submit_stage';
     payload?: any;
     timestamp: number;

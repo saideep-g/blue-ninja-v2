@@ -12,6 +12,7 @@ import { getRandomPraise } from '../../utils/feedbackUtils';
 interface MCQTemplateProps {
     question: Question;
     onAnswer: (result: any) => void;
+    onInteract?: (log: any) => void;
     isSubmitting: boolean;
     readOnly?: boolean;
     isPreview?: boolean;
@@ -70,13 +71,14 @@ const ExplanationStepRenderer = ({ text, textColor }: { text: string, textColor:
     );
 };
 
-export function McqEraTemplate({ question, onAnswer, isSubmitting, readOnly, isPreview = false }: MCQTemplateProps) {
+export function McqEraTemplate({ question, onAnswer, onInteract, isSubmitting, readOnly, isPreview = false }: MCQTemplateProps) {
     const { autoAdvance } = useProfileStore();
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [submitted, setSubmitted] = useState(false);
     const [feedback, setFeedback] = useState<Feedback | null>(null);
 
     const [result, setResult] = useState<any>(null);
+    const [firstThoughtLogged, setFirstThoughtLogged] = useState(false);
     const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -88,6 +90,7 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting, readOnly, isP
         setSubmitted(false);
         setFeedback(null);
         setResult(null);
+        setFirstThoughtLogged(false);
         setIsAutoAdvancing(false);
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
     }, [question.id]);
@@ -127,13 +130,25 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting, readOnly, isP
     const handleSelect = (index: number) => {
         if (!submitted && !isSubmitting && !isPreview) {
             setSelectedIndex(index);
+
+            // LOG INTERACTION (Step 4)
+            if (onInteract) {
+                onInteract({
+                    type: 'select_option',
+                    payload: {
+                        index,
+                        isFirstThought: !firstThoughtLogged
+                    }
+                });
+            }
+            if (!firstThoughtLogged) setFirstThoughtLogged(true);
         }
     };
 
     const handleContinue = () => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         if (result && onAnswer) {
-            onAnswer(result);
+            onAnswer(result, true); // Should Advance = true
         }
     };
 
@@ -209,9 +224,18 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting, readOnly, isP
         setFeedback(resultData);
         setSubmitted(true);
         setResult(resultData);
+
+        // IMMEDIATE LOG (Step 2)
+        if (onAnswer) {
+            onAnswer(resultData, false); // Log only, do NOT advance
+        }
+
+        // Auto Advance Logic
         if (isCorrect && autoAdvance !== false) {
             setIsAutoAdvancing(true);
-            timeoutRef.current = setTimeout(() => { onAnswer(resultData); }, 2000);
+            timeoutRef.current = setTimeout(() => {
+                onAnswer(resultData, true); // Advance now
+            }, 2000);
         }
     };
 
