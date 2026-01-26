@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../../services/db/firebase';
 import { useNinja } from '../../../../context/NinjaContext';
-import { ChevronLeft, ChevronRight, Calculator, CheckCircle2, XCircle, FileText, Calendar, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calculator, CheckCircle2, XCircle, FileText, Calendar, BookOpen, BarChart3, Target, AlertCircle } from 'lucide-react';
 
 const SUBJECTS = [
     { id: 'all', label: 'All Subjects', color: 'slate' },
@@ -60,6 +60,36 @@ export function MonthlyLogsView() {
         fetchLogs();
     }, [user, selectedMonth]);
 
+    const statsBySubject = useMemo(() => {
+        const summary: Record<string, { answered: number, correct: number, incorrect: number, timeSeconds: number }> = {};
+
+        logs.forEach(log => {
+            let subj = (log.subject || 'era').toLowerCase();
+            // Map aliases
+            if (subj === 'eng' || subj === 'english') subj = 'vocabulary';
+
+            if (!summary[subj]) {
+                summary[subj] = { answered: 0, correct: 0, incorrect: 0, timeSeconds: 0 };
+            }
+            summary[subj].answered++;
+            summary[subj].timeSeconds += log.timeSpent || 0;
+            if (log.isCorrect) summary[subj].correct++;
+            else summary[subj].incorrect++;
+        });
+
+        // Add totals
+        const total = { answered: 0, correct: 0, incorrect: 0, timeSeconds: 0 };
+        Object.values(summary).forEach(s => {
+            total.answered += s.answered;
+            total.correct += s.correct;
+            total.incorrect += s.incorrect;
+            total.timeSeconds += s.timeSeconds;
+        });
+        summary.all = total;
+
+        return summary;
+    }, [logs]);
+
     const changeMonth = (delta: number) => {
         const newDate = new Date(selectedMonth);
         newDate.setMonth(newDate.getMonth() + delta);
@@ -69,8 +99,9 @@ export function MonthlyLogsView() {
     const filteredLogs = selectedSubject === 'all'
         ? logs
         : logs.filter(log => {
-            if (selectedSubject === 'vocabulary' && (log.subject === 'eng' || log.subject === 'english' || log.subject === 'vocabulary')) return true;
-            return log.subject === selectedSubject;
+            let subj = (log.subject || 'era').toLowerCase();
+            if (subj === 'eng' || subj === 'english') subj = 'vocabulary';
+            return subj === selectedSubject;
         });
 
     return (
@@ -124,6 +155,105 @@ export function MonthlyLogsView() {
                     </div>
                 </div>
             </div>
+
+            {/* Monthly Summary Section */}
+            {!loading && logs.length > 0 && (
+                <div className="animate-in slide-in-from-top-4 duration-700 delay-100">
+                    {selectedSubject === 'all' ? (
+                        /* Pivot Table for All Subjects */
+                        <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-[2rem] border border-white dark:border-slate-700 shadow-sm overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 dark:border-slate-700/50 flex items-center gap-3">
+                                <BarChart3 className="w-5 h-5 text-indigo-500" />
+                                <h3 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-sm">Monthly Performance Pivot</h3>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="bg-slate-50/50 dark:bg-slate-900/50 text-[10px] uppercase font-black tracking-widest text-slate-400">
+                                            <th className="px-6 py-4">Subject</th>
+                                            <th className="px-6 py-4">Answered</th>
+                                            <th className="px-6 py-4">Correct</th>
+                                            <th className="px-6 py-4">Incorrect</th>
+                                            <th className="px-6 py-4">Time (min)</th>
+                                            <th className="px-6 py-4 text-right">Accuracy</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/30">
+                                        {SUBJECTS.filter(s => s.id !== 'all').map(sub => {
+                                            const s = statsBySubject[sub.id] || { answered: 0, correct: 0, incorrect: 0, timeSeconds: 0 };
+                                            const accuracy = s.answered > 0 ? Math.round((s.correct / s.answered) * 100) : 0;
+                                            const timeMins = Math.round(s.timeSeconds / 60);
+                                            if (s.answered === 0) return null;
+
+                                            return (
+                                                <tr key={sub.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-900/30 transition-colors group">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-2 h-2 rounded-full bg-${sub.color}-500 shadow-sm`} />
+                                                            <span className="font-bold text-slate-700 dark:text-slate-200">{sub.label}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 font-mono font-bold text-slate-600 dark:text-slate-400">{s.answered}</td>
+                                                    <td className="px-6 py-4 font-mono font-bold text-emerald-600 dark:text-emerald-500">{s.correct}</td>
+                                                    <td className="px-6 py-4 font-mono font-bold text-rose-500 dark:text-rose-400">{s.incorrect}</td>
+                                                    <td className="px-6 py-4 font-mono font-bold text-slate-500 underline decoration-slate-200 underline-offset-4">{timeMins}m</td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <span className={`px-2 py-1 rounded-md text-xs font-black ${accuracy >= 80 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : accuracy >= 50 ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400'}`}>
+                                                            {accuracy}%
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                        {/* Grand Total Row */}
+                                        <tr className="bg-indigo-50/30 dark:bg-indigo-900/10 font-black">
+                                            <td className="px-6 py-4 text-indigo-600 dark:text-indigo-400 italic">Grand Total</td>
+                                            <td className="px-6 py-4 font-mono text-slate-800 dark:text-white">{statsBySubject.all?.answered || 0}</td>
+                                            <td className="px-6 py-4 font-mono text-emerald-600 dark:text-emerald-400">{statsBySubject.all?.correct || 0}</td>
+                                            <td className="px-6 py-4 font-mono text-rose-500 dark:text-rose-400">{statsBySubject.all?.incorrect || 0}</td>
+                                            <td className="px-6 py-4 font-mono text-indigo-600 dark:text-indigo-400">{Math.round((statsBySubject.all?.timeSeconds || 0) / 60)}m</td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className="text-indigo-600 dark:text-indigo-400">
+                                                    {statsBySubject.all?.answered ? Math.round((statsBySubject.all.correct / statsBySubject.all.answered) * 100) : 0}%
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    ) : (
+                        /* Grid Stats for Specific Subject */
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {[
+                                { label: 'Questions', value: statsBySubject[selectedSubject]?.answered || 0, icon: BookOpen, color: 'indigo' },
+                                { label: 'Correct', value: statsBySubject[selectedSubject]?.correct || 0, icon: CheckCircle2, color: 'emerald' },
+                                { label: 'Incorrect', value: statsBySubject[selectedSubject]?.incorrect || 0, icon: XCircle, color: 'rose' },
+                                {
+                                    label: 'Correct %',
+                                    value: `${statsBySubject[selectedSubject]?.answered ? Math.round((statsBySubject[selectedSubject].correct / statsBySubject[selectedSubject].answered) * 100) : 0}%`,
+                                    icon: Target,
+                                    color: 'amber'
+                                },
+                                {
+                                    label: 'Total Time',
+                                    value: `${Math.round((statsBySubject[selectedSubject]?.timeSeconds || 0) / 60)}m`,
+                                    icon: Calculator,
+                                    color: 'indigo'
+                                }
+                            ].map((stat, i) => (
+                                <div key={i} className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl p-5 rounded-3xl border border-white dark:border-slate-700 shadow-sm flex flex-col items-center justify-center text-center space-y-2 group hover:scale-[1.02] transition-transform">
+                                    <div className={`p-2 bg-${stat.color}-100 dark:bg-${stat.color}-900/30 rounded-xl text-${stat.color}-600 dark:text-${stat.color}-400 group-hover:rotate-12 transition-transform`}>
+                                        <stat.icon className="w-5 h-5" />
+                                    </div>
+                                    <div className="font-black text-2xl text-slate-800 dark:text-white leading-none tracking-tight">{stat.value}</div>
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{stat.label}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* List View */}
             <div className="space-y-4">

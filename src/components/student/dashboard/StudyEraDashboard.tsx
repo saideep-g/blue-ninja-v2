@@ -77,6 +77,7 @@ const StudyEraDashboard = () => {
     const [showCelebration, setShowCelebration] = useState(false);
     const [celebrationMessage, setCelebrationMessage] = useState("");
     const [completedSubjects, setCompletedSubjects] = useState<Set<string>>(new Set());
+    const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
 
     // --- 4 AM RESET & PERSISTENCE LOGIC ---
     useDailyProgressSync(user, setCompletedSubjects);
@@ -99,6 +100,7 @@ const StudyEraDashboard = () => {
             setCurrentQuestionIndex(session.currentIndex);
             setQuizScore(session.score);
             setQuizSubject(selectedSubject.id);
+            setQuestionStartTime(Date.now());
             navigate('/quiz');
         }
     };
@@ -120,6 +122,7 @@ const StudyEraDashboard = () => {
         setCurrentQuestionIndex(session.currentIndex);
         setQuizScore(session.score);
 
+        setQuestionStartTime(Date.now());
         navigate('/quiz');
         setExpandingSubject(null);
         setIsExpanding(false);
@@ -168,6 +171,7 @@ const StudyEraDashboard = () => {
                 return 'N/A';
             };
 
+            const duration = (Date.now() - questionStartTime) / 1000;
             logQuestionResultLocal({
                 questionId: currentQuestion.id || `q-${currentQuestionIndex}`,
                 questionText: currentQuestion.question_text || (currentQuestion as any).question || currentQuestion.content?.prompt?.text || 'Question',
@@ -176,6 +180,7 @@ const StudyEraDashboard = () => {
                 isCorrect: isCorrect,
                 timestamp: new Date(),
                 subject: quizSubject || 'unknown',
+                timeSpent: duration,
                 questionType: (() => {
                     const q = currentQuestion as any;
                     let type = q.type || q.templateId || q.template_id || q.template;
@@ -194,6 +199,7 @@ const StudyEraDashboard = () => {
         if (currentQuestionIndex < quizQuestions.length - 1) {
             const newIndex = currentQuestionIndex + 1;
             setCurrentQuestionIndex(newIndex);
+            setQuestionStartTime(Date.now());
             if (user && quizSubject) {
                 eraSessionService.updateProgress(user.uid, quizSubject, {
                     currentIndex: newIndex,

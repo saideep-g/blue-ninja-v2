@@ -74,6 +74,7 @@ export default function MobileQuestDashboard() {
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
     const [loadingQuestions, setLoadingQuestions] = useState(false);
+    const [qStartTime, setQStartTime] = useState<number>(Date.now());
 
     // --- EFFECTS ---
 
@@ -231,6 +232,7 @@ export default function MobileQuestDashboard() {
         setCurrentQIndex(0);
         setScore(0);
         setView('quiz');
+        setQStartTime(Date.now());
         window.scrollTo(0, 0);
         await fetchQuestions(subject, target.n);
     };
@@ -241,6 +243,7 @@ export default function MobileQuestDashboard() {
         setCurrentQIndex(0);
         setScore(0);
         setView('quiz');
+        setQStartTime(Date.now());
         window.scrollTo(0, 0);
         await fetchQuestions(subject, chapter.n);
     };
@@ -377,6 +380,7 @@ export default function MobileQuestDashboard() {
         setSelectedAnswer(null);
         if (currentQIndex < questions.length - 1) {
             setCurrentQIndex(q => q + 1);
+            setQStartTime(Date.now());
         } else {
             finishQuiz(score); // Score already updated in handleAnswer if correct
         }
@@ -395,11 +399,13 @@ export default function MobileQuestDashboard() {
         }
 
         const ansText = currentQ.options.find(o => o.id === answerId)?.text || answerId;
+        const duration = (Date.now() - qStartTime) / 1000;
         logQuestionResult({
             questionId: currentQ.id as string,
             studentAnswer: ansText,
             isCorrect,
-            timestamp: new Date()
+            timestamp: new Date(),
+            timeSpent: duration
         });
 
         // Auto-advance only if correct, otherwise wait for user to read explanation
