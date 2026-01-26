@@ -12,9 +12,15 @@ export default defineConfig({
         // Manual chunking to separate vendor libraries from app code
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            // Split Firebase and React into their own chunks
+            // Split large libraries into their own chunks
             if (id.includes('firebase')) {
               return 'vendor-firebase';
+            }
+            if (id.includes('katex')) {
+              return 'vendor-katex';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-lucide';
             }
             return 'vendor';
           }
