@@ -165,7 +165,19 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
         const isCorrect = selectedIndex === correctIndex;
         playFeedbackSound(isCorrect ? 'correct' : 'wrong');
         const feedbackText = isCorrect ? getRandomPraise() : "Not quite the vibe... check the fix!";
-        const resultData = { isCorrect, selectedIndex, feedback: feedbackText };
+
+        // Get actual answer texts
+        const selectedOption = options[selectedIndex];
+        const correctOption = options[correctIndex];
+
+        const resultData = {
+            isCorrect,
+            selectedIndex,
+            feedback: feedbackText,
+            studentAnswerText: selectedOption?.text || `Option ${selectedIndex}`,
+            correctAnswerText: correctOption?.text || 'N/A'
+        };
+
         setFeedback(resultData);
         setSubmitted(true);
         setResult(resultData);

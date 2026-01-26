@@ -117,12 +117,14 @@ export interface NinjaStats {
 export interface QuestionLog {
     id?: string;
     questionId: string;
+    questionText?: string; // Added for StudyEra logging
     studentAnswer: string | number | any;
+    correctAnswer?: string; // Added to track correct answer for review
     isCorrect: boolean;
     isRecovered?: boolean;
     recoveryVelocity?: number;
-    diagnosticTag?: string;
-    timeSpent?: number;
+    diagnosticTag?: string; // For tracking misconception patterns (optional, useful for analytics)
+    timeSpent?: number; // Optional - only if tracked
     cappedThinkingTime?: number;
     speedRating?: string;
     masteryBefore?: number;
@@ -131,10 +133,13 @@ export interface QuestionLog {
     atomId?: string;
     mode?: string;
     timestamp?: any; // Firestore timestamp
-    studentId?: string;
+    studentId?: string; // Will be removed from individual entries (redundant in bucketed logs)
     isSuccess?: boolean;
-    syncedAt?: number;
+    syncedAt?: number; // Will be removed (redundant - use document-level lastUpdated)
     selectionRationale?: SelectionRationale;
+    selectedIndex?: number; // Added for MCQ logging
+    value?: any; // Added for numeric/other answer types
+    subject?: string; // Added for subject tracking
 }
 
 

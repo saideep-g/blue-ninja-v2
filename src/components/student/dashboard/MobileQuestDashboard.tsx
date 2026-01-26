@@ -28,12 +28,14 @@ import { QuestQuizView } from './quest/QuestQuizView';
 import { QuestResultsView } from './quest/QuestResultsView';
 import { QuestBottomNav } from './quest/QuestBottomNav';
 
+import { MonthlyLogsView } from './logs/MonthlyLogsView';
+
 
 export default function MobileQuestDashboard() {
     const { ninjaStats, user, updatePower, logQuestionResult } = useNinja();
     const navigate = useNavigate();
 
-    const [view, setView] = useState('home'); // home, awards, profile, quiz, results
+    const [view, setView] = useState('home'); // home, awards, profile, quiz, results, history
 
     // --- STATE ---
     // Persistent stats
@@ -579,9 +581,16 @@ export default function MobileQuestDashboard() {
                 </div>
             )}
 
+            {/* --- HISTORY View --- */}
+            {view === 'history' && (
+                <div className="pt-6 px-4 pb-20">
+                    <MonthlyLogsView />
+                </div>
+            )}
+
             {/* Bottom Nav */}
             {
-                ['home', 'awards', 'profile', 'challenges'].includes(view) && (
+                ['home', 'awards', 'profile', 'challenges', 'history'].includes(view) && (
                     <QuestBottomNav currentView={view} setView={setView} />
                 )
             }

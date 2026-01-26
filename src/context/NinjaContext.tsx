@@ -202,23 +202,63 @@ export function NinjaProvider({ children }: { children: ReactNode }) {
         console.log('📂 Path:', `students/${auth.currentUser.uid}/session_logs`);
 
         try {
-            logsToSync.forEach((log, idx) => {
-                const newLogRef = doc(logsRef); // Typed ref!
+            // Refactored: Group logs by month for efficient storage
+            const groupedLogs: Record<string, QuestionLog[]> = {};
 
+            // Helper to remove undefined values (Firestore doesn't accept them)
+            const cleanObject = (obj: any): any => {
+                const cleaned: any = {};
+                Object.keys(obj).forEach(key => {
+                    if (obj[key] !== undefined) {
+                        cleaned[key] = obj[key];
+                    }
+                });
+                return cleaned;
+            };
+
+            logsToSync.forEach((log) => {
                 const enrichedLog: QuestionLog = {
                     ...log,
-                    studentId: auth.currentUser!.uid,
+                    // Remove studentId - redundant (already in document path)
+                    // Remove syncedAt - redundant (use document-level lastUpdated)
                     diagnosticTag: log.diagnosticTag || (log.isCorrect ? 'NONE' : 'UNTAGGED'),
                     isSuccess: !!(log.isCorrect || log.isRecovered),
                     masteryDelta: log.masteryBefore !== undefined && log.masteryAfter !== undefined
                         ? Number((log.masteryAfter - log.masteryBefore).toFixed(3))
                         : 0,
-                    timestamp: serverTimestamp(),
-                    syncedAt: Date.now()
+                    timestamp: log.timestamp || new Date().toISOString(), // Use string/date object for array storage
                 };
 
-                batch.set(newLogRef, enrichedLog);
-                console.log(`[Batch] Queueing Log ${idx + 1}: ${log.questionId}`);
+                // Derive Month Key (YYYY-MM)
+                // Handle various timestamp formats (Firestore Timestamp, ISO string, or Date object)
+                let dateObj: Date;
+                if ((enrichedLog.timestamp as any)?.toDate) {
+                    dateObj = (enrichedLog.timestamp as any).toDate();
+                } else if (enrichedLog.timestamp instanceof Date) {
+                    dateObj = enrichedLog.timestamp;
+                } else {
+                    dateObj = new Date(enrichedLog.timestamp as string | number);
+                }
+
+                // Safety check for date validity
+                const safeDate = isNaN(dateObj.getTime()) ? new Date() : dateObj;
+                const monthKey = safeDate.toISOString().slice(0, 7); // "2023-10"
+
+                if (!groupedLogs[monthKey]) {
+                    groupedLogs[monthKey] = [];
+                }
+                // Clean undefined values before adding to array
+                groupedLogs[monthKey].push(cleanObject(enrichedLog));
+            });
+
+            // Batch writes to monthly buckets
+            Object.entries(groupedLogs).forEach(([monthKey, logs]) => {
+                const monthDocRef = doc(db, 'students', auth.currentUser!.uid, 'session_logs', monthKey);
+                batch.set(monthDocRef, {
+                    entries: arrayUnion(...logs),
+                    lastUpdated: serverTimestamp()
+                }, { merge: true });
+                console.log(`[Batch] Queueing ${logs.length} logs for ${monthKey}`);
             });
 
             const currentStats = statsRef.current;

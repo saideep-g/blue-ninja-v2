@@ -20,7 +20,7 @@ import { useDailyProgressSync } from './era/hooks/useDailyProgressSync';
 
 
 const StudyEraDashboard = () => {
-    const { user, ninjaStats } = useNinja();
+    const { user, ninjaStats, logQuestionResultLocal } = useNinja();
     const navigate = useNavigate();
 
     // Navigation & View State
@@ -154,6 +154,20 @@ const StudyEraDashboard = () => {
         let newScore = quizScore;
         if (isCorrect) newScore = quizScore + 10;
         setQuizScore(newScore);
+
+        // Log the question result
+        const currentQuestion = quizQuestions[currentQuestionIndex];
+        if (currentQuestion && logQuestionResultLocal) {
+            logQuestionResultLocal({
+                questionId: currentQuestion.id || `q-${currentQuestionIndex}`,
+                questionText: currentQuestion.question_text || currentQuestion.content?.prompt?.text || 'Question',
+                studentAnswer: result.studentAnswerText || result.value || 'Answer',
+                correctAnswer: result.correctAnswerText || 'N/A',
+                isCorrect: isCorrect,
+                timestamp: new Date(),
+                subject: quizSubject || 'unknown'
+            }, currentQuestionIndex);
+        }
 
         if (currentQuestionIndex < quizQuestions.length - 1) {
             const newIndex = currentQuestionIndex + 1;

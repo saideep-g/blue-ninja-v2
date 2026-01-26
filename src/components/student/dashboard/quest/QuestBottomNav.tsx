@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Trophy, Zap, User } from 'lucide-react';
+import { Play, Trophy, Zap, User, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface QuestBottomNavProps {
@@ -36,6 +36,13 @@ export const QuestBottomNav: React.FC<QuestBottomNavProps> = ({ currentView, set
                     <Zap size={24} fill={currentView === 'challenges' ? "currentColor" : "none"} />
                 </div>
                 <span className="text-[10px] font-black uppercase tracking-widest">Arena</span>
+            </button>
+
+            <button onClick={() => navTo('history')} className={`flex flex-col items-center gap-1.5 transition-all ${currentView === 'history' ? 'text-cyan-500 scale-110' : 'text-slate-300'}`}>
+                <div className={`p-2.5 rounded-2xl transition-colors ${currentView === 'history' ? 'bg-cyan-100' : ''}`}>
+                    <FileText size={24} className={currentView === 'history' ? 'stroke-2' : ''} />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest">Logs</span>
             </button>
 
             <button onClick={() => navTo('profile')} className={`flex flex-col items-center gap-1.5 transition-all ${currentView === 'profile' ? 'text-indigo-600 scale-110' : 'text-slate-300'}`}>
