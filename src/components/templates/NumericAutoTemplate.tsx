@@ -223,7 +223,9 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
         const resultData = {
             isCorrect,
             value: inputValue,
-            feedback: handleCreateFeedback(isCorrect, selectedPraise)
+            feedback: handleCreateFeedback(isCorrect, selectedPraise),
+            studentAnswerText: inputValue + (unit ? ` ${unit}` : ''),
+            correctAnswerText: (String(rawCorrectValue) || String(correctValue)) + (unit ? ` ${unit}` : '')
         };
 
         setFeedback(resultData);

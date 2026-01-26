@@ -133,11 +133,46 @@ const StudyEraDashboard = () => {
 
         const currentQuestion = quizQuestions[currentQuestionIndex];
         if (currentQuestion && logQuestionResultLocal) {
+            // Robust extraction of correct answer for various question types
+            const extractCorrectAnswer = () => {
+                if (result.correctAnswerText) return result.correctAnswerText;
+
+                // Fallback for non-updated templates or numeric questions
+                const answerKey = currentQuestion.answerKey || (currentQuestion as any).answer_key || {};
+                const rawCorrectValue = answerKey.correctValue ??
+                    answerKey.value ??
+                    (currentQuestion as any).correctAnswer ??
+                    (currentQuestion as any).correct_answer ??
+                    (currentQuestion as any).answer;
+
+                if (rawCorrectValue !== undefined && rawCorrectValue !== null) {
+                    return String(rawCorrectValue);
+                }
+
+                // MCQ Fallback
+                const options = (currentQuestion as any).options ||
+                    (currentQuestion as any).content?.interaction?.config?.options ||
+                    (currentQuestion as any).interaction?.config?.options;
+
+                if (options && Array.isArray(options)) {
+                    const correctOption = options.find((opt: any) => opt.isCorrect);
+                    if (correctOption) return correctOption.text;
+
+                    const correctOptionId = (currentQuestion as any).correctOptionId || currentQuestion.answerKey?.correctOptionId;
+                    if (correctOptionId) {
+                        const found = options.find(o => String(o.id) === String(correctOptionId));
+                        if (found) return found.text;
+                    }
+                }
+
+                return 'N/A';
+            };
+
             logQuestionResultLocal({
                 questionId: currentQuestion.id || `q-${currentQuestionIndex}`,
                 questionText: currentQuestion.question_text || currentQuestion.content?.prompt?.text || 'Question',
-                studentAnswer: result.studentAnswerText || result.value || 'Answer',
-                correctAnswer: result.correctAnswerText || 'N/A',
+                studentAnswer: result.studentAnswerText || result.value || result.selectedValue || 'Answer',
+                correctAnswer: extractCorrectAnswer(),
                 isCorrect: isCorrect,
                 timestamp: new Date(),
                 subject: quizSubject || 'unknown'
