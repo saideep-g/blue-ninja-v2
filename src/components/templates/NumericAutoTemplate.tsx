@@ -373,17 +373,17 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
                 </form>
             </div>
 
-            {/* ========== EXPLANATION (On Wrong/Submit) ========== */}
-            {submitted && !feedback?.isCorrect && (
-                <div className="bg-white p-6 rounded-2xl border border-red-100 shadow-sm animate-in slide-in-from-top-2">
+            {/* ========== EXPLANATION (On Wrong/Submit/Preview) ========== */}
+            {((submitted && !feedback?.isCorrect) || (isPreview && question.explanation)) && (
+                <div className={`bg-white p-6 rounded-2xl border-2 shadow-sm animate-in slide-in-from-top-2 ${isPreview ? 'border-emerald-100' : 'border-red-100'}`}>
                     <div className="flex gap-4">
-                        <div className="bg-red-100 p-2 rounded-full h-fit">
-                            <Lightbulb className="w-6 h-6 text-red-600" />
+                        <div className={`${isPreview ? 'bg-emerald-100' : 'bg-red-100'} p-2 rounded-full h-fit`}>
+                            <Lightbulb className={`w-6 h-6 ${isPreview ? 'text-emerald-600' : 'text-red-600'}`} />
                         </div>
                         <div className="space-y-4 w-full">
                             <div>
-                                <h4 className="font-bold text-red-800 dark:text-red-300 text-lg mb-1">
-                                    Let's review this! 🧐
+                                <h4 className={`font-bold ${isPreview ? 'text-emerald-800' : 'text-red-800'} dark:text-red-300 text-lg mb-1`}>
+                                    {isPreview ? 'Solution Breakdown' : "Let's review this! 🧐"}
                                 </h4>
                                 <div className="mt-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 inline-block shadow-sm">
                                     <span className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block mb-1">Correct Answer</span>

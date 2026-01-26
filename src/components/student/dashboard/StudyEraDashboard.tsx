@@ -170,12 +170,24 @@ const StudyEraDashboard = () => {
 
             logQuestionResultLocal({
                 questionId: currentQuestion.id || `q-${currentQuestionIndex}`,
-                questionText: currentQuestion.question_text || currentQuestion.content?.prompt?.text || 'Question',
+                questionText: currentQuestion.question_text || (currentQuestion as any).question || currentQuestion.content?.prompt?.text || 'Question',
                 studentAnswer: result.studentAnswerText || result.value || result.selectedValue || 'Answer',
                 correctAnswer: extractCorrectAnswer(),
                 isCorrect: isCorrect,
                 timestamp: new Date(),
-                subject: quizSubject || 'unknown'
+                subject: quizSubject || 'unknown',
+                questionType: (() => {
+                    const q = currentQuestion as any;
+                    let type = q.type || q.templateId || q.template_id || q.template;
+
+                    if (!type) {
+                        const hasAnswer = q.answer || q.correct_answer || q.correctAnswer || (q.answerKey && (q.answerKey.correctValue || q.answerKey.value));
+                        const hasOptions = q.options && Array.isArray(q.options) && q.options.length > 0;
+                        type = (hasAnswer && !hasOptions) ? 'NUMERIC_AUTO' : 'MCQ_SIMPLIFIED';
+                    }
+
+                    return typeof type === 'string' ? type.toUpperCase() : 'UNKNOWN';
+                })()
             }, currentQuestionIndex);
         }
 

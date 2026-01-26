@@ -140,6 +140,7 @@ export interface QuestionLog {
     selectedIndex?: number; // Added for MCQ logging
     value?: any; // Added for numeric/other answer types
     subject?: string; // Added for subject tracking
+    questionType?: string; // Added for template type tracking
 }
 
 

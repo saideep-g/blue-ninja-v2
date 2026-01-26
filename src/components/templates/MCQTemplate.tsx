@@ -302,37 +302,48 @@ export function MCQTemplate({ question, onAnswer, isSubmitting, readOnly, isPrev
       )}
 
       {/* ========== FEEDBACK & NEXT SECTION ========== */}
-      {submitted && feedback && (
+      {(submitted || isPreview) && (
         <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
           <div
-            className={`p-6 rounded-2xl flex gap-4 items-start ${feedback.isCorrect
+            className={`p-6 rounded-2xl flex gap-4 items-start ${((feedback && feedback.isCorrect) || isPreview)
               ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800'
               : 'bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800'
               }`}
           >
-            <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${feedback.isCorrect ? 'bg-green-200 text-green-700 dark:bg-green-800 dark:text-green-300' : 'bg-red-200 text-red-700 dark:bg-red-800 dark:text-red-300'}`}>
-              {feedback.isCorrect ? <CheckCircle2 className="w-6 h-6" /> : <Lightbulb className="w-6 h-6" />}
+            <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${((feedback && feedback.isCorrect) || isPreview) ? 'bg-green-200 text-green-700 dark:bg-green-800 dark:text-green-300' : 'bg-red-200 text-red-700 dark:bg-red-800 dark:text-red-300'}`}>
+              {((feedback && feedback.isCorrect) || isPreview) ? <CheckCircle2 className="w-6 h-6" /> : <Lightbulb className="w-6 h-6" />}
             </div>
 
             <div className="flex-1 space-y-1 pt-1">
-              <h4 className={`font-bold text-lg ${feedback.isCorrect ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>
-                {feedback.isCorrect ? (
+              <h4 className={`font-bold text-lg ${((feedback && feedback.isCorrect) || isPreview) ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>
+                {isPreview ? 'Solution Breakdown' : (feedback.isCorrect ? (
                   <span className="flex items-center gap-2">
                     {feedback.feedback}
                     {isAutoAdvancing && <Loader2 className="w-4 h-4 animate-spin opacity-50" />}
                   </span>
-                ) : 'Correct Answer:'}
+                ) : 'Correct Answer:')}
               </h4>
 
-              {/* Show explanation text if INCORRECT */}
-              {!feedback.isCorrect && (
+              {/* Show explanation text if INCORRECT or PREVIEW */}
+              {(((feedback && !feedback.isCorrect) || isPreview) && !isAutoAdvancing) && (
                 <div className="space-y-2">
-                  <p className="text-xl font-bold text-green-700 dark:text-green-400">
-                    <LatexRenderer text={options[correctIndex]?.text} />
-                  </p>
-                  <p className="text-base text-red-700 dark:text-red-400">
-                    {feedback.feedback}
-                  </p>
+                  <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm inline-block">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">The Correct Answer</span>
+                    <p className="text-xl font-bold text-green-700 dark:text-green-400">
+                      <LatexRenderer text={options[correctIndex]?.text} />
+                    </p>
+                  </div>
+                  {feedback && !feedback.isCorrect && (
+                    <p className="text-base text-red-700 dark:text-red-400">
+                      {feedback.feedback}
+                    </p>
+                  )}
+                  {/* Detailed Explanation Text */}
+                  {(question.explanation || (question as any).explanation_text) && (
+                    <div className="mt-4 p-4 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+                      <LatexRenderer text={question.explanation || (question as any).explanation_text} />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -349,21 +360,23 @@ export function MCQTemplate({ question, onAnswer, isSubmitting, readOnly, isPrev
           <button
             autoFocus
             onClick={handleContinue}
-            className={`w-full py-4 rounded-xl font-extrabold text-lg shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 ${feedback.isCorrect
+            className={`w-full py-4 rounded-xl font-extrabold text-lg shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 ${((feedback && feedback.isCorrect) || isPreview)
               ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'
               : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20 text-white'
               }`}
           >
-            {feedback.isCorrect ? 'Finish & Next Question' : 'Got it, Next Question'} <ArrowRightCircle size={24} />
+            {isPreview ? 'Got it, Next Question' : (feedback.isCorrect ? 'Finish & Next Question' : 'Got it, Next Question')} <ArrowRightCircle size={24} />
           </button>
-          <p className="text-center text-xs text-slate-400 font-medium pb-4">
-            Press Enter or Click to continue
-          </p>
+          {!isPreview && (
+            <p className="text-center text-xs text-slate-400 font-medium pb-4">
+              Press Enter or Click to continue
+            </p>
+          )}
         </div>
       )}
 
       {/* ========== WORKED SOLUTION (COLLAPSIBLE) ========== */}
-      {submitted && question.workedSolution?.steps && question.workedSolution.steps.length > 0 && (
+      {(submitted || isPreview) && question.workedSolution?.steps && question.workedSolution.steps.length > 0 && (
         <details className="bg-gradient-to-br from-purple-50 to-indigo-50 p-5 md:p-6 rounded-xl border-2 border-purple-200 group">
           <summary className="cursor-pointer font-bold text-gray-900 text-base md:text-lg flex items-center gap-2 hover:text-purple-600 transition-colors">
             <span>💡 See how to solve this</span>

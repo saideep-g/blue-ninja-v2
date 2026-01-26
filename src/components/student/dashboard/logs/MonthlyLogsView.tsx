@@ -33,13 +33,17 @@ export function MonthlyLogsView() {
                 if (snap.exists()) {
                     const data = snap.data();
                     const entries = data.entries || [];
+
+                    const getTimestamp = (ts: any) => {
+                        if (!ts) return new Date(0).getTime();
+                        if (ts.toDate) return ts.toDate().getTime();
+                        if (ts.seconds) return ts.seconds * 1000;
+                        return new Date(ts).getTime();
+                    };
+
                     // Phase 4: Sort reverse chronological
-                    // Assuming items inserted in order, reverse is mostly correct. 
-                    // Better to sort by timestamp if available. All bucketed logs have timestamp.
                     entries.sort((a: any, b: any) => {
-                        const tA = new Date(a.timestamp).getTime();
-                        const tB = new Date(b.timestamp).getTime();
-                        return tB - tA; // Newest first
+                        return getTimestamp(b.timestamp) - getTimestamp(a.timestamp); // Newest first
                     });
                     setLogs(entries);
                 } else {
@@ -141,11 +145,20 @@ export function MonthlyLogsView() {
                                 <div className="flex-1 space-y-1">
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md">
-                                            {new Date(log.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                            {(() => {
+                                                const ts = log.timestamp;
+                                                const date = ts?.toDate ? ts.toDate() : (ts?.seconds ? new Date(ts.seconds * 1000) : new Date(ts));
+                                                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+                                            })()}
                                         </span>
                                         <span className="text-[10px] uppercase font-black tracking-wider text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded-md">
                                             {log.subject || 'Era'}
                                         </span>
+                                        {log.questionType && (
+                                            <span className="text-[10px] uppercase font-black tracking-wider text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-0.5 rounded-md">
+                                                {log.questionType.replace('_', ' ')}
+                                            </span>
+                                        )}
                                         <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md">
                                             {log.questionId}
                                         </span>

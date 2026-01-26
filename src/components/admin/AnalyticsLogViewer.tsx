@@ -55,7 +55,8 @@ function AnalyticsLogViewer() {
         'masteryAfter',
         'atomId',
         'mode',
-        'timestamp'
+        'timestamp',
+        'questionType'
     ];
 
     // Fetch all students on mount

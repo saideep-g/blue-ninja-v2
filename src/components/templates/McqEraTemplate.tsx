@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import 'katex/dist/katex.min.css';
 import { InlineMath } from 'react-katex';
-import { CheckCircle2, XCircle, Sparkles, AlertCircle, Loader2, ArrowRightCircle, Zap, Crown, Flag } from 'lucide-react';
+import { CheckCircle2, XCircle, Sparkles, AlertCircle, Loader2, ArrowRightCircle, Zap, Crown, Flag, Lightbulb } from 'lucide-react';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../services/db/firebase';
 import { Question } from '../../types';
@@ -40,6 +40,33 @@ const LatexRenderer = ({ text }: { text: string | null }) => {
                 return <span key={i}>{part}</span>;
             })}
         </>
+    );
+};
+
+const ExplanationStepRenderer = ({ text, textColor }: { text: string, textColor: string }) => {
+    const lines = text.split('\n').filter(l => l.trim());
+    return (
+        <div className="space-y-4 pt-2">
+            {lines.map((line, idx) => {
+                const isStep = line.match(/^(\d+[\.\)\:]|\(?\d+\)?|Step\s+\d+)/i);
+                const content = isStep ? line.replace(/^.*?[\.\)\:]\s*/, '') : line;
+
+                return (
+                    <div key={idx} className="flex gap-4 group/step items-start">
+                        {isStep ? (
+                            <div className="w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 flex items-center justify-center text-sm font-black shrink-0 group-hover/step:bg-indigo-500 group-hover/step:text-white transition-all shadow-sm">
+                                {idx + 1}
+                            </div>
+                        ) : (
+                            <div className="w-2 h-2 rounded-full bg-indigo-500/30 mt-2.5 shrink-0 ml-3" />
+                        )}
+                        <p className="text-base md:text-lg leading-relaxed font-medium pt-0.5" style={{ color: textColor }}>
+                            <LatexRenderer text={content} />
+                        </p>
+                    </div>
+                );
+            })}
+        </div>
     );
 };
 
@@ -300,33 +327,64 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting, readOnly, isP
                     {isSubmitting ? <Loader2 className="animate-spin" /> : <>Final Answer <Zap size={18} fill="currentColor" /></>}
                 </button>
             ) : (submitted || isPreview) && (
-                <div className="animate-in slide-in-from-bottom-4 duration-500">
-                    {!isPreview && feedback && (
-                        <div className={`p-6 rounded-[2rem] mb-4 text-center border-2 shadow-xl`}
-                            style={{ backgroundColor: bgCard, borderColor: feedback?.isCorrect ? '#34d399' : '#f43f5e' }}>
-                            <h3 className="font-serif italic text-lg mb-2 opacity-80" style={{ color: feedback?.isCorrect ? '#059669' : '#f43f5e' }}>
-                                {feedback?.feedback}
-                            </h3>
-                            {!feedback?.isCorrect && question.explanation && (
-                                <div className="mt-2 animate-in zoom-in-50 duration-300">
-                                    <div className="p-4 rounded-2xl text-left border-l-4"
-                                        style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: borderColor }}>
-                                        <div className="flex gap-2 items-start leading-relaxed font-medium" style={{ color: textColor }}>
-                                            <Sparkles size={20} className="text-yellow-500 shrink-0 mt-1" />
-                                            <div><LatexRenderer text={question.explanation} /></div>
+                <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-4">
+                    {/* FEEDBACK & EXPLANATION CARD */}
+                    {(feedback || (isPreview && question.explanation)) && (
+                        <div className="p-8 rounded-[2.5rem] border-2 shadow-xl relative overflow-hidden group/expl"
+                            style={{
+                                backgroundColor: bgCard,
+                                borderColor: (isPreview || feedback?.isCorrect) ? '#34d399' : '#f43f5e',
+                                transition: 'all 0.5s ease'
+                            }}>
+
+                            {/* Feedback Header */}
+                            {feedback && (
+                                <div className="mb-6">
+                                    <h3 className="font-serif italic text-2xl mb-1" style={{ color: feedback.isCorrect ? '#059669' : '#e11d48' }}>
+                                        {feedback.feedback}
+                                    </h3>
+                                    <div className={`h-1 w-24 rounded-full ${feedback.isCorrect ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                                </div>
+                            )}
+
+                            {/* Explanation Body */}
+                            {(isPreview || !feedback?.isCorrect) && question.explanation && (
+                                <div className="animate-in fade-in zoom-in-95 duration-500">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-3 bg-yellow-400/10 rounded-2xl">
+                                            <Sparkles size={24} className="text-yellow-500" />
                                         </div>
+                                        <div>
+                                            <h4 className="text-sm font-black uppercase tracking-[0.2em] opacity-40">Step-by-Step Fix</h4>
+                                            <p className="text-xs font-bold opacity-30 italic">Learn the vibe of this solution</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-1 rounded-2xl">
+                                        <ExplanationStepRenderer text={question.explanation} textColor={textColor} />
                                     </div>
                                 </div>
                             )}
+
+                            {/* Background Decorative Element */}
+                            <div className="absolute top-[-2rem] right-[-2rem] opacity-[0.03] rotate-12 pointer-events-none transition-transform group-hover/expl:scale-110 duration-700">
+                                <Lightbulb size={240} />
+                            </div>
                         </div>
                     )}
+
+                    {/* ACTIONS */}
                     <button
                         onClick={handleContinue}
-                        className="w-full py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-all flex items-center justify-center gap-2 border-2"
-                        // Theme compliant button
-                        style={{ backgroundColor: bgCard, color: textColor, borderColor: isPreview ? '#34d399' : borderColor }}
+                        className="w-full py-6 rounded-[2.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-all flex items-center justify-center gap-2 border-2 active:scale-95 group/next"
+                        style={{
+                            backgroundColor: bgCard,
+                            color: textColor,
+                            borderColor: isPreview ? '#34d399' : borderColor
+                        }}
                     >
-                        {isPreview ? 'Next Question' : 'Next Era'} <ArrowRightCircle size={18} />
+                        {isPreview ? 'Next Question' : 'Next Era'}
+                        <ArrowRightCircle size={18} className="group-hover/next:translate-x-1 transition-transform" />
                     </button>
                 </div>
             )}
