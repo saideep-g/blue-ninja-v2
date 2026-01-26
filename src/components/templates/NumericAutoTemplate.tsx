@@ -175,11 +175,17 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
         visualType = 'svg';
     }
 
-    const parseValue = (val: string | number | undefined): number | null => {
+    const parseValue = (val: string | number | undefined): number | string | null => {
         if (typeof val === 'number') return val;
         if (!val) return null;
         val = val.toString().trim();
 
+        // Handle Ratios (X:Y)
+        if (val.includes(':')) {
+            return val.replace(/\s+/g, '');
+        }
+
+        // Handle Fractions
         if (val.includes('/')) {
             const parts = val.split('/');
             if (parts.length === 2) {
@@ -192,10 +198,10 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
         }
 
         const num = parseFloat(val);
-        return isNaN(num) ? null : num;
+        return isNaN(num) ? val : num; // Return raw string if parseFloat is incomplete
     };
 
-    const correctValue = parseValue(rawCorrectValue) ?? 0;
+    const parsedCorrectValue = parseValue(rawCorrectValue);
     const tolerance = answerKey.tolerance ?? (question as any).tolerance ?? 0.001;
 
     const feedbackMap = (question as any).feedbackMap || {};
@@ -211,14 +217,19 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
         e?.preventDefault();
         if (!inputValue.trim() || submitted || isSubmitting || readOnly) return;
 
-        const userNum = parseValue(inputValue);
-        if (userNum === null) {
-            alert("Please enter a valid number or fraction.");
+        const userVal = parseValue(inputValue);
+        if (userVal === null) {
+            alert("Please enter a valid number, fraction, or ratio.");
             return;
         }
 
-        const diff = Math.abs(userNum - correctValue);
-        const isCorrect = diff <= tolerance;
+        let isCorrect = false;
+        if (typeof userVal === 'number' && typeof parsedCorrectValue === 'number') {
+            isCorrect = Math.abs(userVal - parsedCorrectValue) <= tolerance;
+        } else {
+            // String comparison for ratios or non-numeric strings
+            isCorrect = String(userVal).toLowerCase() === String(parsedCorrectValue).toLowerCase();
+        }
 
         const selectedPraise = isCorrect ? getRandomPraise() : undefined;
 
@@ -227,7 +238,7 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
             value: inputValue,
             feedback: handleCreateFeedback(isCorrect, selectedPraise),
             studentAnswerText: inputValue + (unit ? ` ${unit}` : ''),
-            correctAnswerText: (String(rawCorrectValue) || String(correctValue)) + (unit ? ` ${unit}` : '')
+            correctAnswerText: (String(rawCorrectValue)) + (unit ? ` ${unit}` : '')
         };
 
         setFeedback(resultData);
@@ -321,9 +332,9 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
                             placeholder={placeholder}
                             value={inputValue}
                             onChange={(e) => {
-                                // Allow digits, decimal relative chars, and space
+                                // Allow digits, decimal relative chars, space, and colon
                                 const val = e.target.value;
-                                if (val === '' || /^[0-9./\s-]*$/.test(val)) {
+                                if (val === '' || /^[0-9./\s:-]*$/.test(val)) {
                                     setInputValue(val);
                                 }
                             }}
@@ -387,7 +398,7 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
                                 </h4>
                                 <div className="mt-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 inline-block shadow-sm">
                                     <span className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block mb-1">Correct Answer</span>
-                                    <span className="text-xl font-mono font-bold text-slate-800 dark:text-white">{correctValue} {unit}</span>
+                                    <span className="text-xl font-mono font-bold text-slate-800 dark:text-white">{String(rawCorrectValue)} {unit}</span>
                                 </div>
                             </div>
 
