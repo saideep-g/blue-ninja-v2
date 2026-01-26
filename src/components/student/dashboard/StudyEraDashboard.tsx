@@ -21,7 +21,7 @@ import { useDailyProgressSync } from './era/hooks/useDailyProgressSync';
 
 
 const StudyEraDashboard = () => {
-    const { user, ninjaStats, logQuestionResultLocal } = useNinja();
+    const { user, ninjaStats, logQuestionResultLocal, syncToCloud } = useNinja();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -204,8 +204,16 @@ const StudyEraDashboard = () => {
             if (user && quizSubject) {
                 eraSessionService.clearSession(user.uid, quizSubject);
             }
+            // Trigger Final Sync when Quiz completes
+            syncToCloud(true).catch(e => console.error("Final sync failed", e));
             triggerCelebration();
         }
+    };
+
+    const handleExitQuiz = () => {
+        // Sync remaining logs before exiting
+        syncToCloud(true).catch(e => console.error("Exit sync failed", e));
+        navigate('/');
     };
 
     const triggerCelebration = () => {
@@ -410,7 +418,7 @@ const StudyEraDashboard = () => {
                             questions={quizQuestions}
                             currentQuestionIndex={currentQuestionIndex}
                             onAnswer={handleQuizAnswer}
-                            onClose={() => navigate('/')}
+                            onClose={handleExitQuiz}
                         />
                     } />
 

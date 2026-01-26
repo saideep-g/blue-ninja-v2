@@ -32,7 +32,7 @@ import { MonthlyLogsView } from './logs/MonthlyLogsView';
 
 
 export default function MobileQuestDashboard() {
-    const { ninjaStats, user, updatePower, logQuestionResult } = useNinja();
+    const { ninjaStats, user, updatePower, logQuestionResult, syncToCloud } = useNinja();
     const navigate = useNavigate();
 
     const [view, setView] = useState('home'); // home, awards, profile, quiz, results, history
@@ -85,6 +85,7 @@ export default function MobileQuestDashboard() {
 
             const handlePopState = (event: PopStateEvent) => {
                 // Intercept back button and go Home
+                syncToCloud(true).catch(e => console.error("Exit sync failed", e));
                 setView('home');
             };
 
@@ -465,6 +466,9 @@ export default function MobileQuestDashboard() {
         }
 
         updatePower(finalScore * 20);
+
+        // Trigger Final Sync when Quiz completes
+        syncToCloud(true).catch(e => console.error("Final sync failed", e));
 
         // Trigger celebration instead of direct view switch
         setView('results'); // Show results briefly/underneath? Actually results view has 'Continue' button.
