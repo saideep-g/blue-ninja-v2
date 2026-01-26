@@ -78,8 +78,8 @@ export default function App() {
         <NinjaProvider>
 
           <Routes>
-            {/* Main Entry Point - Handles Role Check */}
-            <Route path="/" element={<RootRedirector />} />
+            {/* Main Entry Point - Handles Role Check and Nested Student Routes */}
+            <Route path="/*" element={<RootRedirector />} />
 
             {/* Admin Module - Delegated Routing */}
             <Route path="/admin/*" element={<AdminRoutes />} />

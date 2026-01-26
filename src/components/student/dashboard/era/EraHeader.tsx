@@ -4,7 +4,6 @@ import { User as UserModel } from '../../../../types/models';
 
 interface EraHeaderProps {
     currentView: string;
-    setCurrentView: (view: 'dashboard' | 'challenges' | 'quiz' | 'logs') => void;
     setArenaSubView: (view: 'create' | 'active' | 'history') => void;
     ninjaStats: any;
     user: any;
@@ -15,7 +14,6 @@ interface EraHeaderProps {
 
 export const EraHeader: React.FC<EraHeaderProps> = ({
     currentView,
-    setCurrentView,
     setArenaSubView,
     ninjaStats,
     user,
@@ -30,21 +28,21 @@ export const EraHeader: React.FC<EraHeaderProps> = ({
                     <span className="bg-theme-card px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm text-pink-400 border border-theme-border">{ninjaStats?.profile?.class || 7}th Grade Elite</span>
                     <span className="text-pink-300">✦</span>
                     <button
-                        onClick={() => setCurrentView('dashboard')}
+                        onClick={() => navigate('/')}
                         className={`text-[10px] uppercase font-bold tracking-[0.1em] transition-colors ${currentView === 'dashboard' ? 'text-theme-text' : 'text-color-text-secondary'}`}
                     >
                         Main Desk
                     </button>
                     <span className="text-color-text-secondary">/</span>
                     <button
-                        onClick={() => { setCurrentView('challenges'); setArenaSubView('create'); }}
+                        onClick={() => { navigate('/arena'); setArenaSubView('create'); }}
                         className={`text-[10px] uppercase font-bold tracking-[0.1em] transition-colors ${currentView === 'challenges' ? 'text-pink-400' : 'text-color-text-secondary'}`}
                     >
                         Challenge Arena
                     </button>
                     <span className="text-color-text-secondary">/</span>
                     <button
-                        onClick={() => setCurrentView('logs')}
+                        onClick={() => navigate('/history')}
                         className={`text-[10px] uppercase font-bold tracking-[0.1em] transition-colors ${currentView === 'logs' ? 'text-pink-400' : 'text-color-text-secondary'}`}
                     >
                         History

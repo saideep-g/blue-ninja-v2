@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNinja } from '../../../context/NinjaContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { collection, query, where, getDocs, onSnapshot, orderBy, doc, getDoc, limit, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../../../services/db/firebase';
 import { Bundle, Challenge, User as UserModel, Question } from '../../../types/models';
@@ -15,6 +15,7 @@ import { EraArenaView } from './era/EraArenaView';
 import { EraQuizView, EraQuizViewHandle } from './era/EraQuizView';
 import { EraExpansionOverlay } from './era/EraExpansionOverlay';
 import { EraCelebration } from './era/EraCelebration';
+import { MonthlyLogsView } from './logs/MonthlyLogsView';
 import { useSubjectData } from './era/hooks/useSubjectData';
 import { useDailyProgressSync } from './era/hooks/useDailyProgressSync';
 
@@ -22,57 +23,52 @@ import { useDailyProgressSync } from './era/hooks/useDailyProgressSync';
 const StudyEraDashboard = () => {
     const { user, ninjaStats, logQuestionResultLocal } = useNinja();
     const navigate = useNavigate();
+    const location = useLocation();
 
-    // Navigation & View State
-    const [currentView, setCurrentView] = useState<'dashboard' | 'challenges' | 'quiz'>('dashboard');
+    // Derive view from URL
+    const currentView = (() => {
+        if (location.pathname.includes('/quiz')) return 'quiz';
+        if (location.pathname.includes('/arena')) return 'challenges';
+        if (location.pathname.includes('/history')) return 'logs';
+        return 'dashboard';
+    })();
+
     const [arenaSubView, setArenaSubView] = useState<'create' | 'active' | 'history'>('create');
     const [selectedSubject, setSelectedSubject] = useState<any>(null);
 
     // Ref to control Quiz View
     const quizViewRef = useRef<EraQuizViewHandle>(null);
 
-    // --- BACK BUTTON MANAGEMENT ---
+    // --- BROWSER NAVIGATION MANAGEMENT ---
     useEffect(() => {
-        if (currentView === 'quiz' || currentView === 'challenges') {
-            // Push a state so that "Back" stays in the app but goes to dashboard
-            window.history.pushState({ view: currentView }, '', window.location.pathname);
+        // Handle physical back button/exit confirmation for Quiz
+        const handlePopState = (event: PopStateEvent) => {
+            if (currentView === 'quiz' && quizViewRef.current) {
+                // Stay on page and show confirmation
+                window.history.pushState({ view: 'quiz' }, '', window.location.pathname);
+                quizViewRef.current.triggerExitConfirmation();
+                return;
+            }
+        };
 
-            const handlePopState = (event: PopStateEvent) => {
-                // If in Quiz view, trigger confirmation instead of immediate exit
-                if (currentView === 'quiz' && quizViewRef.current) {
-                    event.preventDefault(); // Try to prevent default (though popstate is post-event)
-                    window.history.pushState({ view: 'quiz' }, '', window.location.pathname); // Re-push state to stay on page
-                    quizViewRef.current.triggerExitConfirmation();
-                    return;
-                }
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (currentView === 'quiz') {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
 
-                // Default behavior for other views or if ref missing
-                event.preventDefault();
-                setCurrentView('dashboard');
-            };
+        window.addEventListener('popstate', handlePopState);
+        window.addEventListener('beforeunload', handleBeforeUnload);
 
-            // Warn on Browser Exit/Refresh
-            const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-                if (currentView === 'quiz') {
-                    e.preventDefault();
-                    e.returnValue = ''; // Standard browser confirmation text
-                }
-            };
-
-            window.addEventListener('popstate', handlePopState);
-            window.addEventListener('beforeunload', handleBeforeUnload);
-
-            return () => {
-                window.removeEventListener('popstate', handlePopState);
-                window.removeEventListener('beforeunload', handleBeforeUnload);
-            };
-        }
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
     }, [currentView]);
+
     const [greeting, setGreeting] = useState("Loading vibes...");
     const [quizSubject, setQuizSubject] = useState<string | null>(null);
-
-    // Math Mission Hook - REMOVED (Replaced by EraSessionService)
-    // const dailyMission = useDailyMission();
 
     // Quiz State
     const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
@@ -86,7 +82,6 @@ const StudyEraDashboard = () => {
     useDailyProgressSync(user, setCompletedSubjects);
 
     // Data State
-    // const [subjects, setSubjects] = useState<any[]>([]); // Refactored to hook
     const [bundles, setBundles] = useState<Bundle[]>([]);
     const [friends, setFriends] = useState<UserModel[]>([]);
     const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
@@ -96,42 +91,26 @@ const StudyEraDashboard = () => {
     const [expandingSubject, setExpandingSubject] = useState<any>(null);
     const [expansionRect, setExpansionRect] = useState<{ top: number, left: number, width: number, height: number } | null>(null);
 
-    // --- QUIZ HANDLERS ---
-
-    // --- DATA FETCHING (Separated) ---
-    // --- DATA FETCHING (Delegated to Service) ---
-    // fetchQuestions removed - migrated to eraSessionService.ts
-
     const handleStartQuiz = async () => {
         if (!selectedSubject) return;
-
-        console.log(`🚀 Manual Start Quiz for: ${selectedSubject.id}`);
-
         if (user) {
             const session = await eraSessionService.startOrResumeSession(user.uid, selectedSubject.id);
             setQuizQuestions(session.questions);
             setCurrentQuestionIndex(session.currentIndex);
             setQuizScore(session.score);
             setQuizSubject(selectedSubject.id);
-            setCurrentView('quiz');
+            navigate('/quiz');
         }
     };
 
     const handleEraClick = async (subject: any, e: React.MouseEvent) => {
-        // 1. Capture & Start Expansion
         const rect = e.currentTarget.getBoundingClientRect();
         setExpansionRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
         setExpandingSubject(subject);
-
-        // Tick to allow render of initial state before animating to full
         setTimeout(() => setIsExpanding(true), 10);
 
-        // 2. Parallel: Fetch Data AND Wait for Animation
         const targetId = subject.id || 'science';
-        // const isMath = targetId === 'math' || targetId === 'mathematics';
-
-        // UNIFIED ENGINE with PERSISTENCE via Service
-        const [session, _] = await Promise.all([
+        const [session] = await Promise.all([
             eraSessionService.startOrResumeSession(user?.uid || 'guest', targetId),
             new Promise(resolve => setTimeout(resolve, 800))
         ]);
@@ -141,10 +120,7 @@ const StudyEraDashboard = () => {
         setCurrentQuestionIndex(session.currentIndex);
         setQuizScore(session.score);
 
-        // 3. Smooth Handoff
-        setCurrentView('quiz');
-
-        // 4. Fade out overlay
+        navigate('/quiz');
         setExpandingSubject(null);
         setIsExpanding(false);
     };
@@ -155,7 +131,6 @@ const StudyEraDashboard = () => {
         if (isCorrect) newScore = quizScore + 10;
         setQuizScore(newScore);
 
-        // Log the question result
         const currentQuestion = quizQuestions[currentQuestionIndex];
         if (currentQuestion && logQuestionResultLocal) {
             logQuestionResultLocal({
@@ -172,8 +147,6 @@ const StudyEraDashboard = () => {
         if (currentQuestionIndex < quizQuestions.length - 1) {
             const newIndex = currentQuestionIndex + 1;
             setCurrentQuestionIndex(newIndex);
-
-            // Save Progress
             if (user && quizSubject) {
                 eraSessionService.updateProgress(user.uid, quizSubject, {
                     currentIndex: newIndex,
@@ -181,7 +154,6 @@ const StudyEraDashboard = () => {
                 });
             }
         } else {
-            // Finish
             if (user && quizSubject) {
                 eraSessionService.clearSession(user.uid, quizSubject);
             }
@@ -190,11 +162,8 @@ const StudyEraDashboard = () => {
     };
 
     const triggerCelebration = () => {
-        // Mark as completed for this session
         if (quizSubject) {
             setCompletedSubjects(prev => new Set(prev).add(quizSubject));
-
-            // Persist to Firestore (Daily Counts)
             if (user) {
                 const keyMap: Record<string, string> = {
                     'math': 'Math', 'science': 'Science',
@@ -205,7 +174,7 @@ const StudyEraDashboard = () => {
                 if (dbKey) {
                     const docRef = doc(db, 'students', user.uid);
                     updateDoc(docRef, {
-                        [`daily.${dbKey}`]: increment(10), // Assume ~10 questions per era session
+                        [`daily.${dbKey}`]: increment(10),
                         lastActive: new Date()
                     }).catch(e => console.error("Failed to save daily progress", e));
                 }
@@ -218,16 +187,13 @@ const StudyEraDashboard = () => {
 
         setTimeout(() => {
             setShowCelebration(false);
-            setCurrentView('dashboard');
+            navigate('/');
         }, 4000);
     };
-
-
 
     const handleEnterArena = async (challenge: Challenge) => {
         try {
             const allQuestions: Question[] = [];
-            // Fetch all bundles in parallel
             await Promise.all(challenge.bundleIds.map(async (bundleId) => {
                 const bundleRef = doc(db, 'question_bundles', bundleId);
                 const bundleSnap = await getDoc(bundleRef);
@@ -240,12 +206,11 @@ const StudyEraDashboard = () => {
             }));
 
             if (allQuestions.length > 0) {
-                // Shuffle questions
                 const shuffled = allQuestions.sort(() => Math.random() - 0.5);
                 setQuizQuestions(shuffled);
                 setCurrentQuestionIndex(0);
                 setQuizScore(0);
-                setCurrentView('quiz');
+                navigate('/quiz');
             } else {
                 alert("This arena seems empty! No questions found.");
             }
@@ -255,28 +220,13 @@ const StudyEraDashboard = () => {
         }
     };
 
-    // --- INITIALIZATION & DATA FETCHING ---
-
     useEffect(() => {
-        // Randomly select a Gen Z greeting each session
         const randomGreeting = GEN_Z_GREETINGS[Math.floor(Math.random() * GEN_Z_GREETINGS.length)];
         setGreeting(randomGreeting);
     }, []);
 
-    // Math Completion Listener - REMOVED (Handled internally by handleQuizAnswer)
-    /* 
-    useEffect(() => {
-        if (quizSubject === 'math' && dailyMission.isComplete && currentView === 'quiz' && !showCelebration) { 
-            triggerCelebration();
-        }
-    }, [dailyMission.isComplete, quizSubject, currentView]); 
-    */
-
-    // 1. Build Subjects
-    // 1. Build Subjects (Refactored to Hook)
     const subjects = useSubjectData(ninjaStats, user, completedSubjects);
 
-    // 2. Fetch Bundles
     useEffect(() => {
         const fetchBundles = async () => {
             try {
@@ -284,14 +234,11 @@ const StudyEraDashboard = () => {
                 const snap = await getDocs(q);
                 const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Bundle));
                 setBundles(list);
-            } catch (e) {
-                console.error("Failed to fetch bundles", e);
-            }
+            } catch (e) { console.error(e); }
         };
         fetchBundles();
     }, []);
 
-    // 3. Fetch Friends
     useEffect(() => {
         const fetchFriends = async () => {
             try {
@@ -306,7 +253,6 @@ const StudyEraDashboard = () => {
         if (user) fetchFriends();
     }, [user]);
 
-    // 4. Listen to Active Challenges
     useEffect(() => {
         if (!user) return;
         const q = query(
@@ -323,11 +269,7 @@ const StudyEraDashboard = () => {
         return () => unsubscribe();
     }, [user]);
 
-    // --- COMPUTED ---
-
     const totalCompletedToday = subjects.filter(s => s.completedToday).length;
-
-    // Recalculate auraPoints here
     const auraPoints = subjects.reduce((total, s) => {
         let subjTotal = 0;
         s.modules.forEach((m: any) => {
@@ -344,35 +286,14 @@ const StudyEraDashboard = () => {
         <div className="min-h-screen bg-theme-bg text-theme-text font-sans selection:bg-pink-100 overflow-x-hidden relative transition-colors duration-300">
             <style>
                 {`
-                .cubic-bezier {
-                    transition-timing-function: cubic-bezier(0.8, 0, 0.2, 1);
-                }
-                .dashboard-zoom-out {
-                    transform: scale(0.9);
-                    filter: blur(24px);
-                    opacity: 0.2;
-                    transition: all 900ms cubic-bezier(0.4, 0, 0.2, 1);
-                }
+                .cubic-bezier { transition-timing-function: cubic-bezier(0.8, 0, 0.2, 1); }
+                .dashboard-zoom-out { transform: scale(0.9); filter: blur(24px); opacity: 0.2; transition: all 900ms cubic-bezier(0.4, 0, 0.2, 1); }
                 `}
             </style>
 
-            {/* EXPANSION OVERLAY */}
-            {/* EXPANSION OVERLAY (Framer Motion) */}
-            {/* EXPANSION OVERLAY */}
-            <EraExpansionOverlay
-                isExpanding={isExpanding}
-                expandingSubject={expandingSubject}
-                expansionRect={expansionRect}
-            />
+            <EraExpansionOverlay isExpanding={isExpanding} expandingSubject={expandingSubject} expansionRect={expansionRect} />
+            <EraCelebration showCelebration={showCelebration} celebrationMessage={celebrationMessage} />
 
-            {/* CELEBRATION OVERLAY */}
-            {/* CELEBRATION OVERLAY */}
-            <EraCelebration
-                showCelebration={showCelebration}
-                celebrationMessage={celebrationMessage}
-            />
-
-            {/* BACKGROUND DECORATION */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-pink-100/50 rounded-full blur-[120px] animate-pulse"></div>
                 <div className="absolute bottom-[-10%] left-[-10%] w-[30vw] h-[30vw] bg-purple-100/40 rounded-full blur-[100px]"></div>
@@ -382,7 +303,6 @@ const StudyEraDashboard = () => {
                 {currentView !== 'quiz' && (
                     <EraHeader
                         currentView={currentView}
-                        setCurrentView={setCurrentView}
                         setArenaSubView={setArenaSubView}
                         ninjaStats={ninjaStats}
                         user={user}
@@ -392,56 +312,64 @@ const StudyEraDashboard = () => {
                     />
                 )}
 
-                {/* CONTENT SWITCHER */}
-                {currentView === 'quiz' ? (
-                    <EraQuizView
-                        ref={quizViewRef}
-                        questions={quizQuestions}
-                        currentQuestionIndex={currentQuestionIndex}
-                        onAnswer={handleQuizAnswer}
-                        onClose={() => setCurrentView('dashboard')}
-                    />
-                ) : currentView === 'dashboard' ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-500">
-                        <EraSubjectGrid
-                            subjects={subjects}
-                            totalCompletedToday={totalCompletedToday}
-                            auraPoints={auraPoints}
-                            onOpenArena={() => { setCurrentView('challenges'); setArenaSubView('create'); }}
-                            onSelectSubject={handleEraClick}
-                            selectedSubjectId={selectedSubject?.id}
-                            onOpenTables={() => navigate('/tables')}
-                        />
+                <Routes>
+                    <Route path="/" element={
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-500">
+                            <EraSubjectGrid
+                                subjects={subjects}
+                                totalCompletedToday={totalCompletedToday}
+                                auraPoints={auraPoints}
+                                onOpenArena={() => navigate('/arena')}
+                                onSelectSubject={handleEraClick}
+                                selectedSubjectId={selectedSubject?.id}
+                                onOpenTables={() => navigate('/tables')}
+                            />
 
-                        <div className="lg:col-span-4 sticky top-8 h-[700px]">
-                            {/* We keep DetailPanel but it effectively disappears when we switch views */}
-                            {selectedSubject && !isExpanding && (
-                                <EraDetailPanel
-                                    selectedSubject={selectedSubject}
-                                    onClose={() => setSelectedSubject(null)}
-                                    // Using handleStartQuiz with no arg uses mock/existing questions
-                                    onStartQuiz={() => handleStartQuiz()}
-                                />
-                            )}
-                            {!selectedSubject && !isExpanding && (
-                                <div className="bg-theme-card/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-theme-border h-full flex items-center justify-center text-center">
-                                    <p className="text-color-text-secondary font-serif italic text-lg">Select an Era to view details<br />or start a quiz instantly.</p>
-                                </div>
-                            )}
+                            <div className="lg:col-span-4 sticky top-8 h-[700px]">
+                                {selectedSubject && !isExpanding && (
+                                    <EraDetailPanel
+                                        selectedSubject={selectedSubject}
+                                        onClose={() => setSelectedSubject(null)}
+                                        onStartQuiz={() => handleStartQuiz()}
+                                    />
+                                )}
+                                {!selectedSubject && !isExpanding && (
+                                    <div className="bg-theme-card/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-theme-border h-full flex items-center justify-center text-center">
+                                        <p className="text-color-text-secondary font-serif italic text-lg">Select an Era to view details<br />or start a quiz instantly.</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                ) : ( // Challenges View
-                    <EraArenaView
-                        subView={arenaSubView}
-                        setSubView={setArenaSubView}
-                        bundles={bundles}
-                        activeChallenges={activeChallenges}
-                        friends={friends}
-                        user={user}
-                        ninjaStats={ninjaStats}
-                        onEnterArena={handleEnterArena}
-                    />
-                )}
+                    } />
+
+                    <Route path="/arena" element={
+                        <EraArenaView
+                            subView={arenaSubView}
+                            setSubView={setArenaSubView}
+                            bundles={bundles}
+                            activeChallenges={activeChallenges}
+                            friends={friends}
+                            user={user}
+                            ninjaStats={ninjaStats}
+                            onEnterArena={handleEnterArena}
+                        />
+                    } />
+
+                    <Route path="/history" element={<MonthlyLogsView />} />
+
+                    <Route path="/quiz" element={
+                        <EraQuizView
+                            ref={quizViewRef}
+                            questions={quizQuestions}
+                            currentQuestionIndex={currentQuestionIndex}
+                            onAnswer={handleQuizAnswer}
+                            onClose={() => navigate('/')}
+                        />
+                    } />
+
+                    {/* Fallback */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
             </div>
         </div>
     );
