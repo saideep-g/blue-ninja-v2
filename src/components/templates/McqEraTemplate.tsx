@@ -14,6 +14,7 @@ interface MCQTemplateProps {
     onAnswer: (result: any) => void;
     isSubmitting: boolean;
     readOnly?: boolean;
+    isPreview?: boolean;
 }
 
 interface Feedback {
@@ -42,7 +43,7 @@ const LatexRenderer = ({ text }: { text: string | null }) => {
     );
 };
 
-export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplateProps) {
+export function McqEraTemplate({ question, onAnswer, isSubmitting, readOnly, isPreview = false }: MCQTemplateProps) {
     const { autoAdvance } = useProfileStore();
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [submitted, setSubmitted] = useState(false);
@@ -93,11 +94,11 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
         correctIndex = options.findIndex((o: any) => o.isCorrect === true);
     }
 
-    const prompt = question.question_text || (question.content?.prompt?.text) || "Identify the correct option:";
+    const prompt = (question as any).question || (question as any).question_text || (question.content?.prompt?.text) || "Identify the correct option:";
     const instruction = (question as any).instruction || (question.content as any)?.instruction;
 
     const handleSelect = (index: number) => {
-        if (!submitted && !isSubmitting) {
+        if (!submitted && !isSubmitting && !isPreview) {
             setSelectedIndex(index);
         }
     };
@@ -226,13 +227,13 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
                     const isSelected = selectedIndex === index;
                     const isCorrectOption = index === correctIndex;
                     const isWrongSelected = submitted && isSelected && !isCorrectOption;
-                    const shouldHighlightCorrect = submitted && isCorrectOption;
+                    const shouldHighlightCorrect = (submitted || isPreview) && isCorrectOption;
 
                     let containerStyle = { backgroundColor: bgOption, borderColor: borderColor, transition: 'all 0.2s ease', transform: 'scale(1)' };
                     let textStyle = { color: textColor, fontWeight: 'normal' };
                     let icon = null;
 
-                    if (!submitted) {
+                    if (!submitted && !isPreview) {
                         if (isSelected) {
                             // Selected: High Contrast Light Mode override (Pink)
                             containerStyle = { ...containerStyle, backgroundColor: '#fce7f3', borderColor: '#f472b6', transform: 'scale(1.02)' };
@@ -275,9 +276,11 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
                                     <LatexRenderer text={option.text} />
                                 </span>
                                 <div className="shrink-0">
-                                    {icon ? icon : (
-                                        <div className={`w-6 h-6 rounded-full border-2 transition-colors ${isSelected ? 'border-pink-400 bg-pink-400' : 'border-gray-200'}`} style={{ borderColor: isSelected ? '' : borderColor }} />
-                                    )}
+                                    {(submitted || isPreview) && shouldHighlightCorrect ? (
+                                        <CheckCircle2 className="text-white w-8 h-8" />
+                                    ) : (icon ? icon : (
+                                        <div className={`w-6 h-6 rounded-full border-2 transition-colors ${isSelected && !isPreview ? 'border-pink-400 bg-pink-400' : 'border-gray-200'}`} style={{ borderColor: isSelected && !isPreview ? '' : borderColor }} />
+                                    ))}
                                 </div>
                             </div>
                         </button>
@@ -286,7 +289,7 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
             </div>
 
             {/* ACTION AREA */}
-            {!submitted ? (
+            {!submitted && !isPreview ? (
                 <button
                     onClick={handleSubmit}
                     disabled={selectedIndex === null || isSubmitting}
@@ -296,32 +299,34 @@ export function McqEraTemplate({ question, onAnswer, isSubmitting }: MCQTemplate
                 >
                     {isSubmitting ? <Loader2 className="animate-spin" /> : <>Final Answer <Zap size={18} fill="currentColor" /></>}
                 </button>
-            ) : (
+            ) : (submitted || isPreview) && (
                 <div className="animate-in slide-in-from-bottom-4 duration-500">
-                    <div className={`p-6 rounded-[2rem] mb-4 text-center border-2 shadow-xl`}
-                        style={{ backgroundColor: bgCard, borderColor: feedback?.isCorrect ? '#34d399' : '#f43f5e' }}>
-                        <h3 className="font-serif italic text-lg mb-2 opacity-80" style={{ color: feedback?.isCorrect ? '#059669' : '#f43f5e' }}>
-                            {feedback?.feedback}
-                        </h3>
-                        {!feedback?.isCorrect && question.explanation && (
-                            <div className="mt-2 animate-in zoom-in-50 duration-300">
-                                <div className="p-4 rounded-2xl text-left border-l-4"
-                                    style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: borderColor }}>
-                                    <div className="flex gap-2 items-start leading-relaxed font-medium" style={{ color: textColor }}>
-                                        <Sparkles size={20} className="text-yellow-500 shrink-0 mt-1" />
-                                        <div><LatexRenderer text={question.explanation} /></div>
+                    {!isPreview && feedback && (
+                        <div className={`p-6 rounded-[2rem] mb-4 text-center border-2 shadow-xl`}
+                            style={{ backgroundColor: bgCard, borderColor: feedback?.isCorrect ? '#34d399' : '#f43f5e' }}>
+                            <h3 className="font-serif italic text-lg mb-2 opacity-80" style={{ color: feedback?.isCorrect ? '#059669' : '#f43f5e' }}>
+                                {feedback?.feedback}
+                            </h3>
+                            {!feedback?.isCorrect && question.explanation && (
+                                <div className="mt-2 animate-in zoom-in-50 duration-300">
+                                    <div className="p-4 rounded-2xl text-left border-l-4"
+                                        style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: borderColor }}>
+                                        <div className="flex gap-2 items-start leading-relaxed font-medium" style={{ color: textColor }}>
+                                            <Sparkles size={20} className="text-yellow-500 shrink-0 mt-1" />
+                                            <div><LatexRenderer text={question.explanation} /></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
                     <button
                         onClick={handleContinue}
                         className="w-full py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-all flex items-center justify-center gap-2 border-2"
                         // Theme compliant button
-                        style={{ backgroundColor: bgCard, color: textColor, borderColor: borderColor }}
+                        style={{ backgroundColor: bgCard, color: textColor, borderColor: isPreview ? '#34d399' : borderColor }}
                     >
-                        Next Era <ArrowRightCircle size={18} />
+                        {isPreview ? 'Next Question' : 'Next Era'} <ArrowRightCircle size={18} />
                     </button>
                 </div>
             )}

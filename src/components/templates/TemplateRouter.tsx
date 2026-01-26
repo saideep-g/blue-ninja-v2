@@ -22,6 +22,7 @@ interface TemplateRouterProps {
   onSubmit: (result: any) => void;
   isSubmitting?: boolean;
   readOnly?: boolean;
+  isPreview?: boolean;
 }
 
 // ----------------------------------------------------------------------
@@ -152,17 +153,29 @@ const TEMPLATE_REGISTRY: Record<string, React.ComponentType<any>> = {
   'BALANCE_OPS': BalanceOpsTemplate,
 };
 
-export function TemplateRouter({ question, onSubmit, isSubmitting = false, readOnly = false }: TemplateRouterProps) {
+export function TemplateRouter({ question, onSubmit, isSubmitting = false, readOnly = false, isPreview = false }: TemplateRouterProps) {
   const TemplateComponent = useMemo(() => {
+    const q = question as any;
     // Check all possible ID locations (V2 camelCase, V3 snake_case, legacy type)
-    let templateId = question.type || (question as any).templateId || (question as any).template_id || (question as any).template;
+    let templateId = q.type || q.templateId || q.template_id || q.template;
+
+    // HEURISTIC: If templateId is missing, try to infer it from the data structure
+    if (!templateId) {
+      const hasAnswer = q.answer || q.correct_answer || q.correctAnswer || (q.answerKey && (q.answerKey.correctValue || q.answerKey.value));
+      const hasOptions = q.options && Array.isArray(q.options) && q.options.length > 0;
+
+      if (hasAnswer && !hasOptions) {
+        templateId = 'NUMERIC_AUTO';
+      } else {
+        templateId = 'MCQ_SIMPLIFIED'; // Default fallback
+      }
+    }
+
     if (templateId && typeof templateId === 'string') {
       templateId = templateId.toUpperCase();
     }
 
-    // Default to MCQTemplate if ID is missing or not in registry (e.g. "KPOP_THEME")
-    if (!templateId) return MCQTemplate;
-    return TEMPLATE_REGISTRY[templateId] || MCQTemplate;
+    return TEMPLATE_REGISTRY[templateId || 'MCQ_SIMPLIFIED'] || McqEraTemplate;
   }, [question]);
 
   // Fallback is handled above, so TemplateComponent is never null.
@@ -172,6 +185,7 @@ export function TemplateRouter({ question, onSubmit, isSubmitting = false, readO
       onAnswer={onSubmit} // Pass onAnswer for V2 templates
       isSubmitting={isSubmitting}
       readOnly={readOnly}
+      isPreview={isPreview}
     />
   );
 }

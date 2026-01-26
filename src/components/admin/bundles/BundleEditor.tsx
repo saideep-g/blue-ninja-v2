@@ -8,6 +8,8 @@ import { Check, Download, FileJson, CheckCircle, BookOpen, Search, X, AlertCircl
 import { AutoFixCandidate, getSimilarity } from './utils';
 import { EditQuestionModal } from './EditQuestionModal';
 import { AutoFixModal } from './AutoFixModal';
+import { BundlePreviewSimulator } from './BundlePreviewSimulator';
+import { Play } from 'lucide-react';
 
 interface BundleEditorProps {
     bundle: QuestionBundleMetadata;
@@ -32,6 +34,10 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({ bundle, onBack, onUp
     // Auto-Fix
     const [fixCandidates, setFixCandidates] = useState<AutoFixCandidate[]>([]);
     const [showFixModal, setShowFixModal] = useState(false);
+
+    // Preview
+    const [showPreview, setShowPreview] = useState(false);
+    const [previewIndex, setPreviewIndex] = useState(0);
 
     // --- Effects ---
     useEffect(() => {
@@ -400,6 +406,17 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({ bundle, onBack, onUp
                         )}
                         <span className="font-bold text-sm">Arena Ready</span>
                     </button>
+
+                    <button
+                        onClick={() => {
+                            setPreviewIndex(0);
+                            setShowPreview(true);
+                        }}
+                        className="flex items-center gap-2 px-6 py-2 rounded-xl border-2 border-indigo-500/30 bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 hover:border-indigo-500 transition-all shadow-lg shadow-indigo-900/20 active:scale-95"
+                    >
+                        <Play size={16} fill="currentColor" />
+                        <span>Live Preview</span>
+                    </button>
                 </div>
 
                 <div className="p-8">
@@ -536,19 +553,42 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({ bundle, onBack, onUp
                                 const bgClass = isInvalid ? 'bg-red-50/30' : isDuplicate ? 'bg-amber-50/30' : 'bg-white';
 
                                 return (
-                                    <div key={i} className={`${bgClass} border ${borderClass} p-4 rounded-xl flex gap-4 items-start shadow-sm`}>
+                                    <div
+                                        key={i}
+                                        onClick={() => {
+                                            setPreviewIndex(i);
+                                            setShowPreview(true);
+                                        }}
+                                        className={`${bgClass} border ${borderClass} p-4 rounded-xl flex gap-4 items-start shadow-sm cursor-pointer hover:border-indigo-300 hover:ring-2 hover:ring-indigo-50 transition-all group`}
+                                    >
                                         <span className={`px-2 py-1 rounded-md text-xs font-mono font-bold ${isInvalid ? 'bg-red-100 text-red-600' : isDuplicate ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
                                             {q.id || `#${i + 1}`}
                                         </span>
                                         <div className="flex-1">
                                             <div className="flex justify-between items-start">
-                                                <p className="font-bold text-slate-800 text-sm mb-1">{q.question}</p>
-                                                <button onClick={() => setEditingQuestion(q)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-purple-600" title="Edit">
-                                                    <Edit size={14} />
-                                                </button>
-                                                <button onClick={() => handleFlagQuestion(q)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-amber-500" title="Flag for Review">
-                                                    <AlertOctagon size={14} />
-                                                </button>
+                                                <p className="font-bold text-slate-800 text-sm mb-1 group-hover:text-indigo-600 transition-colors">{q.question}</p>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingQuestion(q);
+                                                        }}
+                                                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-purple-600"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit size={14} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleFlagQuestion(q);
+                                                        }}
+                                                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-amber-500"
+                                                        title="Flag for Review"
+                                                    >
+                                                        <AlertOctagon size={14} />
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div className="flex gap-2 text-xs flex-wrap">
                                                 <span className={`${isInvalid ? 'text-red-600 border-b-2 border-red-200' : 'text-emerald-600'} font-bold`}>Ans: {q.answer}</span>
@@ -584,6 +624,14 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({ bundle, onBack, onUp
                     isApplying={uploading}
                     onClose={() => setShowFixModal(false)}
                     onApply={handleApplyFixes}
+                />
+            )}
+
+            {showPreview && existingQuestions.length > 0 && (
+                <BundlePreviewSimulator
+                    questions={existingQuestions}
+                    initialIndex={previewIndex}
+                    onClose={() => setShowPreview(false)}
                 />
             )}
         </div>

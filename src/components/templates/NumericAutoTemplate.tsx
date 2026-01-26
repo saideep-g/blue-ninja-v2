@@ -12,6 +12,7 @@ interface NumericAutoTemplateProps {
     onAnswer: (result: any) => void;
     isSubmitting: boolean;
     readOnly?: boolean;
+    isPreview?: boolean;
 }
 
 interface Feedback {
@@ -84,7 +85,7 @@ const ExplanationStepRenderer = ({ text }: { text: string }) => {
  * NUMERIC AUTO TEMPLATE
  * Enhanced numeric input with SVG/Image support and "Solve on Paper" focus.
  */
-export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly }: NumericAutoTemplateProps) {
+export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly, isPreview = false }: NumericAutoTemplateProps) {
     const { autoAdvance } = useProfileStore();
 
     const [inputValue, setInputValue] = useState('');
@@ -100,9 +101,12 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
         };
     }, []);
 
+    const answerKey = question.answerKey || (question as any).answer_key || {};
+    const rawCorrectValue = answerKey.correctValue ?? answerKey.value ?? (question as any).correctAnswer ?? (question as any).correct_answer ?? (question as any).answer;
+
     // FORCE RESET when question ID changes
     useEffect(() => {
-        setInputValue('');
+        setInputValue(isPreview ? String(rawCorrectValue || '') : '');
         setSubmitted(false);
         setFeedback(null);
         setResult(null);
@@ -121,7 +125,7 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
             dataHead: vData ? String(vData).substring(0, 25) : 'None'
         });
 
-    }, [question.id]);
+    }, [question.id, isPreview, rawCorrectValue]);
 
     // Extract content
     // Check both standard location and content object
@@ -191,8 +195,6 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
         return isNaN(num) ? null : num;
     };
 
-    const answerKey = question.answerKey || (question as any).answer_key || {};
-    const rawCorrectValue = answerKey.correctValue ?? answerKey.value ?? (question as any).correctAnswer ?? (question as any).correct_answer ?? (question as any).answer;
     const correctValue = parseValue(rawCorrectValue) ?? 0;
     const tolerance = answerKey.tolerance ?? (question as any).tolerance ?? 0.001;
 
@@ -250,7 +252,7 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
     const submittable = !submitted && !isSubmitting && !readOnly;
 
     return (
-        <div className="w-full max-w-3xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className={`w-full ${isPreview ? 'max-w-5xl' : 'max-w-3xl'} mx-auto flex flex-col gap-6 p-4 animate-in fade-in slide-in-from-bottom-4 duration-500`}>
 
             {/* ========== HERO SECTION ========== */}
             <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 overflow-hidden relative border-2 border-white">
@@ -336,9 +338,9 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
                         )}
 
                         {/* Status Icon */}
-                        {submitted && feedback && (
+                        {(submitted || isPreview) && (
                             <div className="absolute right-4 animate-in zoom-in spin-in-12 duration-300">
-                                {feedback.isCorrect ? (
+                                {isPreview || feedback?.isCorrect ? (
                                     <CheckCircle2 className="w-8 h-8 text-green-500" />
                                 ) : (
                                     <XCircle className="w-8 h-8 text-red-500" />
@@ -347,7 +349,7 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
                         )}
                     </div>
 
-                    {!submitted ? (
+                    {!submitted && !isPreview ? (
                         <button
                             type="submit"
                             disabled={!inputValue || isSubmitting}
@@ -355,17 +357,17 @@ export function NumericAutoTemplate({ question, onAnswer, isSubmitting, readOnly
                         >
                             Check <ArrowRight className="w-5 h-5" />
                         </button>
-                    ) : (
+                    ) : (submitted || isPreview) && (
                         <button
                             type="button"
                             onClick={handleContinue}
                             autoFocus
-                            className={`p-4 md:px-8 rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all shrink-0 active:scale-95 ${feedback?.isCorrect
+                            className={`p-4 md:px-8 rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all shrink-0 active:scale-95 ${feedback?.isCorrect || isPreview
                                 ? 'bg-green-600 text-white hover:bg-green-700 shadow-green-600/20'
                                 : 'bg-slate-800 text-white hover:bg-slate-900'
                                 }`}
                         >
-                            Next <ArrowRightCircle className="w-5 h-5" />
+                            {isPreview ? 'Next' : 'Next'} <ArrowRightCircle className="w-5 h-5" />
                         </button>
                     )}
                 </form>

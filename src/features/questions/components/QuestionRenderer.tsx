@@ -11,6 +11,7 @@ interface Props {
         rawResult: any;
     }) => void;
     readOnly?: boolean;
+    isPreview?: boolean;
 
     // Context for analytics (User ID, Session ID, etc.)
     context?: {
@@ -29,6 +30,7 @@ export const QuestionRenderer: React.FC<Props> = ({
     question,
     onComplete,
     readOnly,
+    isPreview = false,
     context
 }) => {
     const { logs, logInteraction } = useInteractionLogger();
@@ -70,6 +72,19 @@ export const QuestionRenderer: React.FC<Props> = ({
 
     // 3. HANDLE COMPLETION
     const handleComplete = (result: any) => {
+        // Skip analytics if in preview mode
+        if (isPreview) {
+            console.log('QLMS: Preview Mode - Skipping interaction logs and analytics');
+            if (onComplete) {
+                onComplete({
+                    isCorrect: !!result.isCorrect,
+                    rawResult: result,
+                    analytics: {} as any
+                });
+            }
+            return;
+        }
+
         logInteraction('submit', result);
 
         // Compute Platinum Analytics
@@ -111,7 +126,8 @@ export const QuestionRenderer: React.FC<Props> = ({
             <Component
                 data={question}
                 readOnly={readOnly}
-                onInteract={(log) => logInteraction(log.type, log.payload)}
+                isPreview={isPreview}
+                onInteract={(log) => !isPreview && logInteraction(log.type, log.payload)}
                 onComplete={handleComplete}
             />
         </div>

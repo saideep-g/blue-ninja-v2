@@ -226,6 +226,7 @@ export interface QuestionManifest<T = any> {
         onInteract?: (log: RawInteractionLog) => void;
         onComplete?: (result: any) => void;
         readOnly?: boolean;
+        isPreview?: boolean;
     }>;
 
     // 3. AI CONTEXT (Prompt engineering instructions)

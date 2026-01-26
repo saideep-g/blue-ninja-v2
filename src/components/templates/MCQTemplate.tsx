@@ -12,6 +12,7 @@ interface MCQTemplateProps {
   onAnswer: (result: any) => void;
   isSubmitting: boolean;
   readOnly?: boolean;
+  isPreview?: boolean;
 }
 
 interface Feedback {
@@ -64,7 +65,7 @@ const LatexRenderer = ({ text }: { text: string | null }) => {
  * - Encouraging feedback
  * - No anxiety-inducing metadata
  */
-export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplateProps) {
+export function MCQTemplate({ question, onAnswer, isSubmitting, readOnly, isPreview = false }: MCQTemplateProps) {
   const { autoAdvance } = useProfileStore();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -127,6 +128,7 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
     if (typeof q.prompt === 'string') return q.prompt;
     if (q.content?.prompt?.text) return q.content.prompt.text;
     if (q.question_text) return q.question_text;
+    if (q.question) return q.question;
     return 'What is your answer?';
   };
   const prompt = getPromptText(question);
@@ -217,9 +219,9 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
           const isSelected = selectedIndex === index;
           const isCorrectOption = index === correctIndex;
 
-          // Logic for AFTER submission
+          // Logic for AFTER submission or PREVIEW
           const isWrongSelected = submitted && isSelected && !isCorrectOption;
-          const shouldHighlightCorrect = submitted && isCorrectOption;
+          const shouldHighlightCorrect = (submitted || isPreview) && isCorrectOption;
 
           // Highlight logic
           let borderClass = 'border-gray-200 dark:border-slate-700';
@@ -227,7 +229,7 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
           let textClass = 'text-gray-900 dark:text-gray-100';
           let shadowClass = '';
 
-          if (!submitted) {
+          if (!submitted && !isPreview) {
             if (isSelected) {
               borderClass = 'border-blue-500';
               bgClass = 'bg-blue-50 dark:bg-blue-900/30';
@@ -236,7 +238,7 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
               // Hover state handled in main className
             }
           } else {
-            // Submitted State
+            // Submitted or Preview State
             if (shouldHighlightCorrect) {
               // ALWAYS Highlight the correct answer in Green
               borderClass = 'border-green-500';
@@ -271,13 +273,13 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
                 {/* Radio button indicator */}
                 <div
                   className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all 
-                    ${!submitted
+                    ${(!submitted && !isPreview)
                       ? (isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300 dark:border-slate-500 bg-white dark:bg-slate-700')
                       : (shouldHighlightCorrect ? 'border-green-500 bg-green-500' : (isWrongSelected ? 'border-red-500 bg-red-500' : 'border-gray-300 dark:border-slate-600 bg-gray-100 dark:bg-slate-700'))
                     }`}
                 >
-                  {isSelected && !submitted && <div className="w-2 h-2 bg-white rounded-full" />}
-                  {submitted && shouldHighlightCorrect && <CheckCircle2 className="w-5 h-5 text-white" />}
+                  {isSelected && !submitted && !isPreview && <div className="w-2 h-2 bg-white rounded-full" />}
+                  {(submitted || isPreview) && shouldHighlightCorrect && <CheckCircle2 className="w-5 h-5 text-white" />}
                   {submitted && isWrongSelected && <XCircle className="w-5 h-5 text-white" />}
                 </div>
 
@@ -289,7 +291,7 @@ export function MCQTemplate({ question, onAnswer, isSubmitting }: MCQTemplatePro
       </div>
 
       {/* ========== ACTION BUTTON (BEFORE SUBMIT) ========== */}
-      {!submitted && (
+      {!submitted && !isPreview && (
         <button
           onClick={handleSubmit}
           disabled={selectedIndex === null || isSubmitting}
