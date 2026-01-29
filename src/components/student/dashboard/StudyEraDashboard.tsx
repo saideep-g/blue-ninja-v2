@@ -188,7 +188,7 @@ const StudyEraDashboard = () => {
                     correctAnswer: extractCorrectAnswer(),
                     isCorrect: isCorrect,
                     timestamp: new Date(),
-                    subject: quizSubject || 'unknown',
+                    subject: (quizSubject || 'unknown').toLowerCase() === 'english' ? 'vocabulary' : (quizSubject || 'unknown').toLowerCase(),
                     timeSpent: duration,
                     questionType: (() => {
                         const q = currentQuestion as any;

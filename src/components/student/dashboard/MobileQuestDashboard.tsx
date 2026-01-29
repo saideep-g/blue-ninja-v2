@@ -412,7 +412,7 @@ export default function MobileQuestDashboard() {
         }
     };
 
-    const handleAnswer = (answerId: string, isCorrect: boolean) => {
+    const handleAnswer = (answerId: string, isCorrect: boolean, timeSpent: number) => {
         if (selectedAnswer) return; // Prevent double taps
         setSelectedAnswer(answerId);
         const currentQ = questions[currentQIndex];
@@ -425,13 +425,22 @@ export default function MobileQuestDashboard() {
         }
 
         const ansText = currentQ.options.find(o => o.id === answerId)?.text || answerId;
-        const duration = seconds || (Date.now() - qStartTime) / 1000;
+        const duration = timeSpent || seconds || (Date.now() - qStartTime) / 1000;
+
+        // Subject Mapping Normalization
+        let logSubject = (currentQ.subject || activePathSubject).toLowerCase();
+        if (logSubject === 'english') logSubject = 'vocabulary';
+        else if (logSubject === 'gk') logSubject = 'world';
+
         logQuestionResult({
             questionId: currentQ.id as string,
+            questionText: currentQ.question_text || 'Quest Challenge',
             studentAnswer: ansText,
             isCorrect,
             timestamp: new Date(),
-            timeSpent: duration
+            timeSpent: duration,
+            subject: logSubject,
+            questionType: (currentQ.type || 'MCQ').toUpperCase()
         });
 
         // Auto-advance only if correct, otherwise wait for user to read explanation

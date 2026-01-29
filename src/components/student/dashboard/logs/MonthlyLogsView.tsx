@@ -13,6 +13,15 @@ const SUBJECTS = [
     { id: 'tables', label: 'Tables', color: 'rose' }
 ];
 
+const getTimestamp = (ts: any) => {
+    if (!ts) return Date.now();
+    if (typeof ts === 'number') return ts;
+    if (ts.toDate) return ts.toDate().getTime(); // Handles Firestore Timestamp
+    if (ts.seconds) return ts.seconds * 1000;    // Handles simple seconds object
+    const parsed = new Date(ts).getTime();
+    return isNaN(parsed) ? Date.now() : parsed;
+};
+
 export function MonthlyLogsView() {
     const { user } = useNinja();
     const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -34,12 +43,6 @@ export function MonthlyLogsView() {
                     const data = snap.data();
                     const entries = data.entries || [];
 
-                    const getTimestamp = (ts: any) => {
-                        if (!ts) return new Date(0).getTime();
-                        if (ts.toDate) return ts.toDate().getTime();
-                        if (ts.seconds) return ts.seconds * 1000;
-                        return new Date(ts).getTime();
-                    };
 
                     // Phase 4: Sort reverse chronological
                     entries.sort((a: any, b: any) => {
@@ -277,7 +280,7 @@ export function MonthlyLogsView() {
                                         <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md">
                                             {(() => {
                                                 const ts = log.timestamp;
-                                                const date = ts?.toDate ? ts.toDate() : (ts?.seconds ? new Date(ts.seconds * 1000) : new Date(ts));
+                                                const date = new Date(getTimestamp(ts));
                                                 return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
                                             })()}
                                         </span>

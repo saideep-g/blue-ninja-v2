@@ -20,7 +20,7 @@ interface QuestQuizViewProps {
     currentQIndex: number;
     selectedAnswer: string | null;
     feedback: 'correct' | 'wrong' | null;
-    onAnswer: (answerId: string, isCorrect: boolean) => void;
+    onAnswer: (answerId: string, isCorrect: boolean, timeSpent: number) => void;
     onNext: () => void;
     onBack: () => void;
 }
@@ -34,6 +34,15 @@ export const QuestQuizView: React.FC<QuestQuizViewProps> = ({
     onNext,
     onBack
 }) => {
+    const [seconds, setSeconds] = useState(0);
+
+    useEffect(() => {
+        setSeconds(0);
+        const timer = setInterval(() => {
+            setSeconds(s => s + 1);
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [currentQIndex]);
     // Sound Feedback Helper using Web Audio API
     const playFeedbackSound = (type: 'correct' | 'wrong') => {
         try {
@@ -73,7 +82,7 @@ export const QuestQuizView: React.FC<QuestQuizViewProps> = ({
     const handleAnswerWrapper = (id: string, isCorrect: boolean) => {
         if (!selectedAnswer) {
             playFeedbackSound(isCorrect ? 'correct' : 'wrong');
-            onAnswer(id, isCorrect);
+            onAnswer(id, isCorrect, seconds);
         }
     };
 
