@@ -69,6 +69,25 @@ export const EraQuizView = forwardRef<EraQuizViewHandle, EraQuizViewProps>(({
         onClose();
     };
 
+    const getCorrectAnswerText = (q: any) => {
+        if (!q) return 'N/A';
+        // Check if answerKey has the value
+        if (q.answerKey?.value) return q.answerKey.value;
+        if (q.correct_answer) return q.correct_answer;
+
+        // Check options
+        if (q.options && Array.isArray(q.options)) {
+            const correctId = q.correctOptionId || q.answerKey?.correctOptionId;
+            if (correctId) {
+                const opt = q.options.find((o: any) => String(o.id) === String(correctId));
+                if (opt) return opt.text;
+            }
+            const optCorrect = q.options.find((o: any) => o.isCorrect);
+            if (optCorrect) return optCorrect.text;
+        }
+        return 'N/A';
+    };
+
     return (
         <div className="max-w-3xl mx-auto py-2 animate-in fade-in zoom-in duration-500 relative">
             <div className="flex justify-between items-center mb-8 px-4">
@@ -93,7 +112,12 @@ export const EraQuizView = forwardRef<EraQuizViewHandle, EraQuizViewProps>(({
                 <TemplateRouter
                     question={questions[currentQuestionIndex]}
                     isSubmitting={false}
-                    onSubmit={(result, shouldAdvance) => onAnswer({ ...result, durationSeconds: seconds }, shouldAdvance)}
+                    onSubmit={(result, shouldAdvance) => onAnswer({
+                        ...result,
+                        durationSeconds: seconds,
+                        explanation: questions[currentQuestionIndex].explanation,
+                        correctAnswer: result.correctAnswerText || getCorrectAnswerText(questions[currentQuestionIndex])
+                    }, shouldAdvance)}
                 />
             )}
 

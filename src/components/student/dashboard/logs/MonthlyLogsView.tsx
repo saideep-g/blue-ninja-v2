@@ -317,6 +317,12 @@ export function MonthlyLogsView() {
                                                 </span>
                                             </div>
                                         )}
+                                        {log.explanation && (
+                                            <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                                <span className="font-bold uppercase tracking-wider opacity-70 block mb-1 text-[10px]">Reasoning</span>
+                                                <span className="leading-relaxed">{log.explanation}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

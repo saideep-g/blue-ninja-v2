@@ -300,7 +300,6 @@ export function McqEraTemplate({ question, onAnswer, onInteract, isSubmitting, r
                 </button>
             </div>
 
-            {/* OPTIONS GRID */}
             <div className="space-y-4">
                 {options.map((option, index) => {
                     const isSelected = selectedIndex === index;
@@ -308,30 +307,46 @@ export function McqEraTemplate({ question, onAnswer, onInteract, isSubmitting, r
                     const isWrongSelected = submitted && isSelected && !isCorrectOption;
                     const shouldHighlightCorrect = (submitted || isPreview) && isCorrectOption;
 
-                    let containerStyle = { backgroundColor: bgOption, borderColor: borderColor, transition: 'all 0.2s ease', transform: 'scale(1)' };
-                    let textStyle = { color: textColor, fontWeight: 'normal' };
+                    let btnClasses = "w-full p-5 rounded-[2rem] border-2 text-left relative overflow-hidden group/opt active:scale-95 shadow-sm transition-all ";
+                    let styleProperties: React.CSSProperties = { transition: 'all 0.2s ease', transform: 'scale(1)' };
+                    let labelStyle: React.CSSProperties = { backgroundColor: 'var(--color-surface)', borderColor: borderColor, color: textColor };
+                    let optionTextStyle: React.CSSProperties = { color: textColor, fontWeight: 'normal' };
                     let icon = null;
 
                     if (!submitted && !isPreview) {
+                        // Default Interactive State
                         if (isSelected) {
-                            // Selected: High Contrast Light Mode override (Pink)
-                            containerStyle = { ...containerStyle, backgroundColor: '#fce7f3', borderColor: '#f472b6', transform: 'scale(1.02)' };
-                            textStyle = { color: '#831843', fontWeight: 'bold' };
+                            // Selected State (Light/Dark Pink contrast handling)
+                            styleProperties = { ...styleProperties, backgroundColor: '#fce7f3', borderColor: '#f472b6', transform: 'scale(1.02)' };
+                            optionTextStyle = { ...optionTextStyle, color: '#831843', fontWeight: 'bold' };
+                        } else {
+                            // Normal State
+                            styleProperties = { ...styleProperties, backgroundColor: bgOption, borderColor: borderColor };
                         }
                     } else {
+                        // Result State
                         if (shouldHighlightCorrect) {
-                            // Correct: Vibrant Green
-                            containerStyle = { ...containerStyle, backgroundColor: '#00DDA5', borderColor: '#00BFA5', transform: 'scale(1.02)' };
-                            textStyle = { color: 'white', fontWeight: '900' };
-                            icon = <CheckCircle2 className="text-white w-8 h-8" />;
+                            // Success State (Theme Aware) - Stronger dark mode contrast
+                            btnClasses += "bg-emerald-50 border-emerald-500 text-emerald-800 dark:bg-emerald-900/40 dark:border-emerald-400 dark:text-emerald-300 transform scale-[1.02] shadow-[0_0_15px_rgba(16,185,129,0.3)] ";
+
+                            // Important: Clear inline bg/border so classes work
+                            styleProperties = { ...styleProperties, transform: 'scale(1.02)' };
+
+                            optionTextStyle = { ...optionTextStyle, color: 'currentColor', fontWeight: '900' };
+                            labelStyle = { backgroundColor: 'transparent', borderColor: 'currentColor', color: 'currentColor' };
+                            icon = <CheckCircle2 className="text-emerald-600 dark:text-emerald-400 w-8 h-8" />;
                         } else if (isWrongSelected) {
-                            // Wrong: Red
-                            containerStyle = { ...containerStyle, backgroundColor: '#fff1f2', borderColor: '#fda4af' };
-                            textStyle = { color: '#e11d48', textDecoration: 'line-through', opacity: 0.7 };
-                            icon = <XCircle className="text-rose-400" />;
+                            // Error State (Theme Aware) - Stronger
+                            btnClasses += "bg-rose-50 border-rose-500 text-rose-800 dark:bg-rose-900/40 dark:border-rose-400 dark:text-rose-300 ";
+
+                            styleProperties = { ...styleProperties }; // Clear bg/border logic handled by classes? No, we must allow classes
+
+                            optionTextStyle = { ...optionTextStyle, color: 'currentColor', textDecoration: 'line-through', opacity: 0.9, fontWeight: 'bold' };
+                            labelStyle = { backgroundColor: 'transparent', borderColor: 'currentColor', color: 'currentColor' };
+                            icon = <XCircle className="text-rose-500 dark:text-rose-400 w-8 h-8" />;
                         } else {
-                            // Dim others
-                            containerStyle = { ...containerStyle, opacity: 0.5, filter: 'grayscale(0.8)' };
+                            // Dimmed State
+                            styleProperties = { ...styleProperties, backgroundColor: bgOption, borderColor: borderColor, opacity: 0.3, filter: 'grayscale(1)' };
                         }
                     }
 
@@ -342,21 +357,21 @@ export function McqEraTemplate({ question, onAnswer, onInteract, isSubmitting, r
                             key={index}
                             onClick={() => handleSelect(index)}
                             disabled={submitted || isSubmitting}
-                            className="w-full p-5 rounded-[2rem] border-2 text-left relative overflow-hidden group/opt active:scale-95 shadow-sm"
-                            style={containerStyle}
+                            className={btnClasses}
+                            style={styleProperties}
                         >
                             <div className="flex items-center gap-4 relative z-10 w-full">
                                 {/* Label A/B/C */}
-                                <div className="w-12 h-12 rounded-full flex items-center justify-center font-black text-lg shadow-sm border-2 shrink-0"
-                                    style={{ backgroundColor: 'var(--color-surface)', borderColor: borderColor, color: textColor }}>
+                                <div className="w-12 h-12 rounded-full flex items-center justify-center font-black text-lg shadow-sm border-2 shrink-0 transition-colors"
+                                    style={labelStyle}>
                                     {labels[index] || '?'}
                                 </div>
-                                <span className="text-lg md:text-xl flex-1 leading-snug" style={textStyle}>
+                                <span className="text-lg md:text-xl flex-1 leading-snug" style={optionTextStyle}>
                                     <LatexRenderer text={option.text} />
                                 </span>
                                 <div className="shrink-0">
                                     {(submitted || isPreview) && shouldHighlightCorrect ? (
-                                        <CheckCircle2 className="text-white w-8 h-8" />
+                                        <CheckCircle2 className="text-emerald-600 dark:text-emerald-400 w-8 h-8" />
                                     ) : (icon ? icon : (
                                         <div className={`w-6 h-6 rounded-full border-2 transition-colors ${isSelected && !isPreview ? 'border-pink-400 bg-pink-400' : 'border-gray-200'}`} style={{ borderColor: isSelected && !isPreview ? '' : borderColor }} />
                                     ))}
@@ -400,21 +415,44 @@ export function McqEraTemplate({ question, onAnswer, onInteract, isSubmitting, r
                             )}
 
                             {/* Explanation Body */}
-                            {(isPreview || !feedback?.isCorrect) && question.explanation && (
+                            {(isPreview || !feedback?.isCorrect) && (
                                 <div className="animate-in fade-in zoom-in-95 duration-500">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="p-3 bg-yellow-400/10 rounded-2xl">
-                                            <Sparkles size={24} className="text-yellow-500" />
+                                    {/* MCQ Conditional Layout */}
+                                    {['MCQ_SIMPLIFIED', 'MCQ_ERA', 'MCQ'].includes((question as any).type || (question as any).template_id || 'MCQ_SIMPLIFIED') ? (
+                                        <div className="space-y-6">
+                                            {/* Reasoning Block */}
+                                            {question.explanation && (
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-2 opacity-60">
+                                                        <Lightbulb size={16} />
+                                                        <h4 className="text-xs font-black uppercase tracking-[0.2em]">Reasoning</h4>
+                                                    </div>
+                                                    <p className="text-base md:text-lg leading-relaxed font-medium opacity-90" style={{ color: textColor }}>
+                                                        <LatexRenderer text={question.explanation} />
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
+                                    ) : (
+                                        /* Default Step-by-Step for Complex/Numeric Types */
                                         <div>
-                                            <h4 className="text-sm font-black uppercase tracking-[0.2em] opacity-40">Step-by-Step Fix</h4>
-                                            <p className="text-xs font-bold opacity-30 italic">Learn the vibe of this solution</p>
-                                        </div>
-                                    </div>
+                                            <div className="flex items-center gap-3 mb-6">
+                                                <div className="p-3 bg-yellow-400/10 rounded-2xl">
+                                                    <Sparkles size={24} className="text-yellow-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-sm font-black uppercase tracking-[0.2em] opacity-40">Step-by-Step Fix</h4>
+                                                    <p className="text-xs font-bold opacity-30 italic">Learn the vibe of this solution</p>
+                                                </div>
+                                            </div>
 
-                                    <div className="p-1 rounded-2xl">
-                                        <ExplanationStepRenderer text={question.explanation} textColor={textColor} />
-                                    </div>
+                                            {question.explanation && (
+                                                <div className="p-1 rounded-2xl">
+                                                    <ExplanationStepRenderer text={question.explanation} textColor={textColor} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
