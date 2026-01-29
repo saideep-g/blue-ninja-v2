@@ -29,7 +29,7 @@ export const useProfileStore = create<ProfileState>()(
   persist(
     (set) => ({
       preferredLanguage: 'en',
-      theme: 'system',
+      theme: 'light',
       notifications: true,
       autoAdvance: true,
       dailyQuestionCount: 5,
