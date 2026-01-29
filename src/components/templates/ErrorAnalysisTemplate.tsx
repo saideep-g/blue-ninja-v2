@@ -84,14 +84,14 @@ export const ErrorAnalysisTemplate: React.FC<ErrorAnalysisTemplateProps> = ({ qu
         <div className="w-full max-w-5xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[500px]">
 
             {/* LEFT COLUMN: THE "PAPER" (Student Work) */}
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-2 bg-slate-100" />
+            <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-2 bg-slate-100 dark:bg-slate-700" />
 
                 <div className="mb-6">
-                    <span className="bg-slate-100 text-slate-500 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full">
+                    <span className="bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full">
                         Original Work
                     </span>
-                    <h3 className="text-xl font-bold text-slate-800 mt-4 leading-relaxed">
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mt-4 leading-relaxed">
                         {typeof ((question as any).prompt) === 'object'
                             ? (question as any).prompt.text
                             : (question.content?.prompt?.text || (question as any).prompt)}
@@ -103,12 +103,12 @@ export const ErrorAnalysisTemplate: React.FC<ErrorAnalysisTemplateProps> = ({ qu
                         const isSelected = selectedStepIndex === index;
                         const isCorrectStep = index === correctStepIndex;
                         // Visual states
-                        let stateClass = "border-slate-100 bg-slate-50 hover:border-blue-300 hover:bg-blue-50 cursor-pointer";
+                        let stateClass = "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 hover:border-blue-300 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer";
 
                         if (phase !== 'identify' && isSelected && isCorrectStep) {
-                            stateClass = "border-red-400 bg-red-50 ring-2 ring-red-100"; // Identified Error
+                            stateClass = "border-red-400 dark:border-red-800 bg-red-50 dark:bg-red-900/20 ring-2 ring-red-100 dark:ring-red-900/30"; // Identified Error
                         } else if (feedback === 'incorrect_step' && isSelected) {
-                            stateClass = "border-slate-200 bg-slate-200 opacity-50"; // Wrong guess
+                            stateClass = "border-slate-200 dark:border-slate-700 bg-slate-200 dark:bg-slate-700 opacity-50"; // Wrong guess
                         } else if (phase !== 'identify' && !isSelected) {
                             stateClass = "opacity-40 border-transparent bg-transparent pl-0"; // Dim others
                         }
@@ -122,13 +122,13 @@ export const ErrorAnalysisTemplate: React.FC<ErrorAnalysisTemplateProps> = ({ qu
                                 whileTap={phase === 'identify' ? { scale: 0.98 } : {}}
                             >
                                 <div className="flex items-center justify-between">
-                                    <span className={`font-mono text-lg font-medium ${phase !== 'identify' && !isSelected ? 'text-slate-400' : 'text-slate-700'}`}>
+                                    <span className={`font-mono text-lg font-medium ${phase !== 'identify' && !isSelected ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-200'}`}>
                                         {step}
                                     </span>
 
                                     {/* Markers */}
                                     {phase !== 'identify' && isSelected && isCorrectStep && (
-                                        <div className="flex items-center gap-2 text-red-500 font-bold text-sm bg-white px-3 py-1 rounded-full shadow-sm">
+                                        <div className="flex items-center gap-2 text-red-500 dark:text-red-400 font-bold text-sm bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm">
                                             <AlertTriangle size={16} /> Error Found
                                         </div>
                                     )}
@@ -174,7 +174,7 @@ export const ErrorAnalysisTemplate: React.FC<ErrorAnalysisTemplateProps> = ({ qu
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
-                            className="bg-white p-8 rounded-[32px] shadow-xl border-2 border-slate-100"
+                            className="bg-white dark:bg-slate-800 p-8 rounded-[32px] shadow-xl border-2 border-slate-100 dark:border-slate-700"
                         >
                             <div className="flex items-center gap-3 mb-6 text-emerald-600">
                                 <Check size={32} strokeWidth={4} />
@@ -186,21 +186,21 @@ export const ErrorAnalysisTemplate: React.FC<ErrorAnalysisTemplateProps> = ({ qu
                                 <input
                                     type="text"
                                     autoFocus
-                                    className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-2xl text-xl font-mono text-slate-800 placeholder:text-slate-300 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
+                                    className="w-full p-5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-xl font-mono text-slate-800 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
                                     placeholder="Type correction..."
                                     value={correctionInput}
                                     onChange={e => setCorrectionInput(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && handleCorrectionSubmit()}
                                 />
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                    <Edit3 className="text-slate-400" />
+                                    <Edit3 className="text-slate-400 dark:text-slate-500" />
                                 </div>
                             </div>
 
                             <button
                                 onClick={handleCorrectionSubmit}
                                 disabled={correctionInput.trim().length === 0}
-                                className="w-full mt-6 bg-slate-900 text-white font-bold py-4 rounded-xl text-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
+                                className="w-full mt-6 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-bold py-4 rounded-xl text-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
                             >
                                 Submit Fix
                             </button>
@@ -209,7 +209,7 @@ export const ErrorAnalysisTemplate: React.FC<ErrorAnalysisTemplateProps> = ({ qu
                                 <motion.div
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="mt-4 p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2 border border-red-100"
+                                    className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl flex items-center gap-2 border border-red-100 dark:border-red-900/30"
                                 >
                                     <X size={20} />
                                     <span className="font-bold text-sm">Not quite. Double check the math!</span>

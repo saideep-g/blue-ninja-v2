@@ -177,23 +177,23 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
         <div className="w-full max-w-2xl mx-auto flex flex-col gap-6 md:gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
             {/* ========== HERO SECTION (Question Prompt) ========== */}
-            <div className="bg-white rounded-3xl p-6 md:p-10 shadow-xl shadow-blue-900/5 border-2 border-white relative overflow-hidden group hover:border-blue-100 transition-all">
+            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-10 shadow-xl shadow-blue-900/5 border-2 border-white dark:border-slate-700 relative overflow-hidden group hover:border-blue-100 dark:hover:border-blue-900 transition-all">
                 {/* Decorative Background Elements */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-16 -mt-16 opacity-50 group-hover:bg-blue-100 transition-colors" />
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-50 rounded-full blur-2xl -ml-12 -mb-12 opacity-50 group-hover:bg-purple-100 transition-colors" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 dark:bg-blue-900/20 rounded-full blur-3xl -mr-16 -mt-16 opacity-50 group-hover:bg-blue-100 dark:group-hover:bg-blue-800 transition-colors" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-50 dark:bg-purple-900/20 rounded-full blur-2xl -ml-12 -mb-12 opacity-50 group-hover:bg-purple-100 dark:group-hover:bg-purple-800 transition-colors" />
 
                 <div className="relative z-10 space-y-4">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
                         <Calculator className="w-3 h-3" />
                         Numeric Problem
                     </div>
 
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight">
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white leading-tight">
                         {prompt}
                     </h2>
 
                     {instruction && (
-                        <p className="text-lg text-slate-600 font-medium">
+                        <p className="text-lg text-slate-600 dark:text-slate-400 font-medium">
                             {instruction}
                         </p>
                     )}
@@ -204,12 +204,12 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
             <div className="relative group">
                 <form onSubmit={handleSubmit} className="relative">
                     <div className={`
-            relative flex items-center bg-white rounded-2xl shadow-lg border-2 transition-all duration-300 overflow-hidden
+            relative flex items-center bg-white dark:bg-slate-800 rounded-2xl shadow-lg border-2 transition-all duration-300 overflow-hidden
             ${submitted
                             ? feedback?.isCorrect
-                                ? 'border-green-400 ring-4 ring-green-100'
-                                : 'border-red-300 ring-4 ring-red-100'
-                            : 'border-slate-200 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100 hover:border-blue-300'
+                                ? 'border-green-400 ring-4 ring-green-100 dark:ring-green-900/30'
+                                : 'border-red-300 ring-4 ring-red-100 dark:ring-red-900/30'
+                            : 'border-slate-200 dark:border-slate-700 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100 dark:focus-within:ring-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600'
                         }
 `}>
                         {/* Input Field */}
@@ -226,13 +226,13 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
                                     setInputValue(val);
                                 }
                             }}
-                            className="w-full p-6 md:p-8 text-3xl md:text-4xl font-bold text-slate-800 placeholder:text-slate-300 bg-transparent outline-none disabled:bg-slate-50 disabled:text-slate-500 text-center md:text-left"
+                            className="w-full p-6 md:p-8 text-3xl md:text-4xl font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-600 bg-transparent outline-none disabled:bg-slate-50 dark:disabled:bg-slate-900 disabled:text-slate-500 dark:disabled:text-slate-400 text-center md:text-left"
                         />
 
                         {/* Unit Badge */}
                         {unit && (
                             <div className="pr-6 md:pr-8">
-                                <span className="text-xl md:text-2xl font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-lg">
+                                <span className="text-xl md:text-2xl font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-lg">
                                     {unit}
                                 </span>
                             </div>
@@ -242,12 +242,12 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
                         {submitted && feedback && (
                             <div className="absolute right-6 top-1/2 -translate-y-1/2 animate-in zoom-in spin-in-12 duration-300">
                                 {feedback.isCorrect ? (
-                                    <div className="bg-green-100 p-2 rounded-full">
-                                        <CheckCircle2 className="w-8 h-8 text-green-600" />
+                                    <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-full">
+                                        <CheckCircle2 className="w-8 h-8 text-green-600 dark:text-green-400" />
                                     </div>
                                 ) : (
-                                    <div className="bg-red-100 p-2 rounded-full">
-                                        <XCircle className="w-8 h-8 text-red-600" />
+                                    <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-full">
+                                        <XCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
                                     </div>
                                 )}
                             </div>
@@ -270,13 +270,13 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
             {/* ========== INLINE FEEDBACK SECTION ========== */}
             {submitted && feedback && (
                 <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
-                    <div className={`p-6 rounded-2xl ${feedback.isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                    <div className={`p-6 rounded-2xl ${feedback.isCorrect ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'}`}>
                         <div className="flex gap-4">
-                            <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${feedback.isCorrect ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}`}>
+                            <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${feedback.isCorrect ? 'bg-green-200 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 'bg-red-200 dark:bg-red-900/40 text-red-700 dark:text-red-400'}`}>
                                 {feedback.isCorrect ? <CheckCircle2 className="w-6 h-6" /> : <Lightbulb className="w-6 h-6" />}
                             </div>
                             <div className="space-y-1 pt-1 flex-1">
-                                <h4 className={`font-bold text-lg ${feedback.isCorrect ? 'text-green-800' : 'text-red-800'}`}>
+                                <h4 className={`font-bold text-lg ${feedback.isCorrect ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>
                                     {feedback.isCorrect ? (
                                         <span className="flex items-center gap-2">
                                             {feedback.feedback}
@@ -286,7 +286,7 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
                                 </h4>
 
                                 {!feedback.isCorrect && (
-                                    <p className="text-2xl font-mono font-bold text-red-800 mt-1">
+                                    <p className="text-2xl font-mono font-bold text-red-800 dark:text-red-400 mt-1">
                                         {correctValue} {unit}
                                     </p>
                                 )}
@@ -308,19 +308,19 @@ export function NumericInputTemplate({ question, onAnswer, isSubmitting, readOnl
 
                     {/* Explanation (Worked Solution) - Show only if exists */}
                     {question.workedSolution?.steps && question.workedSolution.steps.length > 0 && (
-                        <div className="bg-white p-6 rounded-2xl border-2 border-slate-100 shadow-sm">
-                            <h4 className="font-bold text-slate-800 text-lg flex items-center gap-2 mb-4">
-                                <span className="bg-slate-100 p-2 rounded-lg text-blue-600">💡</span>
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border-2 border-slate-100 dark:border-slate-700 shadow-sm">
+                            <h4 className="font-bold text-slate-800 dark:text-slate-100 text-lg flex items-center gap-2 mb-4">
+                                <span className="bg-slate-100 dark:bg-slate-700 p-2 rounded-lg text-blue-600 dark:text-blue-400">💡</span>
                                 How to solve this
                             </h4>
                             <div className="space-y-4 relative">
-                                <div className="absolute left-[19px] top-2 bottom-4 w-0.5 bg-slate-100" />
+                                <div className="absolute left-[19px] top-2 bottom-4 w-0.5 bg-slate-100 dark:bg-slate-700" />
                                 {question.workedSolution.steps.map((step: string, idx: number) => (
                                     <div key={idx} className="flex gap-4 relative z-10">
-                                        <div className="flex-shrink-0 w-10 h-10 bg-white border-2 border-slate-100 text-slate-500 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">
+                                        <div className="flex-shrink-0 w-10 h-10 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">
                                             {idx + 1}
                                         </div>
-                                        <div className="bg-slate-50 rounded-xl p-4 flex-1 text-slate-700 leading-relaxed font-medium">
+                                        <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-4 flex-1 text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
                                             {step}
                                         </div>
                                     </div>

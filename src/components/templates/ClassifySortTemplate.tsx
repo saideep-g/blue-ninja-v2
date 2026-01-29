@@ -25,10 +25,10 @@ interface Bucket {
 }
 
 const COLORS = [
-    { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-800', drop: 'bg-indigo-100' },
-    { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', drop: 'bg-emerald-100' },
-    { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', drop: 'bg-amber-100' },
-    { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-800', drop: 'bg-rose-100' },
+    { bg: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-200 dark:border-indigo-800', text: 'text-indigo-800 dark:text-indigo-200', drop: 'bg-indigo-100 dark:bg-indigo-900/40' },
+    { bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-800', text: 'text-emerald-800 dark:text-emerald-200', drop: 'bg-emerald-100 dark:bg-emerald-900/40' },
+    { bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200 dark:border-amber-800', text: 'text-amber-800 dark:text-amber-200', drop: 'bg-amber-100 dark:bg-amber-900/40' },
+    { bg: 'bg-rose-50 dark:bg-rose-900/20', border: 'border-rose-200 dark:border-rose-800', text: 'text-rose-800 dark:text-rose-200', drop: 'bg-rose-100 dark:bg-rose-900/40' },
 ];
 
 export function ClassifySortTemplate({ question, onAnswer, isSubmitting, readOnly }: ClassifySortTemplateProps) {
@@ -194,12 +194,12 @@ export function ClassifySortTemplate({ question, onAnswer, isSubmitting, readOnl
 
             {/* INSTRUCTIONS */}
             <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-slate-800">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
                     {typeof ((question as any).prompt) === 'object'
                         ? (question as any).prompt.text
                         : (question.content?.prompt?.text || (question as any).prompt || 'Sort the items')}
                 </h2>
-                <p className="text-slate-500 text-sm mt-1">
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                     Drag each item into the correct category below.
                 </p>
             </div>
@@ -211,7 +211,7 @@ export function ClassifySortTemplate({ question, onAnswer, isSubmitting, readOnl
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="mx-auto mb-4 px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-bold flex items-center gap-2"
+                        className="mx-auto mb-4 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-sm font-bold flex items-center gap-2"
                     >
                         <X size={14} /> {mistakes} incorrect placement{mistakes > 1 ? 's' : ''}
                     </motion.div>
@@ -235,13 +235,13 @@ export function ClassifySortTemplate({ question, onAnswer, isSubmitting, readOnl
                             onDragEnd={(e, info) => handleDragEnd(e, info, item)}
                             whileHover={{ scale: 1.05, cursor: 'grab' }}
                             whileDrag={{ scale: 1.1, cursor: 'grabbing', zIndex: 100 }}
-                            className="bg-white px-6 py-4 rounded-xl shadow-md border-2 border-slate-200 font-bold text-lg text-slate-700 m-2 select-none touch-none"
+                            className="bg-white dark:bg-slate-800 px-6 py-4 rounded-xl shadow-md border-2 border-slate-200 dark:border-slate-700 font-bold text-lg text-slate-700 dark:text-slate-200 m-2 select-none touch-none"
                         >
                             {item.content}
                         </motion.div>
                     ))}
                     {unsortedItems.length === 0 && !showVictory && !isComplete && (
-                        <div className="text-slate-300 font-bold italic">All items placed!</div>
+                        <div className="text-slate-300 dark:text-slate-600 font-bold italic">All items placed!</div>
                     )}
                 </AnimatePresence>
 
@@ -304,7 +304,7 @@ export function ClassifySortTemplate({ question, onAnswer, isSubmitting, readOnl
                                             layoutId={item.id} // Retain layout ID for smooth transition from top
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            className="bg-white px-3 py-2 rounded-lg shadow-sm w-full text-center text-sm font-bold text-slate-700 flex items-center justify-between group"
+                                            className="bg-white dark:bg-slate-800 px-3 py-2 rounded-lg shadow-sm w-full text-center text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between group"
                                         >
                                             <span>{item.content}</span>
                                             <Check size={14} className="text-green-500" />
@@ -312,7 +312,7 @@ export function ClassifySortTemplate({ question, onAnswer, isSubmitting, readOnl
                                     ))}
                                 </AnimatePresence>
                                 {bucketItems.length === 0 && (
-                                    <div className="mt-8 text-slate-400/50">Drop here</div>
+                                    <div className="mt-8 text-slate-400/50 dark:text-slate-500/50">Drop here</div>
                                 )}
                             </div>
 

@@ -21,6 +21,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { useLogicBridge } from '../../hooks/useLogicBridge';
+import { useThemedSvg } from '../../hooks/useThemedSvg';
 import type { QuestionItem, Option } from '../../types/curriculum.v3';
 
 interface Props {
@@ -57,6 +58,10 @@ export const TwoTierTemplate: React.FC<Props> = ({
   const tier1 = item.stages[0]; // Stage 1: The Answer (MCQ)
   const tier2 = item.stages[1]; // Stage 2: The Reasoning (Short Explain)
   const bridge = useLogicBridge(coreCurriculum, assessmentGuide);
+
+  // SVG Theming
+  const visualData = (item as any).visualData || (item as any).content?.visualData;
+  const themedSvg = useThemedSvg(visualData?.svg);
 
   // --- UI & INTERACTION STATE ---
   const [tier1Selected, setTier1Selected] = useState<string | null>(null);
@@ -219,15 +224,33 @@ export const TwoTierTemplate: React.FC<Props> = ({
 
         {/* LEFT COLUMN: Problem Definition & Stage 1 */}
         <div className="flex flex-col space-y-6">
-          <div className="bg-white p-8 lg:p-10 rounded-[40px] border border-slate-100 shadow-sm flex-1">
+          <div className="bg-white dark:bg-slate-800 p-8 lg:p-10 rounded-[40px] border border-slate-100 dark:border-slate-700 shadow-sm flex-1">
             <header className="mb-8">
               <Badge color="indigo">Stage 1: The Answer</Badge>
-              <h3 className="text-2xl lg:text-3xl font-black text-slate-900 leading-tight mt-6 whitespace-pre-wrap">
+              <h3 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white leading-tight mt-6 whitespace-pre-wrap">
                 <LatexRenderer text={tier1.prompt.text} />
               </h3>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mt-3 italic whitespace-pre-wrap">
+              <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mt-3 italic whitespace-pre-wrap">
                 {tier1.instruction}
               </p>
+
+              {/* VISUAL DATA (SVG or Image) */}
+              {(themedSvg || visualData?.image) && (
+                <div className="mt-6 mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-center overflow-hidden">
+                  {themedSvg ? (
+                    <div
+                      className="max-h-[300px] w-full flex items-center justify-center thematic-svg"
+                      dangerouslySetInnerHTML={{ __html: themedSvg }}
+                    />
+                  ) : (
+                    <img
+                      src={visualData.image}
+                      alt="Question Visual"
+                      className="max-h-[300px] object-contain rounded-lg"
+                    />
+                  )}
+                </div>
+              )}
             </header>
 
             <div className="space-y-3">
@@ -237,11 +260,11 @@ export const TwoTierTemplate: React.FC<Props> = ({
                   disabled={isTier1Correct || isSubmitted}
                   onClick={() => handleTier1Select(opt)}
                   className={`w-full p-6 text-left rounded-3xl border-2 transition-all flex justify-between items-center group ${tier1Selected === opt.id
-                    ? (opt.id === tier1.answer_key.correct_option_id ? 'border-emerald-500 bg-emerald-50 shadow-sm' : 'border-rose-400 bg-rose-50')
-                    : 'border-slate-50 hover:border-indigo-100 bg-slate-50/50 hover:bg-white'
+                    ? (opt.id === tier1.answer_key.correct_option_id ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-sm' : 'border-rose-400 bg-rose-50 dark:bg-rose-900/20')
+                    : 'border-slate-50 dark:border-slate-700 hover:border-indigo-100 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-800'
                     } ${isTier1Correct && opt.id !== tier1Selected ? 'opacity-40 grayscale-[0.5]' : ''}`}
                 >
-                  <span className="text-lg font-bold text-slate-700">
+                  <span className="text-lg font-bold text-slate-700 dark:text-slate-200">
                     <LatexRenderer text={opt.text} />
                   </span>
                   {tier1Selected === opt.id && (
@@ -284,7 +307,7 @@ export const TwoTierTemplate: React.FC<Props> = ({
             {activeRemediation && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                className={`p-10 rounded-[40px] border shadow-2xl relative overflow-hidden flex-1 flex flex-col justify-center bg-amber-50 border-amber-100`}
+                className={`p-10 rounded-[40px] border shadow-2xl relative overflow-hidden flex-1 flex flex-col justify-center bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800`}
               >
                 <div className="flex gap-6 items-start">
                   <div className={`p-4 rounded-2xl shadow-lg bg-amber-500 text-white`}>
@@ -292,7 +315,7 @@ export const TwoTierTemplate: React.FC<Props> = ({
                   </div>
                   <div>
                     <Badge color="amber">Level {activeRemediation.level || 1} Scaffolding</Badge>
-                    <p className="text-xl font-bold text-slate-800 leading-relaxed mt-4">
+                    <p className="text-xl font-bold text-slate-800 dark:text-amber-200 leading-relaxed mt-4">
                       {activeRemediation.currentHint}
                     </p>
                     <div className="mt-6 flex items-center gap-2 text-amber-600">
@@ -308,14 +331,14 @@ export const TwoTierTemplate: React.FC<Props> = ({
             {isTier1Correct && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                className="bg-white p-8 lg:p-10 rounded-[40px] border border-slate-100 shadow-sm flex-1 flex flex-col relative"
+                className="bg-white dark:bg-slate-800 p-8 lg:p-10 rounded-[40px] border border-slate-100 dark:border-slate-700 shadow-sm flex-1 flex flex-col relative"
               >
                 <div className="flex items-center justify-between mb-8">
                   <Badge color="amber">Stage 2: The Reasoning</Badge>
                   <Trophy className="text-emerald-500 animate-bounce" size={28} />
                 </div>
 
-                <h4 className="text-xl font-black text-slate-800 leading-tight mb-6">
+                <h4 className="text-xl font-black text-slate-800 dark:text-white leading-tight mb-6">
                   {tier2.prompt.text}
                 </h4>
 
@@ -357,11 +380,11 @@ export const TwoTierTemplate: React.FC<Props> = ({
                     disabled={isSubmitted}
                     onChange={(e) => { setTier2Text(e.target.value); setNudgeType('NONE'); }}
                     placeholder="Describe your thinking process..."
-                    className="w-full flex-1 p-8 rounded-t-3xl border-2 border-b-0 border-slate-100 focus:border-indigo-100 outline-none transition-all text-xl font-medium resize-none bg-slate-50/50"
+                    className="w-full flex-1 p-8 rounded-t-3xl border-2 border-b-0 border-slate-100 dark:border-slate-700 focus:border-indigo-100 dark:focus:border-indigo-500 outline-none transition-all text-xl font-medium resize-none bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100"
                   />
 
                   {/* ANDROID VOICE CONTROLLER */}
-                  <div className="bg-slate-50 border-2 border-t-0 border-slate-100 rounded-b-3xl p-6 flex items-center justify-between">
+                  <div className="bg-slate-50 dark:bg-slate-900 border-2 border-t-0 border-slate-100 dark:border-slate-700 rounded-b-3xl p-6 flex items-center justify-between">
                     <button
                       onClick={startSpeechRecognition}
                       disabled={isListening || isSubmitted}
@@ -425,11 +448,11 @@ export const TwoTierTemplate: React.FC<Props> = ({
 
             {/* Inactive State: Tablet Guide */}
             {!isTier1Correct && !activeRemediation && (
-              <div className="hidden lg:flex flex-col items-center justify-center flex-1 border-4 border-dashed border-slate-100 rounded-[50px] p-20 text-center">
-                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm mb-6">
-                  <Target size={40} className="text-slate-200" />
+              <div className="hidden lg:flex flex-col items-center justify-center flex-1 border-4 border-dashed border-slate-100 dark:border-slate-800 rounded-[50px] p-20 text-center">
+                <div className="w-24 h-24 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center shadow-sm mb-6">
+                  <Target size={40} className="text-slate-200 dark:text-slate-600" />
                 </div>
-                <h5 className="text-slate-300 font-black uppercase text-[12px] tracking-[0.4em]">
+                <h5 className="text-slate-300 dark:text-slate-600 font-black uppercase text-[12px] tracking-[0.4em]">
                   Solve Stage 1 to unlock Reasoning
                 </h5>
               </div>
@@ -445,8 +468,8 @@ export const TwoTierTemplate: React.FC<Props> = ({
 
 const Badge = ({ children, color }: { children: React.ReactNode, color: string }) => {
   const styles: any = {
-    indigo: "bg-indigo-50 text-indigo-700 border-indigo-100",
-    amber: "bg-amber-50 text-amber-700 border-amber-100",
+    indigo: "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-100 dark:border-indigo-800",
+    amber: "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-800",
   };
   return (
     <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${styles[color]}`}>

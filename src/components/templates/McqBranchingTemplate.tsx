@@ -128,17 +128,17 @@ export const McqBranchingTemplate: React.FC<McqBranchingTemplateProps> = ({
     };
 
     return (
-        <div className="w-full max-w-3xl mx-auto p-4 md:p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
+        <div className="w-full max-w-3xl mx-auto p-4 md:p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
             {/* STAGE DEBUGGER (Optional, remove in production) */}
             {/* <div className="text-xs text-slate-400 mb-2 font-mono">Stage: {currentStageId} | Intent: {currentStage.intent}</div> */}
 
             {/* PROMPT */}
             <div className="mb-6">
-                <h2 className="text-xl md:text-2xl font-bold text-slate-800 leading-relaxed">
+                <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white leading-relaxed">
                     <LatexRenderer text={currentStage.prompt.text} />
                 </h2>
                 {currentStage.prompt.media_ref && (
-                    <div className="mt-4 p-4 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
+                    <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg flex items-center justify-center text-slate-400 dark:text-slate-500">
                         {/* Placeholder for Media */}
                         [Media: {currentStage.prompt.media_ref}]
                     </div>
@@ -147,7 +147,7 @@ export const McqBranchingTemplate: React.FC<McqBranchingTemplateProps> = ({
 
             {/* STIMULUS (If Any) */}
             {currentStage.stimulus && currentStage.stimulus.type !== 'none' && (
-                <div className="mb-6 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                <div className="mb-6 p-4 bg-blue-50/50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
                     {/* Render based on type */}
                     {currentStage.stimulus.type === 'table' && <div>[Table Content]</div>}
                     {currentStage.stimulus.type === 'image' && <div>[Image Content]</div>}
@@ -157,7 +157,7 @@ export const McqBranchingTemplate: React.FC<McqBranchingTemplateProps> = ({
 
             {/* INSTRUCTION */}
             {currentStage.instruction && (
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">
+                <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">
                     <LatexRenderer text={currentStage.instruction} />
                 </p>
             )}
@@ -173,14 +173,14 @@ export const McqBranchingTemplate: React.FC<McqBranchingTemplateProps> = ({
                             disabled={isComplete}
                             className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 relative group
                                 ${isSelected
-                                    ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                                    : 'border-slate-100 hover:border-blue-200 bg-white hover:bg-slate-50 text-slate-700'
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-sm'
+                                    : 'border-slate-100 dark:border-slate-700 hover:border-blue-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
                                 }
                             `}
                         >
                             <div className="flex items-start gap-4">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors shrink-0
-                                    ${isSelected ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-200'}
+                                    ${isSelected ? 'bg-blue-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 group-hover:bg-blue-200 dark:group-hover:bg-blue-800'}
                                 `}>
                                     {option.id}
                                 </div>
@@ -204,7 +204,7 @@ export const McqBranchingTemplate: React.FC<McqBranchingTemplateProps> = ({
                     >
                         {/* Optional Feedback Display */}
                         {feedback && (
-                            <div className="mb-4 p-4 bg-indigo-50 text-indigo-800 rounded-xl text-sm font-medium flex gap-3">
+                            <div className="mb-4 p-4 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 rounded-xl text-sm font-medium flex gap-3">
                                 <AlertCircle className="shrink-0 w-5 h-5" />
                                 <div><LatexRenderer text={feedback} /></div>
                             </div>
@@ -212,7 +212,7 @@ export const McqBranchingTemplate: React.FC<McqBranchingTemplateProps> = ({
 
                         <button
                             onClick={handleContinue}
-                            className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
                         >
                             {isComplete ? 'Complete' : 'Continue'} <ArrowRight className="w-5 h-5" />
                         </button>

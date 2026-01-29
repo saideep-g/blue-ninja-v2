@@ -6,6 +6,7 @@ import { CheckCircle2, XCircle, Lightbulb, Calculator, ArrowRight, ArrowRightCir
 import { Question } from '../../types';
 import { useProfileStore } from '../../store/profile';
 import { getRandomPraise } from '../../utils/feedbackUtils';
+import { useThemedSvg } from '../../hooks/useThemedSvg';
 
 interface NumericAutoTemplateProps {
     question: Question;
@@ -172,11 +173,12 @@ export function NumericAutoTemplate({ question, onAnswer, onInteract, isSubmitti
     const visualData = (question as any).visualData || qContent.visualData;
     const imageUrl = (question as any).imageUrl || qContent.imageUrl || question.imageUrl;
 
-    // Infer type if missing
     let visualType = rawVisualType;
     if (!visualType && visualData && typeof visualData === 'string' && visualData.trim().startsWith('<svg')) {
         visualType = 'svg';
     }
+
+    const themedVisualData = useThemedSvg(visualType === 'svg' ? visualData : undefined);
 
     const parseValue = (val: string | number | undefined): number | string | null => {
         if (typeof val === 'number') return val;
@@ -274,10 +276,10 @@ export function NumericAutoTemplate({ question, onAnswer, onInteract, isSubmitti
         <div className={`w-full ${isPreview ? 'max-w-5xl' : 'max-w-3xl'} mx-auto flex flex-col gap-6 p-4 animate-in fade-in slide-in-from-bottom-4 duration-500`}>
 
             {/* ========== HERO SECTION ========== */}
-            <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 overflow-hidden relative border-2 border-white">
+            <div className="bg-white dark:bg-slate-800 rounded-[2rem] shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden relative border-2 border-white dark:border-slate-700">
                 {/* ID Badge */}
                 <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-                    <div className="bg-slate-100/80 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-mono font-bold text-slate-400 flex items-center gap-1 border border-slate-200">
+                    <div className="bg-slate-100/80 dark:bg-slate-700/80 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1 border border-slate-200 dark:border-slate-600">
                         <Hash className="w-3 h-3" />
                         {question.id}
                     </div>
@@ -285,24 +287,24 @@ export function NumericAutoTemplate({ question, onAnswer, onInteract, isSubmitti
 
                 <div className="p-6 md:p-8 space-y-6">
                     {/* Badge */}
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold uppercase tracking-wider">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 rounded-full text-xs font-bold uppercase tracking-wider">
                         <PenTool className="w-3 h-3" />
                         Solve on Paper
                     </div>
 
                     {/* Question Text */}
-                    <div className="prose prose-lg prose-slate max-w-none">
-                        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight">
+                    <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
+                        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white leading-tight">
                             <LatexRenderer text={prompt} />
                         </h2>
                     </div>
 
                     {/* Visual Data (SVG or Image) */}
-                    {(visualType === 'svg' && visualData) && (
-                        <div className="my-6 flex justify-center bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    {(visualType === 'svg' && (themedVisualData || visualData)) && (
+                        <div className="my-6 flex justify-center bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-700 thematic-svg">
                             <div
                                 className="w-full max-w-md"
-                                dangerouslySetInnerHTML={{ __html: visualData }}
+                                dangerouslySetInnerHTML={{ __html: themedVisualData || visualData }}
                             />
                         </div>
                     )}
@@ -314,7 +316,7 @@ export function NumericAutoTemplate({ question, onAnswer, onInteract, isSubmitti
                     )}
 
                     {instruction && (
-                        <p className="text-lg text-slate-500 font-medium italic border-l-4 border-indigo-200 pl-4 py-1">
+                        <p className="text-lg text-slate-500 dark:text-slate-400 font-medium italic border-l-4 border-indigo-200 dark:border-indigo-500/30 pl-4 py-1">
                             <LatexRenderer text={instruction} />
                         </p>
                     )}
@@ -322,15 +324,15 @@ export function NumericAutoTemplate({ question, onAnswer, onInteract, isSubmitti
             </div>
 
             {/* ========== INPUT SECTION ========== */}
-            <div className="bg-white p-2 rounded-[2rem] shadow-lg border border-slate-100">
+            <div className="bg-white dark:bg-slate-800 p-2 rounded-[2rem] shadow-lg border border-slate-100 dark:border-slate-700">
                 <form onSubmit={handleSubmit} className="relative flex flex-col md:flex-row gap-2">
                     <div className={`
-                        flex-1 relative flex items-center bg-slate-50 rounded-2xl border-2 transition-all duration-300 overflow-hidden
+                        flex-1 relative flex items-center bg-slate-50 dark:bg-slate-900 rounded-2xl border-2 transition-all duration-300 overflow-hidden
                         ${submitted
                             ? feedback?.isCorrect
-                                ? 'border-green-400 bg-green-50/30'
-                                : 'border-red-300 bg-red-50/30'
-                            : 'border-transparent focus-within:border-indigo-500 focus-within:bg-white'
+                                ? 'border-green-400 bg-green-50/30 dark:bg-green-900/10'
+                                : 'border-red-300 bg-red-50/30 dark:bg-red-900/10'
+                            : 'border-transparent focus-within:border-indigo-500 focus-within:bg-white dark:focus-within:bg-slate-900'
                         }
                     `}>
                         <input
@@ -352,11 +354,11 @@ export function NumericAutoTemplate({ question, onAnswer, onInteract, isSubmitti
                                     }
                                 }
                             }}
-                            className="w-full p-4 md:p-6 text-2xl md:text-3xl font-bold text-slate-800 placeholder:text-slate-300 bg-transparent outline-none text-center md:text-left font-mono"
+                            className="w-full p-4 md:p-6 text-2xl md:text-3xl font-bold text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 bg-transparent outline-none text-center md:text-left font-mono"
                         />
                         {unit && (
                             <div className="pr-6">
-                                <span className="text-lg font-bold text-slate-400 bg-white px-2 py-1 rounded-lg border border-slate-100 shadow-sm">
+                                <span className="text-lg font-bold text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
                                     {unit}
                                 </span>
                             </div>
@@ -400,19 +402,19 @@ export function NumericAutoTemplate({ question, onAnswer, onInteract, isSubmitti
 
             {/* ========== EXPLANATION (On Wrong/Submit/Preview) ========== */}
             {((submitted && !feedback?.isCorrect) || (isPreview && question.explanation)) && (
-                <div className={`bg-white p-6 rounded-2xl border-2 shadow-sm animate-in slide-in-from-top-2 ${isPreview ? 'border-emerald-100' : 'border-red-100'}`}>
+                <div className={`bg-white dark:bg-slate-800 p-6 rounded-2xl border-2 shadow-sm animate-in slide-in-from-top-2 ${isPreview ? 'border-emerald-100 dark:border-emerald-900/30' : 'border-red-100 dark:border-red-900/30'}`}>
                     <div className="flex gap-4">
                         <div className={`${isPreview ? 'bg-emerald-100' : 'bg-red-100'} p-2 rounded-full h-fit`}>
                             <Lightbulb className={`w-6 h-6 ${isPreview ? 'text-emerald-600' : 'text-red-600'}`} />
                         </div>
                         <div className="space-y-4 w-full">
                             <div>
-                                <h4 className={`font-bold ${isPreview ? 'text-emerald-800' : 'text-red-800'} dark:text-red-300 text-lg mb-1`}>
+                                <h4 className={`font-bold ${isPreview ? 'text-emerald-800' : 'text-red-800'} dark:text-red-400 text-lg mb-1`}>
                                     {isPreview ? 'Solution Breakdown' : "Let's review this! 🧐"}
                                 </h4>
-                                <div className="mt-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 inline-block shadow-sm">
+                                <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 inline-block shadow-sm">
                                     <span className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block mb-1">Correct Answer</span>
-                                    <span className="text-xl font-mono font-bold text-slate-800 dark:text-white">{String(rawCorrectValue)} {unit}</span>
+                                    <span className="text-xl font-mono font-bold text-slate-800 dark:text-indigo-400">{String(rawCorrectValue)} {unit}</span>
                                 </div>
                             </div>
 

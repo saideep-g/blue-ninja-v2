@@ -281,10 +281,10 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
     return (
         <div className="w-full max-w-5xl mx-auto p-6 md:p-12 pb-32">
             <div className="text-center mb-10">
-                <h2 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
+                <h2 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">
                     {question.content?.prompt?.text || (typeof question.prompt === 'string' ? question.prompt : question.prompt?.text) || "Match the pairs"}
                 </h2>
-                <p className="text-slate-500 mt-2 font-medium">Select a term on the left, then connect it to the right.</p>
+                <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Select a term on the left, then connect it to the right.</p>
             </div>
 
             <div className="flex justify-between gap-16 md:gap-32 relative isolate min-h-[400px]" ref={containerRef}>
@@ -311,22 +311,22 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
                                 ref={el => { if (el) leftRefs.current[item.id] = el; }}
                                 onClick={() => handleItemClick('left', item.id)}
                                 className={`
-                                    group relative p-5 bg-white rounded-xl border-2 shadow-sm cursor-pointer select-none transition-all duration-200
+                                    group relative p-5 bg-white dark:bg-slate-800 rounded-xl border-2 shadow-sm cursor-pointer select-none transition-all duration-200
                                     flex items-center justify-center text-center
-                                    ${mode === 'default' ? 'border-slate-200 hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5' : ''}
-                                    ${mode === 'selected' ? 'border-blue-500 ring-4 ring-blue-100 shadow-xl z-20 scale-105' : ''}
-                                    ${mode === 'connected' && status === 'correct' ? `${theme?.bg} ${theme?.border} ${theme?.text} shadow-none` : ''}
-                                    ${mode === 'connected' && status === 'incorrect' ? 'bg-red-50 border-red-500 text-red-700 animate-shake' : ''}
+                                    ${mode === 'default' ? 'border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md hover:-translate-y-0.5' : ''}
+                                    ${mode === 'selected' ? 'border-blue-500 ring-4 ring-blue-100 dark:ring-blue-900/30 shadow-xl z-20 scale-105' : ''}
+                                    ${mode === 'connected' && status === 'correct' ? `${theme?.bg} dark:bg-indigo-900/20 ${theme?.border} ${theme?.text} dark:text-indigo-300 shadow-none` : ''}
+                                    ${mode === 'connected' && status === 'incorrect' ? 'bg-red-50 dark:bg-red-900/20 border-red-500 text-red-700 dark:text-red-300 animate-shake' : ''}
                                 `}
                             >
                                 <span className="font-bold text-lg md:text-xl">{item.content}</span>
                                 <div className={`
-                                    absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 bg-white flex items-center justify-center transition-colors
+                                    absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 bg-white dark:bg-slate-700 flex items-center justify-center transition-colors
                                     ${mode === 'default' ? 'border-slate-300 group-hover:border-blue-400 text-slate-300' : ''}
                                     ${mode === 'selected' ? 'border-blue-500 bg-blue-500 text-white scale-110' : ''}
                                     ${mode === 'connected' ? `${theme?.border} bg-white` : ''}
                                 `}>
-                                    <div className={`w-2 h-2 rounded-full ${mode === 'connected' ? `bg-${theme?.stroke}` : 'bg-current'}`} style={{ backgroundColor: mode === 'connected' ? theme?.stroke : undefined }} />
+                                    <div className={`w-2 h-2 rounded-full ${mode === 'connected' ? '' : 'bg-current font-bold opacity-20 text-slate-400'}`} style={{ backgroundColor: mode === 'connected' ? theme?.stroke : undefined }} />
                                 </div>
                             </div>
                         );
@@ -344,23 +344,23 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
                                 ref={el => { if (el) rightRefs.current[item.id] = el; }}
                                 onClick={() => handleItemClick('right', item.id)}
                                 className={`
-                                    group relative p-5 bg-white rounded-xl border-2 shadow-sm cursor-pointer select-none transition-all duration-200
+                                    group relative p-5 bg-white dark:bg-slate-800 rounded-xl border-2 shadow-sm cursor-pointer select-none transition-all duration-200
                                     flex items-center justify-center text-center
-                                    ${mode === 'default' && isMatchable ? 'border-slate-200 hover:border-blue-400 hover:bg-blue-50' : ''}
-                                    ${mode === 'default' && !isMatchable ? 'border-slate-200' : ''}
-                                    ${mode === 'connected' && status === 'correct' ? `${theme?.bg} ${theme?.border} ${theme?.text}` : ''}
-                                    ${mode === 'connected' && status === 'incorrect' ? 'bg-red-50 border-red-500 animate-shake' : ''}
+                                    ${mode === 'default' && isMatchable ? 'border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''}
+                                    ${mode === 'default' && !isMatchable ? 'border-slate-200 dark:border-slate-700' : ''}
+                                    ${mode === 'connected' && status === 'correct' ? `${theme?.bg} dark:bg-emerald-900/20 ${theme?.border} ${theme?.text} dark:text-emerald-300` : ''}
+                                    ${mode === 'connected' && status === 'incorrect' ? 'bg-red-50 dark:bg-red-900/20 border-red-500 animate-shake' : ''}
                                 `}
                             >
                                 <div className={`
-                                    absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 bg-white flex items-center justify-center transition-colors
-                                    ${mode === 'default' ? 'border-slate-300 group-hover:border-blue-400' : ''}
+                                    absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 bg-white dark:bg-slate-700 flex items-center justify-center transition-colors
+                                    ${mode === 'default' ? 'border-slate-300 dark:border-slate-600 group-hover:border-blue-400' : ''}
                                     ${mode === 'connected' ? `${theme?.border}` : ''}
                                 `}>
                                     {mode === 'connected' && status === 'correct' ? (
                                         <Check size={14} className={theme?.text} strokeWidth={4} />
                                     ) : (
-                                        <div className={`w-2 h-2 rounded-full ${mode === 'connected' ? '' : 'bg-slate-300'}`} style={{ backgroundColor: mode === 'connected' ? theme?.stroke : undefined }} />
+                                        <div className={`w-2 h-2 rounded-full ${mode === 'connected' ? '' : 'bg-slate-300 dark:bg-slate-600'}`} style={{ backgroundColor: mode === 'connected' ? theme?.stroke : undefined }} />
                                     )}
                                 </div>
                                 <span className="font-bold text-lg md:text-xl">{item.content}</span>
@@ -373,19 +373,19 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
 
             {/* ========== FEEDBACK & NEXT SECTION ========== */}
             {feedback && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-white/90 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 animate-in slide-in-from-bottom-full duration-500">
+                <div className="fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 animate-in slide-in-from-bottom-full duration-500">
                     <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
 
                         <div className="flex items-center gap-4 flex-1">
-                            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                                <CheckCircle2 className="w-7 h-7 text-green-600" />
+                            <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
+                                <CheckCircle2 className="w-7 h-7 text-green-600 dark:text-green-400" />
                             </div>
                             <div className="space-y-1">
-                                <h4 className="text-xl font-black text-slate-800 flex items-center gap-3">
+                                <h4 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
                                     {feedback.feedback}
-                                    {isAutoAdvancing && <Loader2 className="w-5 h-5 animate-spin text-slate-400" />}
+                                    {isAutoAdvancing && <Loader2 className="w-5 h-5 animate-spin text-slate-400 dark:text-slate-600" />}
                                 </h4>
-                                {isAutoAdvancing && <p className="text-sm text-slate-500 font-medium">Advancing in 2s...</p>}
+                                {isAutoAdvancing && <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Advancing in 2s...</p>}
                             </div>
                         </div>
 
@@ -398,7 +398,7 @@ export const MatchingTemplate: React.FC<MatchingTemplateProps> = ({
 
                         <button
                             onClick={handleContinue}
-                            className="w-full md:w-auto px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-lg shadow-xl shadow-slate-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                            className="w-full md:w-auto px-8 py-3 bg-slate-900 dark:bg-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 text-white rounded-xl font-bold text-lg shadow-xl shadow-slate-900/20 dark:shadow-white/10 active:scale-95 transition-all flex items-center justify-center gap-2"
                         >
                             Next Question <ArrowRightCircle size={20} />
                         </button>

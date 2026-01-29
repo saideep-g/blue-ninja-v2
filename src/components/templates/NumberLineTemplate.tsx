@@ -151,12 +151,12 @@ export const NumberLineTemplate: React.FC<NumberLineTemplateProps> = ({ question
         <div className="w-full max-w-4xl mx-auto p-4 md:p-8 flex flex-col items-center min-h-[400px]">
             {/* PROMPT */}
             <div className="text-center mb-16 max-w-2xl">
-                <h2 className="text-2xl font-bold text-slate-800">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
                     {typeof ((question as any).prompt) === 'object'
                         ? (question as any).prompt.text
                         : (question.content?.prompt?.text || (question as any).prompt || 'Place the value')}
                 </h2>
-                <p className="text-slate-500 mt-2 text-lg">
+                <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
                     {question.instruction || "Drag the circle to the correct value."}
                 </p>
             </div>
@@ -182,11 +182,11 @@ export const NumberLineTemplate: React.FC<NumberLineTemplateProps> = ({ question
                 <div className="absolute inset-x-[-24px] inset-y-0 z-0" />
 
                 {/* Main Line */}
-                <div className="absolute w-[calc(100%+24px)] h-1.5 bg-slate-300 rounded-full pointer-events-none" />
+                <div className="absolute w-[calc(100%+24px)] h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full pointer-events-none" />
 
                 {/* Arrow Heads */}
-                <div className="absolute left-[-12px] h-0 w-0 border-y-[6px] border-y-transparent border-r-[12px] border-r-slate-300 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <div className="absolute right-[-12px] h-0 w-0 border-y-[6px] border-y-transparent border-l-[12px] border-l-slate-300 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <div className="absolute left-[-12px] h-0 w-0 border-y-[6px] border-y-transparent border-r-[12px] border-r-slate-300 dark:border-r-slate-600 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <div className="absolute right-[-12px] h-0 w-0 border-y-[6px] border-y-transparent border-l-[12px] border-l-slate-300 dark:border-l-slate-600 top-1/2 -translate-y-1/2 pointer-events-none" />
 
                 {/* Ticks */}
                 {displayTicks.map(val => (
@@ -199,13 +199,13 @@ export const NumberLineTemplate: React.FC<NumberLineTemplateProps> = ({ question
                     >
                         {/* Major Tick Mark */}
                         <div
-                            className="absolute w-1.5 h-6 bg-slate-400 rounded-full"
+                            className="absolute w-1.5 h-6 bg-slate-400 dark:bg-slate-500 rounded-full"
                             style={{ transform: 'translate(-50%, -50%)' }}
                         />
 
                         {/* Label */}
                         <span
-                            className="absolute top-14 text-xl font-bold text-slate-600 font-mono select-none whitespace-nowrap"
+                            className="absolute top-14 text-xl font-bold text-slate-600 dark:text-slate-400 font-mono select-none whitespace-nowrap"
                             style={{ transform: 'translateX(-50%)' }}
                         >
                             {val}
@@ -274,7 +274,7 @@ export const NumberLineTemplate: React.FC<NumberLineTemplateProps> = ({ question
             <div className="mt-4 flex gap-4">
                 <button
                     onClick={handleReset}
-                    className="px-6 py-3 rounded-full text-slate-500 font-bold hover:bg-slate-100 transition"
+                    className="px-6 py-3 rounded-full text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                     disabled={isComplete}
                 >
                     Reset

@@ -6,6 +6,8 @@ import { CheckCircle2, XCircle, Lightbulb, AlertCircle, Loader2, ArrowRightCircl
 import { Question } from '../../types';
 import { useProfileStore } from '../../store/profile';
 import { getRandomPraise } from '../../utils/feedbackUtils';
+import { useThemedSvg } from '../../hooks/useThemedSvg';
+
 
 interface MCQTemplateProps {
   question: Question;
@@ -137,6 +139,18 @@ export function MCQTemplate({ question, onAnswer, onInteract, isSubmitting, read
   const prompt = getPromptText(question);
   const instruction = (question as any).instruction || (question.content as any)?.instruction;
 
+  // Visuals Logic
+  const visualData = (question as any).visualData || (question.content as any)?.visualData;
+  const imageUrl = (question as any).imageUrl || (question.content as any)?.imageUrl || (question as any).image;
+
+  // Auto-detect SVG in visualData string
+  let visualType = (question as any).visualType || 'image';
+  if (visualData && typeof visualData === 'string' && visualData.trim().startsWith('<svg')) {
+    visualType = 'svg';
+  }
+
+  const themedVisualData = useThemedSvg(visualType === 'svg' ? visualData : undefined);
+
   const feedbackMap = (question as any).feedbackMap || {};
 
   const handleSelect = (index: number) => {
@@ -224,6 +238,22 @@ export function MCQTemplate({ question, onAnswer, onInteract, isSubmitting, read
                 {JSON.stringify(question, null, 2)}
               </pre>
             </details>
+          </div>
+        )}
+
+        {/* Visual Data (SVG or Image) */}
+        {(visualType === 'svg' && (themedVisualData || visualData)) && (
+          <div className="my-6 flex justify-center bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-700 thematic-svg">
+            <div
+              className="w-full max-w-md"
+              dangerouslySetInnerHTML={{ __html: themedVisualData || visualData }}
+            />
+          </div>
+        )}
+
+        {imageUrl && !visualData && (
+          <div className="my-6 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700">
+            <img src={imageUrl} alt="Question Diagram" className="w-full h-auto object-contain max-h-[300px]" />
           </div>
         )}
       </div>
@@ -392,18 +422,18 @@ export function MCQTemplate({ question, onAnswer, onInteract, isSubmitting, read
 
       {/* ========== WORKED SOLUTION (COLLAPSIBLE) ========== */}
       {(submitted || isPreview) && question.workedSolution?.steps && question.workedSolution.steps.length > 0 && (
-        <details className="bg-gradient-to-br from-purple-50 to-indigo-50 p-5 md:p-6 rounded-xl border-2 border-purple-200 group">
-          <summary className="cursor-pointer font-bold text-gray-900 text-base md:text-lg flex items-center gap-2 hover:text-purple-600 transition-colors">
+        <details className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-5 md:p-6 rounded-xl border-2 border-purple-200 dark:border-purple-800 group">
+          <summary className="cursor-pointer font-bold text-gray-900 dark:text-gray-100 text-base md:text-lg flex items-center gap-2 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
             <span>💡 See how to solve this</span>
             <span className="ml-auto text-gray-400 group-open:rotate-180 transition-transform">▼</span>
           </summary>
           <div className="mt-4 space-y-3">
             {question.workedSolution.steps.map((step: string, idx: number) => (
               <div key={idx} className="flex gap-3">
-                <div className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                <div className="flex-shrink-0 w-6 h-6 bg-purple-600 dark:bg-purple-700 text-white rounded-full flex items-center justify-center text-xs font-bold">
                   {idx + 1}
                 </div>
-                <p className="text-gray-700 text-sm md:text-base leading-relaxed flex-1 pt-0.5">
+                <p className="text-gray-700 dark:text-gray-300 text-sm md:text-base leading-relaxed flex-1 pt-0.5">
                   <LatexRenderer text={step} />
                 </p>
               </div>

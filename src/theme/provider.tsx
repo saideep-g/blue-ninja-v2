@@ -26,6 +26,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
       setEffectiveTheme(newTheme);
       document.documentElement.setAttribute('data-theme', newTheme);
+      // Also toggle class for broad compatibility
+      document.documentElement.classList.toggle('dark', newTheme === 'dark');
       logger.debug(`Theme applied: ${newTheme}`);
     };
 

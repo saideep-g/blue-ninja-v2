@@ -272,30 +272,30 @@ export const BalanceOpsTemplate: React.FC<TemplateProps> = ({ question, onAnswer
     if (!config) return <div className="p-4 text-red-500">Invalid Configuration</div>;
 
     return (
-        <div className="flex flex-col items-center py-4 w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-            <h3 className="text-lg font-bold text-slate-700 mb-8 self-start">
+        <div className="flex flex-col items-center py-4 w-full bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-8 self-start">
                 {getSafePrompt()}
             </h3>
 
             <div className="flex items-center gap-4 md:gap-12 mb-16 w-full justify-center flex-wrap">
                 <div className="flex flex-col items-center">
                     <div className={`p-4 md:p-8 border-4 rounded-[2rem] md:rounded-[2.5rem] text-xl md:text-3xl font-black min-w-[140px] md:min-w-[220px] text-center shadow-inner transition-all duration-300
-                         ${feedback?.isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-indigo-50 border-indigo-100 text-indigo-900'}
+                         ${feedback?.isCorrect ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300' : 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800 text-indigo-900 dark:text-indigo-300'}
                     `}>
                         {formatLeftLabel()}
                     </div>
-                    <div className="w-20 md:w-40 h-2 md:h-3 bg-slate-200 rounded-full mt-4"></div>
+                    <div className="w-20 md:w-40 h-2 md:h-3 bg-slate-200 dark:bg-slate-700 rounded-full mt-4"></div>
                 </div>
 
-                <div className="text-3xl md:text-5xl font-black text-slate-200 select-none">=</div>
+                <div className="text-3xl md:text-5xl font-black text-slate-200 dark:text-slate-700 select-none">=</div>
 
                 <div className="flex flex-col items-center">
                     <div className={`p-4 md:p-8 border-4 rounded-[2rem] md:rounded-[2.5rem] text-xl md:text-3xl font-black min-w-[100px] md:min-w-[160px] text-center shadow-inner transition-all duration-300
-                        ${feedback?.isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-indigo-50 border-indigo-100 text-indigo-900'}
+                        ${feedback?.isCorrect ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300' : 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800 text-indigo-900 dark:text-indigo-300'}
                     `}>
                         {formatNumber(currentRight)}
                     </div>
-                    <div className="w-20 md:w-40 h-2 md:h-3 bg-slate-200 rounded-full mt-4"></div>
+                    <div className="w-20 md:w-40 h-2 md:h-3 bg-slate-200 dark:bg-slate-700 rounded-full mt-4"></div>
                 </div>
             </div>
 
@@ -305,9 +305,9 @@ export const BalanceOpsTemplate: React.FC<TemplateProps> = ({ question, onAnswer
                         key={idx}
                         onClick={() => applyOp(op)}
                         disabled={readOnly || isSubmitting || isolated || submitted}
-                        className="flex items-center justify-center p-6 bg-white border-2 border-slate-100 rounded-3xl font-black text-slate-700 hover:border-indigo-400 hover:bg-indigo-50 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                        className="flex items-center justify-center p-6 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-3xl font-black text-slate-700 dark:text-slate-200 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                     >
-                        {op.label} <span className="ml-2 text-[10px] text-slate-400 uppercase tracking-widest font-bold">Both Sides</span>
+                        {op.label} <span className="ml-2 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold">Both Sides</span>
                     </button>
                 ))}
             </div>
@@ -345,7 +345,7 @@ export const BalanceOpsTemplate: React.FC<TemplateProps> = ({ question, onAnswer
                                     }
                                 }}
                                 disabled={readOnly || isSubmitting}
-                                className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase hover:text-rose-500 transition-colors px-4 py-3 border border-slate-200 rounded-xl"
+                                className="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-bold text-xs uppercase hover:text-rose-500 dark:hover:text-rose-400 transition-colors px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl"
                             >
                                 <RotateCcw size={16} /> Reset
                             </button>
@@ -368,8 +368,8 @@ export const BalanceOpsTemplate: React.FC<TemplateProps> = ({ question, onAnswer
                 <div className="w-full max-w-2xl space-y-4 animate-in slide-in-from-bottom-4 duration-300 mt-4">
                     <div
                         className={`p-6 rounded-2xl flex gap-4 items-start ${feedback.isCorrect
-                            ? 'bg-green-50 border-2 border-green-200'
-                            : 'bg-red-50 border-2 border-red-200'
+                            ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800'
+                            : 'bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800'
                             }`}
                     >
                         <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${feedback.isCorrect ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}`}>
@@ -377,7 +377,7 @@ export const BalanceOpsTemplate: React.FC<TemplateProps> = ({ question, onAnswer
                         </div>
 
                         <div className="flex-1 space-y-1 pt-1">
-                            <h4 className={`font-bold text-lg ${feedback.isCorrect ? 'text-green-800' : 'text-red-800'}`}>
+                            <h4 className={`font-bold text-lg ${feedback.isCorrect ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>
                                 {feedback.isCorrect ? (
                                     <span className="flex items-center gap-2">
                                         {feedback.feedback}

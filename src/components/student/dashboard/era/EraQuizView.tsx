@@ -74,17 +74,17 @@ export const EraQuizView = forwardRef<EraQuizViewHandle, EraQuizViewProps>(({
             <div className="flex justify-between items-center mb-8 px-4">
                 <button
                     onClick={handleAttemptClose}
-                    className="p-3 bg-white/50 backdrop-blur-md rounded-full text-gray-500 hover:text-rose-500 hover:bg-rose-50 transition-all shadow-sm"
+                    className="p-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-md rounded-full text-gray-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all shadow-sm"
                 >
                     <X size={24} />
                 </button>
 
                 {/* Gen Z Timer Pill */}
-                <div className="px-6 py-2 bg-white/80 backdrop-blur-md rounded-full text-indigo-900 font-black tracking-widest text-lg shadow-sm border border-white/50 animate-pulse">
+                <div className="px-6 py-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-full text-indigo-900 dark:text-indigo-300 font-black tracking-widest text-lg shadow-sm border border-white/50 dark:border-slate-700 animate-pulse">
                     {formatTime(seconds)} ⏳
                 </div>
 
-                <div className="px-4 py-2 bg-white/50 backdrop-blur-md rounded-full shadow-sm text-xs font-black uppercase tracking-widest text-gray-600 border border-white/50">
+                <div className="px-4 py-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-md rounded-full shadow-sm text-xs font-black uppercase tracking-widest text-gray-600 dark:text-slate-400 border border-white/50 dark:border-slate-700">
                     Q{currentQuestionIndex + 1}/{questions.length}
                 </div>
             </div>
@@ -100,15 +100,15 @@ export const EraQuizView = forwardRef<EraQuizViewHandle, EraQuizViewProps>(({
             {/* Exit Confirmation Modal */}
             {showExitConfirm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="bg-rose-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <LogOut className="text-rose-600 w-8 h-8" />
+                    <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="bg-rose-100 dark:bg-rose-900/40 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <LogOut className="text-rose-600 dark:text-rose-400 w-8 h-8" />
                         </div>
 
-                        <h3 className="text-2xl font-black text-slate-800 text-center mb-2">
+                        <h3 className="text-2xl font-black text-slate-800 dark:text-white text-center mb-2">
                             Pause Session?
                         </h3>
-                        <p className="text-slate-500 text-center font-medium mb-8">
+                        <p className="text-slate-500 dark:text-slate-400 text-center font-medium mb-8">
                             Progress will be saved, but you'll lose your current flow! 🌊
                         </p>
 
@@ -122,7 +122,7 @@ export const EraQuizView = forwardRef<EraQuizViewHandle, EraQuizViewProps>(({
 
                             <button
                                 onClick={confirmExit}
-                                className="w-full py-4 bg-white text-slate-400 border-2 border-slate-100 rounded-xl font-bold hover:bg-slate-50 hover:text-slate-600 active:scale-95 transition-all"
+                                className="w-full py-4 bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 border-2 border-slate-100 dark:border-slate-700 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 active:scale-95 transition-all"
                             >
                                 I needs a break 😴
                             </button>

@@ -97,6 +97,7 @@
 }
 
 @layer components {
+
   /* Cards */
   .ninja-card {
     background-color: var(--color-card);
@@ -308,4 +309,53 @@
   .container {
     max-width: 1200px;
   }
+}
+
+/* Support for Educational SVGs in Dark Mode */
+[data-theme='dark'] .thematic-svg svg [stroke="black"],
+[data-theme='dark'] .thematic-svg svg [stroke="#000"],
+[data-theme='dark'] .thematic-svg svg [stroke="#000000"],
+.dark .thematic-svg svg [stroke="black"],
+.dark .thematic-svg svg [stroke="#000"],
+.dark .thematic-svg svg [stroke="#000000"] {
+  stroke: #ffffff !important;
+}
+
+[data-theme='dark'] .thematic-svg svg [fill="black"],
+[data-theme='dark'] .thematic-svg svg [fill="#000"],
+[data-theme='dark'] .thematic-svg svg [fill="#000000"],
+.dark .thematic-svg svg [fill="black"],
+.dark .thematic-svg svg [fill="#000"],
+.dark .thematic-svg svg [fill="#000000"] {
+  fill: #ffffff !important;
+}
+
+[data-theme='dark'] .thematic-svg svg text:not([fill]),
+[data-theme='dark'] .thematic-svg svg text[fill="black"],
+[data-theme='dark'] .thematic-svg svg text[fill="#000"],
+[data-theme='dark'] .thematic-svg svg text[fill="#000000"],
+.dark .thematic-svg svg text:not([fill]),
+.dark .thematic-svg svg text[fill="black"],
+.dark .thematic-svg svg text[fill="#000"],
+.dark .thematic-svg svg text[fill="#000000"] {
+  fill: #ffffff !important;
+}
+
+/* Improve 'blue' visibility in dark mode for educational diagrams */
+[data-theme='dark'] .thematic-svg svg [stroke="blue"],
+.dark .thematic-svg svg [stroke="blue"] {
+  stroke: #60a5fa !important;
+  /* sky-blue */
+}
+
+[data-theme='dark'] .thematic-svg svg [fill="blue"],
+.dark .thematic-svg svg [fill="blue"] {
+  fill: #60a5fa !important;
+  /* sky-blue */
+}
+
+/* Ensure default text in SVG is visible in dark mode if not specified */
+[data-theme='dark'] .thematic-svg svg text,
+.dark .thematic-svg svg text {
+  transition: fill 0.3s ease;
 }

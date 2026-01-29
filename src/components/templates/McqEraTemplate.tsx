@@ -8,6 +8,7 @@ import { db } from '../../services/db/firebase';
 import { Question } from '../../types';
 import { useProfileStore } from '../../store/profile';
 import { getRandomPraise } from '../../utils/feedbackUtils';
+import { useThemedSvg } from '../../hooks/useThemedSvg';
 
 interface MCQTemplateProps {
     question: Question;
@@ -126,6 +127,18 @@ export function McqEraTemplate({ question, onAnswer, onInteract, isSubmitting, r
 
     const prompt = (question as any).question || (question as any).question_text || (question.content?.prompt?.text) || "Identify the correct option:";
     const instruction = (question as any).instruction || (question.content as any)?.instruction;
+
+    // Visuals Logic
+    const visualData = (question as any).visualData || (question.content as any)?.visualData;
+    const imageUrl = (question as any).imageUrl || (question.content as any)?.imageUrl || (question as any).image;
+
+    // Auto-detect SVG in visualData string
+    let visualType = (question as any).visualType || 'image';
+    if (visualData && typeof visualData === 'string' && visualData.trim().startsWith('<svg')) {
+        visualType = 'svg';
+    }
+
+    const themedVisualData = useThemedSvg(visualType === 'svg' ? visualData : undefined);
 
     const handleSelect = (index: number) => {
         if (!submitted && !isSubmitting && !isPreview) {
@@ -258,6 +271,21 @@ export function McqEraTemplate({ question, onAnswer, onInteract, isSubmitting, r
                 <h2 className="text-2xl md:text-3xl font-serif italic leading-tight relative z-10 pr-12" style={{ color: textColor }}>
                     <LatexRenderer text={prompt} />
                 </h2>
+
+                {/* VISUAL BLOCK */}
+                {(visualType === 'svg' && (themedVisualData || visualData)) && (
+                    <div className="my-6 flex justify-center bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-700 thematic-svg relative z-10">
+                        <div
+                            className="w-full max-w-md"
+                            dangerouslySetInnerHTML={{ __html: themedVisualData || visualData }}
+                        />
+                    </div>
+                )}
+                {imageUrl && !visualData && (
+                    <div className="my-6 rounded-xl overflow-hidden shadow-sm border border-slate-100 relative z-10">
+                        <img src={imageUrl} alt="Question Diagram" className="w-full h-auto object-contain max-h-[300px]" />
+                    </div>
+                )}
                 {instruction && (
                     <p className="mt-4 text-sm font-bold opacity-60 uppercase tracking-widest relative z-10" style={{ color: textColor }}>
                         <LatexRenderer text={instruction} />

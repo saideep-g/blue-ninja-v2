@@ -89,12 +89,12 @@ export const SortOrderTemplate: React.FC<SortOrderTemplateProps> = ({ question, 
         <div className="w-full max-w-4xl mx-auto p-4 md:p-8 flex flex-col items-center">
             {/* PROMPT */}
             <div className="text-center mb-8 max-w-2xl">
-                <h2 className="text-2xl font-bold text-slate-800">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
                     {typeof ((question as any).prompt) === 'object'
                         ? (question as any).prompt.text
                         : (question.content?.prompt?.text || (question as any).prompt || 'Order the steps')}
                 </h2>
-                <p className="text-slate-500 mt-2 text-lg">
+                <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
                     {question.instruction || "Drag the tiles into the correct order."}
                 </p>
             </div>
@@ -113,9 +113,9 @@ export const SortOrderTemplate: React.FC<SortOrderTemplateProps> = ({ question, 
                             value={item}
                             dragListener={!readOnly && !isComplete}
                             className={`
-                                relative p-4 bg-white rounded-xl shadow-sm border-2 flex items-center gap-4 cursor-grab active:cursor-grabbing select-none
-                                ${feedback === 'correct' ? 'border-emerald-500 bg-emerald-50' :
-                                    feedback === 'incorrect' ? 'border-red-200 bg-red-50' : 'border-slate-200 hover:border-slate-300'}
+                                relative p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 flex items-center gap-4 cursor-grab active:cursor-grabbing select-none
+                                ${feedback === 'correct' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' :
+                                    feedback === 'incorrect' ? 'border-red-200 bg-red-50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}
                             `}
                             whileDrag={{ scale: 1.05, boxShadow: "0px 10px 20px rgba(0,0,0,0.1)", zIndex: 10 }}
                         >
@@ -125,7 +125,7 @@ export const SortOrderTemplate: React.FC<SortOrderTemplateProps> = ({ question, 
                             </div>
 
                             {/* Text */}
-                            <span className="flex-1 font-medium text-slate-700 text-lg">
+                            <span className="flex-1 font-medium text-slate-700 dark:text-slate-200 text-lg">
                                 {item.text}
                             </span>
                         </Reorder.Item>
