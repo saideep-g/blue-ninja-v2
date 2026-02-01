@@ -18,7 +18,8 @@ const SUBJECTS = [
     { id: 'science', name: 'Science' },
     { id: 'vocabulary', name: 'Vocabulary (Words)' },
     { id: 'english', name: 'English (Grammar)' },
-    { id: 'world', name: 'World (Geography/GK)' },
+    { id: 'world', name: 'World (GK)' },
+    { id: 'geography', name: 'Geography' },
     { id: 'logic', name: 'Logic & Reasoning' }
 ];
 
