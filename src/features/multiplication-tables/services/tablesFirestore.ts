@@ -536,18 +536,19 @@ export async function migrateLegacyLogs(studentId: string): Promise<{ migrated: 
         // Ensure timestamp is valid number/Object
         const ts = log.timestamp && log.timestamp.toDate ? log.timestamp.toDate() : (new Date(log.timestamp || Date.now()));
 
+        // SANITIZATION: Firestore doesn't support 'undefined'.
         return {
-            questionId: log.questionId,
-            studentAnswer: log.studentAnswer,
-            isCorrect: log.isCorrect,
+            questionId: log.questionId || null,
+            studentAnswer: log.studentAnswer || null,
+            isCorrect: log.isCorrect ?? false,
             timestamp: ts,
-            timeSpent: 0, // Legacy logs might natively miss this
-            subject: derivedSubject,
-            questionType: derivedType,
-            questionText: derivedText,
-            correctAnswer: derivedAnswer,
+            timeSpent: log.timeSpent ?? 0,
+            subject: derivedSubject || 'math',
+            questionType: (derivedType || 'MCQ').toUpperCase(),
+            questionText: derivedText || 'Question Content',
+            correctAnswer: derivedAnswer || 'N/A',
             source: 'legacy',
-            isSuccess: log.isSuccess // Keep if present
+            isSuccess: log.isSuccess ?? (log.isCorrect ?? true)
         };
     });
 
@@ -785,4 +786,37 @@ export async function inspectLogCollection(studentId: string): Promise<string> {
     }
 
     return report;
+}
+
+/**
+ * Delete logs with questionId starting with 'DUMMY' across all students.
+ * One-time utility to cleanup test data.
+ */
+export async function deleteDummyLogs(): Promise<{ studentsProcessed: number, logsDeleted: number }> {
+    const studentsSnap = await getDocs(collection(db, 'students'));
+    let studentsProcessed = 0;
+    let logsDeleted = 0;
+
+    for (const studentDoc of studentsSnap.docs) {
+        studentsProcessed++;
+        const logsCol = collection(db, 'students', studentDoc.id, 'session_logs');
+        const logsSnap = await getDocs(logsCol);
+
+        for (const logDoc of logsSnap.docs) {
+            const data = logDoc.data();
+            if (data.entries && Array.isArray(data.entries)) {
+                const initialCount = data.entries.length;
+                const filteredEntries = data.entries.filter((entry: any) =>
+                    !(entry.questionId && entry.questionId.toString().startsWith('DUMMY'))
+                );
+
+                if (filteredEntries.length !== initialCount) {
+                    logsDeleted += (initialCount - filteredEntries.length);
+                    await updateDoc(logDoc.ref, { entries: filteredEntries });
+                }
+            }
+        }
+    }
+
+    return { studentsProcessed, logsDeleted };
 }

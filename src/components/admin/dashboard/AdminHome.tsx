@@ -217,7 +217,7 @@ export default function AdminHome() {
                         </span>
                     )}
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                     <button
                         onClick={runLogRepair}
                         disabled={runningMigration}
@@ -226,8 +226,31 @@ export default function AdminHome() {
                         {runningMigration ? <Activity className="animate-spin" /> : <Play size={18} fill="currentColor" />}
                         Run Log Repair Script
                     </button>
+
+                    <button
+                        onClick={async () => {
+                            if (!confirm("Are you sure you want to delete all logs with questionId starting with 'DUMMY'? This action cannot be undone.")) return;
+                            setRunningMigration(true);
+                            setMigrationStatus("Cleaning up dummy logs...");
+                            try {
+                                const { deleteDummyLogs } = await import('../../../features/multiplication-tables/services/tablesFirestore');
+                                const result = await deleteDummyLogs();
+                                setMigrationStatus(`Success! Deleted ${result.logsDeleted} dummy logs across ${result.studentsProcessed} students.`);
+                            } catch (e: any) {
+                                setMigrationStatus(`Error: ${e.message}`);
+                            } finally {
+                                setRunningMigration(false);
+                            }
+                        }}
+                        disabled={runningMigration}
+                        className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-amber-100"
+                    >
+                        <Database size={18} />
+                        Cleanup Dummy Logs
+                    </button>
+
                     <p className="text-sm text-slate-500 max-w-lg">
-                        <strong>One-Time Fix:</strong> Iterates through all student histories to fix missing subjects (converting 'Era' to 'Math', 'Science', etc. based on ID) and missing question types.
+                        <strong>One-Time Fix:</strong> Iterates through all student histories to fix missing subjects (converting 'Era' to 'Math', 'Science', etc. based on ID) and missing question types. Or use Cleanup to remove test data.
                     </p>
                 </div>
             </div>
