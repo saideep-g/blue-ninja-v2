@@ -433,6 +433,154 @@ export async function getAllPracticeLogs(studentId: string) {
 
 // --- MIGRATION UTILS ---
 
+/**
+ * Migrate Legacy Logs (Individual Docs -> Bucket 2026-01)
+ * Specific utility requested by user to transition old data in 'session_logs'.
+ * NOW HYDRATES CONTENT FROM DB.
+ */
+export async function migrateLegacyLogs(studentId: string): Promise<{ migrated: number, errors: number, deleted: number }> {
+    // CORRECTION: User requested 'session_logs', not 'table_practice_logs'
+    const logsCol = collection(db, COLLECTION_USERS, studentId, 'session_logs');
+    const snap = await getDocs(logsCol);
+
+    const legacyLogs: any[] = [];
+    const idsToDelete: string[] = [];
+
+    // 1. Identify Legacy Docs
+    snap.forEach(docSnap => {
+        const id = docSnap.id;
+        const data = docSnap.data();
+
+        // New buckets look like '2025-11' or 'logs_2025_h1'.
+        // Old logs have auto-IDs (long strings) and typically don't have 'entries' array or 'logs' array at root.
+        // User sample has 'questionId' at root.
+        const isBucket = (data.entries && Array.isArray(data.entries)) || (data.logs && Array.isArray(data.logs));
+        const looksLikeLegacy = !isBucket && data.questionId;
+
+        if (looksLikeLegacy && id.length > 10) { // Safety check on ID length
+            legacyLogs.push({ ...data, id });
+            idsToDelete.push(id);
+        }
+    });
+
+    if (legacyLogs.length === 0) {
+        return { migrated: 0, errors: 0, deleted: 0 };
+    }
+
+    console.log(`[Migration] Found ${legacyLogs.length} legacy logs to migrate for ${studentId}. Hydrating content...`);
+
+    // 1.5 Fetch Content for Lookup (Same logic as AdminHome repair)
+    const qLookup = new Map<string, any>();
+
+    // Helper to index
+    const indexQuestion = (q: any) => {
+        if (!q) return;
+        const id = (q.id || '').toString();
+        if (id) {
+            qLookup.set(id, {
+                questionText: q.question || q.question_text || q.text || "Question Content",
+                correctAnswer: q.answer || q.correct_answer || (q.options?.find((o: any) => o.isCorrect)?.text) || "N/A",
+                questionType: (q.type || q.template_id || 'MCQ').toUpperCase(),
+                subject: q.subject
+            });
+        }
+    };
+
+    try {
+        // Fetch Diag
+        const diagSnap = await getDocs(collection(db, 'diagnostic_questions'));
+        diagSnap.docs.forEach(d => indexQuestion({ ...d.data(), id: d.id }));
+
+        // Fetch Bundles
+        const bundlesSnap = await getDocs(collection(db, 'question_bundle_data'));
+        bundlesSnap.docs.forEach(d => {
+            const data = d.data();
+            if (data.questions) Object.values(data.questions).forEach((q: any) => indexQuestion(q));
+        });
+
+    } catch (e) {
+        console.warn("Content hydration fetch failed, proceeding with fallbacks", e);
+    }
+
+    // 2. Transform Logic
+    // Target Path: students/{studentId}/session_logs/2026-01
+
+    const newEntries = legacyLogs.map(log => {
+        // Derive Metadata
+        let derivedSubject = 'math';
+        let derivedType = 'MCQ'; // Default
+        let derivedText = 'Question Content';
+        let derivedAnswer = 'N/A';
+
+        const qId = (log.questionId || '').toString().toLowerCase();
+
+        // Try Lookup First
+        const lookup = qLookup.get(log.questionId);
+        if (lookup) {
+            derivedText = lookup.questionText;
+            derivedAnswer = lookup.correctAnswer;
+            if (lookup.questionType) derivedType = lookup.questionType;
+            if (lookup.subject) derivedSubject = lookup.subject;
+        }
+
+        // Fallback Subject Inference if not found in lookup
+        if (!lookup || !lookup.subject) {
+            if (log.mode === 'DIAGNOSTIC') derivedSubject = 'diagnostic';
+            else if (qId.startsWith('m')) derivedSubject = 'math';
+            else if (qId.startsWith('s')) derivedSubject = 'science';
+            else if (qId.startsWith('w')) derivedSubject = 'vocabulary';
+            else if (qId.startsWith('g')) derivedSubject = 'gk';
+            else if (qId.startsWith('y')) derivedSubject = 'geography';
+        }
+
+        // Ensure timestamp is valid number/Object
+        const ts = log.timestamp && log.timestamp.toDate ? log.timestamp.toDate() : (new Date(log.timestamp || Date.now()));
+
+        return {
+            questionId: log.questionId,
+            studentAnswer: log.studentAnswer,
+            isCorrect: log.isCorrect,
+            timestamp: ts,
+            timeSpent: 0, // Legacy logs might natively miss this
+            subject: derivedSubject,
+            questionType: derivedType,
+            questionText: derivedText,
+            correctAnswer: derivedAnswer,
+            source: 'legacy',
+            isSuccess: log.isSuccess // Keep if present
+        };
+    });
+
+    // 3. Write to Target Bucket (2026-01)
+    try {
+        const targetDocRef = doc(db, COLLECTION_USERS, studentId, 'session_logs', '2026-01');
+
+        const CHUNK_SIZE = 200;
+        for (let i = 0; i < newEntries.length; i += CHUNK_SIZE) {
+            const chunk = newEntries.slice(i, i + CHUNK_SIZE);
+            // Use setDoc with merge to ensure doc exists
+            await setDoc(targetDocRef, {
+                entries: arrayUnion(...chunk)
+            }, { merge: true });
+        }
+
+        // 5. Delete Old Docs
+        console.log(`[Migration] Deleting ${idsToDelete.length} files...`);
+        const batchSize = 400; // Limit is 500 for batch
+        for (let i = 0; i < idsToDelete.length; i += batchSize) {
+            const batchIds = idsToDelete.slice(i, i + batchSize);
+            await Promise.all(batchIds.map(id => deleteDoc(doc(db, COLLECTION_USERS, studentId, 'session_logs', id))));
+        }
+
+        return { migrated: newEntries.length, errors: 0, deleted: idsToDelete.length };
+
+    } catch (e) {
+        console.error("Migration Failed", e);
+        return { migrated: 0, errors: 1, deleted: 0 };
+    }
+}
+
+
 export async function migrateLogsToBuckets(studentId: string): Promise<{ migrated: number, errors: number }> {
     const logsCol = collection(db, COLLECTION_USERS, studentId, SUBCOLLECTION_LOGS);
     const snap = await getDocs(logsCol);
@@ -583,4 +731,58 @@ export async function rehydrateStudentStats(studentId: string): Promise<boolean>
         console.error("Rehydration failed:", e);
         return false;
     }
+}
+
+/**
+ * Inspect Log Collection Structure (Diagnostic)
+ * Returns a summary of what's in the subcollection to identify why migration might miss files.
+ */
+export async function inspectLogCollection(studentId: string): Promise<string> {
+    // CORRECTION: User requested 'session_logs', not 'table_practice_logs'
+    const logsCol = collection(db, COLLECTION_USERS, studentId, 'session_logs');
+    const snap = await getDocs(logsCol);
+
+    let report = `Collection Inspection for ${studentId} (session_logs):\n`;
+    report += `Total Documents: ${snap.size}\n`;
+    report += `----------------------------------------\n`;
+
+    let buckets = 0;
+    let legacy = 0;
+    let unknown = 0;
+    const samples: string[] = [];
+
+    snap.forEach(doc => {
+        const data = doc.data();
+        const id = doc.id;
+
+        const hasEntries = data.entries && Array.isArray(data.entries);
+        const hasLogs = data.logs && Array.isArray(data.logs);
+
+        if (hasEntries || hasLogs) {
+            buckets++;
+            const count = (data.entries?.length || 0) + (data.logs?.length || 0);
+            report += `[BUCKET] ${id}: ${count} entries (Type: ${hasEntries ? 'entries' : 'logs'})\n`;
+        } else if (data.questionId || data.table || data.timestamp) {
+            legacy++;
+            if (samples.length < 5) {
+                samples.push(`[LEGACY] ${id}: Keys=[${Object.keys(data).join(', ')}]`);
+            }
+        } else {
+            unknown++;
+            if (samples.length < 10) {
+                samples.push(`[UNKNOWN] ${id}: Keys=[${Object.keys(data).join(', ')}]`);
+            }
+        }
+    });
+
+    report += `\nSummary:\n`;
+    report += `- Buckets: ${buckets}\n`;
+    report += `- Legacy Candidates: ${legacy}\n`;
+    report += `- Unknown Format: ${unknown}\n`;
+
+    if (samples.length > 0) {
+        report += `\nSamples:\n${samples.join('\n')}\n`;
+    }
+
+    return report;
 }

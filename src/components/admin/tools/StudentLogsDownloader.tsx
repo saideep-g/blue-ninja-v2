@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Download, Search, AlertCircle, CheckCircle2, FileJson, Loader2 } from 'lucide-react';
-import { getAllPracticeLogs, migrateLogsToBuckets } from '../../../features/multiplication-tables/services/tablesFirestore';
+import { getAllPracticeLogs, migrateLogsToBuckets, migrateLegacyLogs, inspectLogCollection } from '../../../features/multiplication-tables/services/tablesFirestore';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../../../services/db/firebase';
 
@@ -11,6 +11,8 @@ export default function StudentLogsDownloader() {
     const [isSearching, setIsSearching] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const [isMigrating, setIsMigrating] = useState(false);
+    const [isLegacyMigrating, setIsLegacyMigrating] = useState(false);
+    const [inspectionReport, setInspectionReport] = useState<string | null>(null);
     const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
     const handleSearch = async (e: React.FormEvent) => {
@@ -28,36 +30,20 @@ export default function StudentLogsDownloader() {
             // but let's try searching by email first as it is unique.
             // If the searchTerm looks like an ID, we can also check that.
 
-            let users: any[] = [];
-
-            // 1. Try Email
-            const qEmail = query(collection(db, 'students'), where('email', '>=', searchTerm), where('email', '<=', searchTerm + '\uf8ff'), limit(5));
-            const snapEmail = await getDocs(qEmail);
-            snapEmail.forEach(doc => {
-                const data = doc.data();
-                if (!users.find(u => u.id === doc.id)) {
-                    users.push({ id: doc.id, ...data });
-                }
-            });
-
-            // 2. Try Display Name
-            if (users.length < 5) {
-                const qName = query(collection(db, 'students'), where('displayName', '>=', searchTerm), where('displayName', '<=', searchTerm + '\uf8ff'), limit(5));
-                const snapName = await getDocs(qName);
-                snapName.forEach(doc => {
-                    const data = doc.data();
-                    if (!users.find(u => u.id === doc.id)) {
-                        users.push({ id: doc.id, ...data });
-                    }
+            // Fetch all (since < 5 users) and filter client side
+            const snapshot = await getDocs(collection(db, 'students'));
+            const users = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() } as any))
+                .filter(u => {
+                    const search = searchTerm.toLowerCase();
+                    return (
+                        (u.username || '').toLowerCase().includes(search) ||
+                        (u.displayName || '').toLowerCase().includes(search) ||
+                        (u.name || '').toLowerCase().includes(search) ||
+                        (u.email || '').toLowerCase().includes(search) ||
+                        u.id.includes(search)
+                    );
                 });
-            }
-
-            // 3. Try exact ID
-            if (users.length === 0 && searchTerm.length > 20) {
-                // It might be an ID
-                // We can't query by documentId field easily in client SDK without using documentId(), 
-                // but let's assume user searches by name/email mostly.
-            }
 
             setSearchResults(users);
             if (users.length === 0) {
@@ -90,6 +76,28 @@ export default function StudentLogsDownloader() {
             setStatus({ type: 'error', message: 'Migration failed. Check console.' });
         } finally {
             setIsMigrating(false);
+        }
+    };
+
+    const handleLegacyMigration = async () => {
+        if (!selectedStudent) return;
+        const confirm = window.confirm(`Are you sure you want to REPAIR OLD LOGS for ${selectedStudent.displayName || selectedStudent.name}? This will move ID-based logs to '2026-01' bucket and hydrate content.`);
+        if (!confirm) return;
+
+        setIsLegacyMigrating(true);
+        setStatus({ type: 'success', message: 'Repair started...' });
+
+        try {
+            const result = await migrateLegacyLogs(selectedStudent.id);
+            setStatus({
+                type: 'success',
+                message: `Repair Complete. Moved ${result.migrated} logs to 2026-01 bucket.`
+            });
+        } catch (e) {
+            console.error(e);
+            setStatus({ type: 'error', message: 'Repair failed. Check console.' });
+        } finally {
+            setIsLegacyMigrating(false);
         }
     };
 
@@ -207,6 +215,23 @@ export default function StudentLogsDownloader() {
                                     {isMigrating ? 'Migrating...' : 'Migrate to buckets'}
                                 </button>
                                 <button
+                                    onClick={handleLegacyMigration}
+                                    disabled={isMigrating || isDownloading || isLegacyMigrating}
+                                    className="px-3 py-2 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-400/30 rounded-lg text-sm font-bold transition-colors text-orange-100"
+                                >
+                                    {isLegacyMigrating ? 'Repairing...' : 'Repair Old Logs'}
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        if (!selectedStudent) return;
+                                        const report = await inspectLogCollection(selectedStudent.id);
+                                        setInspectionReport(report);
+                                    }}
+                                    className="px-3 py-2 bg-slate-500/20 hover:bg-slate-500/30 border border-slate-400/30 rounded-lg text-sm font-bold transition-colors text-slate-100"
+                                >
+                                    Inspect Structure
+                                </button>
+                                <button
                                     onClick={() => setSelectedStudent(null)}
                                     className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold transition-colors"
                                 >
@@ -214,6 +239,12 @@ export default function StudentLogsDownloader() {
                                 </button>
                             </div>
                         </div>
+
+                        {inspectionReport && (
+                            <div className="mb-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700 font-mono text-xs text-slate-300 whitespace-pre-wrap max-h-60 overflow-y-auto">
+                                {inspectionReport}
+                            </div>
+                        )}
 
                         <div className="flex items-center gap-4">
                             <button
