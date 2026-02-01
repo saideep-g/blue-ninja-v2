@@ -1,5 +1,7 @@
-import React from 'react';
-import { Users, BookOpen, AlertCircle, TrendingUp, Clock, Activity } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, BookOpen, AlertCircle, TrendingUp, Clock, Activity, Database, Play } from 'lucide-react';
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { db } from '../../../services/db/firebase';
 
 const StatCard = ({ title, value, trend, icon: Icon, color }: any) => (
     <div className="bg-white p-6 rounded-2xl border border-blue-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
@@ -22,6 +24,141 @@ const StatCard = ({ title, value, trend, icon: Icon, color }: any) => (
 );
 
 export default function AdminHome() {
+    const [runningMigration, setRunningMigration] = useState(false);
+    const [migrationStatus, setMigrationStatus] = useState<string | null>(null);
+
+    const runLogRepair = async () => {
+        if (!confirm("Run Log Repair Script? This will update historical log entries with missing subjects, question text, and answers.")) return;
+        setRunningMigration(true);
+        setMigrationStatus("Starting migration... Fetching content database...");
+
+        try {
+            // 1. Build Question Lookup Map (Memory intensive but separate collections for 2 students is fine)
+            // Need to map ID -> { text, answer, type, subject }
+            const qLookup = new Map<string, any>();
+            let contentCount = 0;
+
+            const indexQuestion = (q: any, source: string, defaultSubject?: string) => {
+                if (!q) return;
+                const id = (q.id || '').toString();
+                // Store by ID
+                if (id) {
+                    qLookup.set(id, {
+                        questionText: q.question || q.question_text || q.text,
+                        correctAnswer: q.answer || q.correct_answer || (q.options?.find((o: any) => o.isCorrect)?.text),
+                        questionType: (q.type || q.template_id || 'MCQ').toUpperCase(),
+                        subject: q.subject || defaultSubject || 'era'
+                    });
+                    // Also store by atomId if available for fuzzy matching? Maybe risky if atoms reuse questions.
+                }
+                contentCount++;
+            };
+
+            // A. Fetch Diagnostic
+            const diagSnap = await getDocs(collection(db, 'diagnostic_questions'));
+            diagSnap.docs.forEach(d => indexQuestion({ ...d.data(), id: d.id }, 'diagnostic', 'diagnostic'));
+
+            // B. Fetch Bundles
+            const bundlesSnap = await getDocs(collection(db, 'question_bundle_data'));
+            bundlesSnap.docs.forEach(d => {
+                const data = d.data();
+                if (data.questions) {
+                    Object.values(data.questions).forEach((q: any) => indexQuestion(q, 'bundle'));
+                }
+            });
+
+            console.log(`[Migration] Indexed ${contentCount} questions.`);
+            setMigrationStatus(`Indexed ${contentCount} questions. Scanning student logs...`);
+
+            // 2. Scan Students
+            const studentsSnap = await getDocs(collection(db, 'students'));
+            let totalDocs = 0;
+            let totalEntries = 0;
+
+            for (const studentDoc of studentsSnap.docs) {
+                const logsCollection = collection(db, 'students', studentDoc.id, 'session_logs');
+                const logsSnap = await getDocs(logsCollection);
+
+                for (const logDoc of logsSnap.docs) {
+                    const data = logDoc.data();
+                    if (data.entries && Array.isArray(data.entries)) {
+                        let modified = false;
+                        const newEntries = data.entries.map((entry: any) => {
+                            let updated = { ...entry };
+                            let needsUpdate = false;
+
+                            // 1. Fix Missing/Generic Subject
+                            if (!updated.subject || updated.subject === 'Era' || updated.subject === 'Daily Quest') {
+                                const qId = (updated.questionId || '').toString().toLowerCase();
+                                const mode = updated.mode || '';
+
+                                if (mode === 'DIAGNOSTIC') {
+                                    updated.subject = 'diagnostic';
+                                } else if (qId.startsWith('m')) {
+                                    updated.subject = 'math';
+                                } else if (qId.startsWith('s')) {
+                                    updated.subject = 'science';
+                                } else if (qId.startsWith('w')) {
+                                    updated.subject = 'vocabulary';
+                                } else if (qId.startsWith('g')) {
+                                    updated.subject = 'gk';
+                                } else if (qId.startsWith('y')) {
+                                    updated.subject = 'geography';
+                                } else if (updated.questionText && updated.questionText.includes('Math')) {
+                                    updated.subject = 'math';
+                                } else if (entry.atomId && entry.atomId.startsWith('m')) {
+                                    updated.subject = 'math';
+                                } else {
+                                    updated.subject = 'math'; // Default fallback
+                                }
+                                needsUpdate = true;
+                            }
+
+                            // 2. Fix Missing Content (Text/Answer)
+                            if (!updated.questionText || !updated.correctAnswer || updated.questionText === 'Question Content' || updated.correctAnswer === 'N/A') {
+                                const lookup = qLookup.get(updated.questionId.toString());
+                                if (lookup) {
+                                    if (!updated.questionText || updated.questionText === 'Question Content') updated.questionText = lookup.questionText;
+                                    if (!updated.correctAnswer || updated.correctAnswer === 'N/A') updated.correctAnswer = lookup.correctAnswer;
+                                    // Also fix type if we have it better
+                                    if (!updated.questionType && lookup.questionType) updated.questionType = lookup.questionType;
+
+                                    needsUpdate = true;
+                                }
+                            }
+
+                            // 3. Fix Missing Question Type (Fallback)
+                            if (!updated.questionType) {
+                                if (updated.template_id) updated.questionType = updated.template_id.toUpperCase();
+                                else updated.questionType = 'MCQ';
+                                needsUpdate = true;
+                            }
+
+                            if (needsUpdate) {
+                                modified = true;
+                                return updated;
+                            }
+                            return entry;
+                        });
+
+                        if (modified) {
+                            await updateDoc(logDoc.ref, { entries: newEntries });
+                            totalDocs++;
+                            // Logic is simpler to just count docs.
+                        }
+                    }
+                }
+            }
+            setMigrationStatus(`Complete! Updated ${totalDocs} log documents.`);
+
+        } catch (e: any) {
+            console.error("Migration failed", e);
+            setMigrationStatus(`Error: ${e.message}`);
+        } finally {
+            setRunningMigration(false);
+        }
+    };
+
     return (
         <div className="p-8 space-y-8 max-w-[1600px] mx-auto">
             {/* Welcome */}
@@ -65,6 +202,34 @@ export default function AdminHome() {
                     icon={AlertCircle}
                     color="bg-rose-500"
                 />
+            </div>
+
+            {/* Data Tools */}
+            <div className="bg-white p-6 rounded-2xl border border-indigo-100 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-black text-indigo-900 text-lg flex items-center gap-2">
+                        <Database className="w-5 h-5 text-indigo-500" />
+                        Data Health & Migration
+                    </h3>
+                    {migrationStatus && (
+                        <span className={`text-sm font-bold px-3 py-1 rounded-full ${migrationStatus.includes('Error') ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                            {migrationStatus}
+                        </span>
+                    )}
+                </div>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={runLogRepair}
+                        disabled={runningMigration}
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-indigo-200"
+                    >
+                        {runningMigration ? <Activity className="animate-spin" /> : <Play size={18} fill="currentColor" />}
+                        Run Log Repair Script
+                    </button>
+                    <p className="text-sm text-slate-500 max-w-lg">
+                        <strong>One-Time Fix:</strong> Iterates through all student histories to fix missing subjects (converting 'Era' to 'Math', 'Science', etc. based on ID) and missing question types.
+                    </p>
+                </div>
             </div>
 
             {/* Charts / Data Quality */}

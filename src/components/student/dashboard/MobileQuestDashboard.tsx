@@ -426,7 +426,7 @@ export default function MobileQuestDashboard() {
 
         const ansText = currentQ.options.find(o => o.id === answerId)?.text || answerId;
         const correctAnsText = currentQ.options.find(o => o.isCorrect)?.text || 'N/A';
-        const duration = timeSpent || seconds || (Date.now() - qStartTime) / 1000;
+        const duration = (Date.now() - qStartTime) / 1000;
 
         // Subject Mapping Normalization
         let logSubject = (currentQ.subject || activePathSubject).toLowerCase();

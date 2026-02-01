@@ -175,8 +175,8 @@ export function useDiagnostic(injectedQuestions: Question[] | null = null) {
             atomId,
             masteryBefore: currentScore,
             masteryAfter: updatedScore,
-            masteryAfter: updatedScore,
             subject: 'diagnostic',
+            questionType: 'MCQ',
             mode: injectedQuestions ? 'DEV_TEST' : 'DIAGNOSTIC'
         });
 
