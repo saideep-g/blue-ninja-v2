@@ -85,41 +85,41 @@ interface MissionQuestion {
 }
 
 /**
- * Phase structure for 14+ slot daily mission (V2 Logic)
+ * Phase structure for 20 slot daily mission (V2 Logic)
  * Mapped to 5 V3 Missions
  */
 const MISSION_PHASES: MissionPhase[] = [
   {
     name: 'WARM_UP',
-    slots: 3,
+    slots: 4,
     description: 'Spaced review - atoms not seen recently',
     strategyKey: 'spaced_review',
     templates: ['MCQ_CONCEPT', 'NUMBER_LINE_PLACE', 'NUMERIC_INPUT']
   },
   {
     name: 'DIAGNOSIS',
-    slots: 3,
+    slots: 4,
     description: 'Misconception targeting - atoms where student struggles',
     strategyKey: 'misconception_diagnosis',
     templates: ['ERROR_ANALYSIS', 'MCQ_CONCEPT', 'MATCHING']
   },
   {
     name: 'GUIDED_PRACTICE',
-    slots: 3,
+    slots: 4,
     description: 'Interactive learning - balanced weak/strong',
     strategyKey: 'guided_practice',
     templates: ['BALANCE_OPS', 'CLASSIFY_SORT', 'DRAG_DROP_MATCH']
   },
   {
     name: 'ADVANCED',
-    slots: 3,
+    slots: 4,
     description: 'Deep reasoning - progressive difficulty',
     strategyKey: 'advanced_reasoning',
     templates: ['STEP_BUILDER', 'MULTI_STEP_WORD', 'EXPRESSION_INPUT']
   },
   {
     name: 'REFLECTION',
-    slots: 2,
+    slots: 4,
     description: 'Transfer & consolidation - apply to novel contexts',
     strategyKey: 'transfer_learning',
     templates: ['SHORT_EXPLAIN', 'TRANSFER_MINI']
@@ -437,7 +437,7 @@ class DailyMissionsService {
         phaseIndex: i,
         phaseTotalSlots: phase.slots,
         slot: indexOffset + i + 1,
-        totalSlots: 14,
+        totalSlots: 20,
         outcomes: atom.outcomes || [],
         difficulty: this.calculateDifficulty(atom, studentMastery),
         masteryBefore: studentMastery[atom.atom_id] || 0.5,

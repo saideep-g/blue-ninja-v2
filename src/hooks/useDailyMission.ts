@@ -71,7 +71,7 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                 bundlesRef,
                 where('subject', '==', 'math'),
                 // where('grade', '==', 7), // Optional: Filter by grade if index exists
-                limit(5)
+                limit(10)
             );
             const snap = await getDocs(q);
 

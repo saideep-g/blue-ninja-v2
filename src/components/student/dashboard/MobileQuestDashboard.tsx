@@ -368,13 +368,15 @@ export default function MobileQuestDashboard() {
             });
 
             if (relevantQuestions.length > 0) {
-                // Shuffle and pick 10
-                const shuffled = relevantQuestions.sort(() => 0.5 - Math.random()).slice(0, 10);
+                // Shuffle and pick 10 or 20 (Math)
+                const count = subject === 'Math' ? 20 : 10;
+                const shuffled = relevantQuestions.sort(() => 0.5 - Math.random()).slice(0, count);
                 setQuestions(shuffled);
             } else {
                 // Fallback to Dummy if no real questions found for this specific chapter
                 console.warn(`No questions found for ${subject} chapter ${topic} (Target ID: ${targetId}). Using placeholders.`);
-                const fetched = Array.from({ length: 10 }, (_, i) => ({
+                const count = subject === 'Math' ? 20 : 10;
+                const fetched = Array.from({ length: count }, (_, i) => ({
                     id: `gen-${i}`,
                     question_text: `Challenge: ${topic || subject} Question ${i + 1}`,
                     correct_answer: "Correct Option",

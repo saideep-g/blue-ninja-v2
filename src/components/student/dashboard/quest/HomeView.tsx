@@ -22,7 +22,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ dailyProgress, chapterProgre
 
     // Calculate Daily Total
     const totalDaily = Object.values(dailyProgress).reduce((a, b) => a + b, 0);
-    const dailyGoal = 40; // 10 * 4 subjects roughly
+    const dailyGoal = 50; // 20 Math + 10 * 3 others roughly
 
     return (
         <div className="px-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
@@ -84,7 +84,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ dailyProgress, chapterProgre
                         return !p?.mastered;
                     }) || subjChapters[subjChapters.length - 1]; // Fallback to last if all done
 
-                    const isDoneToday = (dailyProgress[key] || 0) >= 10;
+                    const isDoneToday = (dailyProgress[key] || 0) >= (key === 'Math' ? 20 : 10);
 
                     return (
                         <button
