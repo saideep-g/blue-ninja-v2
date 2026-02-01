@@ -229,13 +229,13 @@ export default function AdminHome() {
 
                     <button
                         onClick={async () => {
-                            if (!confirm("Are you sure you want to delete all logs with questionId starting with 'DUMMY'? This action cannot be undone.")) return;
+                            if (!confirm("Are you sure you want to delete all LEGACY logs with questionId starting with 'DUMMY' or 'gen'? New app logs will be preserved. This action cannot be undone.")) return;
                             setRunningMigration(true);
-                            setMigrationStatus("Cleaning up dummy logs...");
+                            setMigrationStatus("Cleaning up legacy placeholder logs...");
                             try {
                                 const { deleteDummyLogs } = await import('../../../features/multiplication-tables/services/tablesFirestore');
                                 const result = await deleteDummyLogs();
-                                setMigrationStatus(`Success! Deleted ${result.logsDeleted} dummy logs across ${result.studentsProcessed} students.`);
+                                setMigrationStatus(`Success! Deleted ${result.logsDeleted} legacy placeholder logs across ${result.studentsProcessed} students.`);
                             } catch (e: any) {
                                 setMigrationStatus(`Error: ${e.message}`);
                             } finally {
@@ -246,7 +246,7 @@ export default function AdminHome() {
                         className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-amber-100"
                     >
                         <Database size={18} />
-                        Cleanup Dummy Logs
+                        Cleanup Legacy Test Logs
                     </button>
 
                     <p className="text-sm text-slate-500 max-w-lg">

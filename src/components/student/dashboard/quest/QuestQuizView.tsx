@@ -6,13 +6,37 @@ import { Question } from '../../../../types';
 
 // Helper for LaTeX
 const renderLatexContent = (text: string) => {
-    if (!text) return '';
-    const parts = text.split(/\$(.*?)\$/);
-    return parts.map((part, index) => {
-        return index % 2 === 1 ?
-            <InlineMath key={index} math={part} /> :
-            <span key={index}>{part}</span>;
-    });
+    if (!text) return null;
+    // Match both $$...$$ and $...$ delimiters
+    const parts = text.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g);
+    return (
+        <>
+            {parts.map((part, i) => {
+                if ((part.startsWith('$$') && part.endsWith('$$')) || (part.startsWith('$') && part.endsWith('$'))) {
+                    const math = part.startsWith('$$') ? part.slice(2, -2) : part.slice(1, -1);
+                    return <InlineMath key={i} math={math} />;
+                }
+
+                // Handle implicit power notation (e.g. 2^3, (a+b)^2)
+                if (part.includes('^')) {
+                    const subParts = part.split(/([a-zA-Z0-9\(\)\+\-\.\\,\/\=\<\>_]+(?:\^[a-zA-Z0-9\(\)\+\-\.\\,\/\=\<\>_\^]+)+)/g);
+                    return (
+                        <span key={i}>
+                            {subParts.map((sub, j) => {
+                                if (sub.includes('^')) {
+                                    const fixedSub = sub.replace(/\^(\([^\)]+\))/g, '^{$1}');
+                                    return <InlineMath key={`${i}-${j}`} math={fixedSub} />;
+                                }
+                                return <span key={`${i}-${j}`}>{sub}</span>;
+                            })}
+                        </span>
+                    );
+                }
+
+                return <span key={i}>{part}</span>;
+            })}
+        </>
+    );
 };
 
 interface QuestQuizViewProps {

@@ -2,7 +2,43 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { doc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../../../services/db/firebase';
 import { useNinja } from '../../../../context/NinjaContext';
-import { ChevronLeft, ChevronRight, Calculator, CheckCircle2, XCircle, FileText, Calendar, BookOpen, BarChart3, Target, AlertCircle, Wrench, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calculator, CheckCircle2, XCircle, FileText, Calendar, BookOpen, BarChart3, Target, AlertCircle, Wrench, RefreshCw, Loader2 } from 'lucide-react';
+import 'katex/dist/katex.min.css';
+import { InlineMath } from 'react-katex';
+
+const LatexRenderer = ({ text }: { text: string | null }) => {
+    if (!text) return null;
+    // Match both $$...$$ and $...$ delimiters
+    const parts = text.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g);
+    return (
+        <>
+            {parts.map((part, i) => {
+                if ((part.startsWith('$$') && part.endsWith('$$')) || (part.startsWith('$') && part.endsWith('$'))) {
+                    const math = part.startsWith('$$') ? part.slice(2, -2) : part.slice(1, -1);
+                    return <InlineMath key={i} math={math} />;
+                }
+
+                // Handle implicit power notation (e.g. 2^3, (a+b)^2, (-2)^3, 2.5^x)
+                if (part.includes('^')) {
+                    const subParts = part.split(/([a-zA-Z0-9\(\)\+\-\.\\,\/\=\<\>_]+(?:\^[a-zA-Z0-9\(\)\+\-\.\\,\/\=\<\>_\^]+)+)/g);
+                    return (
+                        <span key={i}>
+                            {subParts.map((sub, j) => {
+                                if (sub.includes('^')) {
+                                    const fixedSub = sub.replace(/\^(\([^\)]+\))/g, '^{$1}');
+                                    return <InlineMath key={`${i}-${j}`} math={fixedSub} />;
+                                }
+                                return <span key={`${i}-${j}`}>{sub}</span>;
+                            })}
+                        </span>
+                    );
+                }
+
+                return <span key={i}>{part}</span>;
+            })}
+        </>
+    );
+};
 
 const SUBJECTS = [
     { id: 'all', label: 'All Subjects', color: 'slate' },
@@ -316,7 +352,7 @@ export function MonthlyLogsView() {
                                     </div>
                                     <p className="font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
                                         {/* Fallback if question text wasn't logged, but typically it is via enriched logic */}
-                                        {log.questionText || "Question Content"}
+                                        <LatexRenderer text={log.questionText || "Question Content"} />
                                     </p>
 
                                     {/* Answer Display */}
@@ -324,21 +360,21 @@ export function MonthlyLogsView() {
                                         <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-medium">
                                             <span>Your Answer:</span>
                                             <span className={`font-mono px-2 py-0.5 rounded-md ${log.isCorrect ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20' : 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/20'}`}>
-                                                {log.studentAnswer || "-"}
+                                                <LatexRenderer text={log.studentAnswer || "-"} />
                                             </span>
                                         </div>
                                         {!log.isCorrect && log.correctAnswer && (
                                             <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-medium">
                                                 <span>Correct:</span>
                                                 <span className="font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md">
-                                                    {log.correctAnswer}
+                                                    <LatexRenderer text={log.correctAnswer} />
                                                 </span>
                                             </div>
                                         )}
                                         {log.explanation && (
                                             <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
                                                 <span className="font-bold uppercase tracking-wider opacity-70 block mb-1 text-[10px]">Reasoning</span>
-                                                <span className="leading-relaxed">{log.explanation}</span>
+                                                <span className="leading-relaxed"><LatexRenderer text={log.explanation} /></span>
                                             </div>
                                         )}
                                     </div>

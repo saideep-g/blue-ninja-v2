@@ -806,9 +806,12 @@ export async function deleteDummyLogs(): Promise<{ studentsProcessed: number, lo
             const data = logDoc.data();
             if (data.entries && Array.isArray(data.entries)) {
                 const initialCount = data.entries.length;
-                const filteredEntries = data.entries.filter((entry: any) =>
-                    !(entry.questionId && entry.questionId.toString().startsWith('DUMMY'))
-                );
+                const filteredEntries = data.entries.filter((entry: any) => {
+                    const qId = (entry.questionId || '').toString();
+                    const isPlaceholder = qId.startsWith('DUMMY') || qId.startsWith('dummy') || qId.startsWith('gen');
+                    const isLegacy = entry.source === 'legacy';
+                    return !(isPlaceholder && isLegacy);
+                });
 
                 if (filteredEntries.length !== initialCount) {
                     logsDeleted += (initialCount - filteredEntries.length);
