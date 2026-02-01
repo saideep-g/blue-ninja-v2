@@ -6,9 +6,8 @@ const SUBJECT_CONFIG = {
     'Math': { color: 'from-pink-400 to-rose-500', icon: <BookOpen size={28} />, label: 'Math' },
     'Science': { color: 'from-cyan-400 to-blue-500', icon: <Beaker size={28} />, label: 'Science' },
     'Words': { color: 'from-amber-400 to-orange-500', icon: <MessageSquare size={28} />, label: 'Words' },
-    'World': { color: 'from-indigo-400 to-purple-500', icon: <Globe size={28} />, label: 'World' },
     'Geography': { color: 'from-sky-400 to-blue-500', icon: <Map size={28} />, label: 'Geography' },
-    'GK': { color: 'from-teal-400 to-emerald-500', icon: <Lightbulb size={28} />, label: 'Gen. Knowledge' },
+    'GK': { color: 'from-teal-400 to-emerald-500', icon: <Globe size={28} />, label: 'World (GK)' },
 };
 
 interface HomeViewProps {

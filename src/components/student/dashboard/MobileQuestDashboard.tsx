@@ -354,7 +354,7 @@ export default function MobileQuestDashboard() {
             // Math -> m, Science -> s, Words -> w, World -> g, Geography -> y
             let shortCode = subject.charAt(0).toLowerCase();
             if (subject === 'World') shortCode = 'g';
-            if (subject === 'Geography') shortCode = 'y';
+            if (subject === 'Geography') shortCode = 'geo';
 
             const targetId = `${shortCode}${chapterIndex + 1}`;
 

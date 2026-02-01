@@ -22,26 +22,26 @@ export const CHAPTERS = {
         { n: "Endless Numbers", e: "♾️", award: "Infinite Idol", req: 60, details: "Introduction to three-digit numbers (100-120) and basic regrouping concepts." }
     ],
     Geography: [
-        { n: "Map Reading Basics", e: "🗺️", award: "Navigator", req: 40, details: "Understanding legends, scales, and compass roses." },
-        { n: "Latitude & Longitude", e: "🌐", award: "Coordinate Captain", req: 40, details: "Finding locations using global coordinates." },
-        { n: "Earth's Layers", e: "🌍", award: "Geology Gen", req: 40, details: "Crust, mantle, outer and inner core properties." },
-        { n: "Plate Tectonics", e: "🌋", award: "Quake Queen", req: 40, details: "How continents move; earthquakes and volcanoes." },
-        { n: "Weathering & Erosion", e: "🏜️", award: "Rock Ranger", req: 30, details: "How wind and water shape the land over time." },
-        { n: "The Water Cycle", e: "💧", award: "Hydro Hero", req: 40, details: "Evaporation, condensation, precipitation, collection." },
-        { n: "Climate Zones", e: "❄️", award: "Climate Commander", req: 40, details: "Tropical, temperate, and polar regions." },
-        { n: "Biomes of the World", e: "🌴", award: "Biome Boss", req: 40, details: "Rainforests, deserts, tundras, and grasslands." },
-        { n: "Natural Resources", e: "💎", award: "Resource Rookie", req: 30, details: "Renewable vs. non-renewable resources." },
-        { n: "Population & Settlement", e: "🏘️", award: "City Planner", req: 30, details: "Why people live where they do; urban vs rural." },
-        { n: "North America", e: "🗽", award: "Western Wanderer", req: 40, details: "Major countries, physical features, and landmarks." },
-        { n: "South America", e: "🦜", award: "Amazon Ace", req: 40, details: "The Andes, Amazon Rainforest, and cultures." },
-        { n: "Europe", e: "🏰", award: "Euro Expert", req: 40, details: "Peninsulas, history, and diverse nations." },
-        { n: "Asia", e: "🐉", award: "Eastern Explorer", req: 50, details: "Himalayas, major rivers, and vast populations." },
-        { n: "Africa", e: "🦁", award: "Safari Scout", req: 50, details: "Sahara Desert, Savanna, and Nile River." },
-        { n: "Australia & Oceania", e: "🦘", award: "Outback Operator", req: 30, details: "The Great Barrier Reef and island nations." },
-        { n: "Antarctica", e: "🐧", award: "Polar Pioneer", req: 30, details: "The frozen continent and scientific research." },
-        { n: "Oceans & Seas", e: "🌊", award: "Marine Master", req: 40, details: "The 5 oceans and major seas of the world." },
-        { n: "Human Impact", e: "♻️", award: "Eco Guardian", req: 40, details: "Pollution, conservation, and sustainable living." },
-        { n: "Global Trade", e: "🚢", award: "Trade Tycoon", req: 40, details: "Imports, exports, and how goods move around the world." }
+        { n: "Map Reading Basics", e: "🗺️", award: "Navigator", req: 40, details: "The Secret Code: Mastering legends, scales, and compass roses to find the world's most hidden landmarks." },
+        { n: "Latitude & Longitude", e: "🌐", award: "Coordinate Captain", req: 40, details: "The Global Grid: Pinpointing the Prime Meridian and finding the exact location of the Eiffel Tower." },
+        { n: "Earth's Layers", e: "🌍", award: "Geology Gen", req: 40, details: "The Engine: Studying the Crust, Mantle, and Outer/Inner Core to see what's beneath the Himalayas." },
+        { n: "Plate Tectonics", e: "🌋", award: "Quake Queen", req: 40, details: "Giant Puzzles: How moving plates created the Ring of Fire and the world's highest mountains." },
+        { n: "Weathering & Erosion", e: "🏜️", award: "Rock Ranger", req: 30, details: "Earth Sculpting: How wind and water carved the Grand Canyon and the peaks of the Alps over millions of years." },
+        { n: "The Water Cycle", e: "💧", award: "Hydro Hero", req: 40, details: "The Journey: Tracking rain from the Amazon Rainforest back to the clouds through evaporation." },
+        { n: "Climate Zones", e: "❄️", award: "Climate Commander", req: 40, details: "The Thermostat: Understanding the hot Equator vs. the freezing Arctic and Antarctic circles." },
+        { n: "Biomes of the World", e: "🌴", award: "Biome Boss", req: 40, details: "Habitat Hunt: Comparing the biodiversity of the Congo Basin to the cold sands of the Gobi Desert." },
+        { n: "Natural Resources", e: "💎", award: "Resource Rookie", req: 30, details: "Earth's Treasures: Identifying renewable sun/wind energy vs. the non-renewable mines of Australia." },
+        { n: "Population & Settlement", e: "🏘️", award: "City Planner", req: 30, details: "Megacity Mastery: Why billions live in Tokyo and Mumbai vs. the high-altitude life in La Paz, Bolivia." },
+        { n: "North America", e: "🗽", award: "Western Wanderer", req: 40, details: "The Giants: Exploring the Rocky Mountains, the Great Lakes, and the Mississippi River highway." },
+        { n: "South America", e: "🦜", award: "Amazon Ace", req: 40, details: "The Extremes: Conquering the Andes (longest range) and the Amazon (the river that creates its own weather)." },
+        { n: "Europe", e: "🏰", award: "Euro Expert", req: 40, details: "Old World: Navigating the Alps, the Danube, and 'Planned' vs. 'Historical' capitals like London and Paris." },
+        { n: "Asia", e: "🐉", award: "Eastern Explorer", req: 50, details: "The Roof: Scaling the Himalayas (Everest & K2) and tracing the Yangtze and Ganges rivers." },
+        { n: "Africa", e: "🦁", award: "Safari Scout", req: 50, details: "The Scar: Tracking the Nile (longest river), the Sahara (hottest desert), and the Great Rift Valley." },
+        { n: "Australia & Oceania", e: "🦘", award: "Outback Operator", req: 30, details: "The Great Reef: Exploring the only living thing seen from space and the dry 'Red Center' Outback." },
+        { n: "Antarctica", e: "🐧", award: "Polar Pioneer", req: 30, details: "The Frozen Desert: Studying the windiest continent and why the South Pole is the bottom of the world." },
+        { n: "Oceans & Seas", e: "🌊", award: "Marine Master", req: 40, details: "Deep Blue: Diving into the 5 Oceans and finding the Mariana Trench (the deepest scar on Earth)." },
+        { n: "Human Impact", e: "♻️", award: "Eco Guardian", req: 40, details: "Earth Rescue: How pollution affects the Great Barrier Reef and how we can protect the planet's 'Lungs'." },
+        { n: "Global Trade", e: "🚢", award: "Trade Tycoon", req: 40, details: "The Connection: How a shirt made in Asia travels across oceans to reach a closet in North America." }
     ],
     Science: [
         { n: "Space Travel", e: "🚀", award: "Rocket Ranger", req: 40, details: "Identifying components of the solar system (Sun, Earth, Moon)." },
@@ -87,7 +87,7 @@ export const CHAPTERS = {
         { n: "Phonics Phenom", e: "📣", award: "Phonics Phenom", req: 40, details: "Blending sounds and identifying digraphs (ch, sh, th, ph)." },
         { n: "Wisdom Writer", e: "🦉", award: "Wisdom Writer", req: 50, details: "Using context clues to find the meaning of unknown words." }
     ],
-    World: [
+    GK: [
         { n: "Directions", e: "🗺️", award: "Map Master", req: 30, details: "Cardinal directions: North, South, East, West." },
         { n: "Countries", e: "🚩", award: "Flag Finder", req: 40, details: "Recognizing shapes and colors of famous world flags." },
         { n: "The Globe", e: "🌍", award: "Globe Trotter", req: 30, details: "Identifying the 7 continents and 5 oceans." },
@@ -108,27 +108,5 @@ export const CHAPTERS = {
         { n: "Voyage Val", e: "🚢", award: "Voyage Val", req: 30, details: "Modes of international travel: Air vs. Sea." },
         { n: "Compass Queen", e: "🧭", award: "Compass Queen", req: 30, details: "How a compass works and identifying intermediate directions (NE, SE, etc.)." },
         { n: "Peace Pilot", e: "🕊️", award: "Peace Pilot", req: 40, details: "Global citizens: How children around the world are the same and different." }
-    ],
-    GK: [
-        { n: "The Indian Constitution", e: "📜", award: "Constitution Champ", req: 40, details: "Preamble analysis, Fundamental Rights (Articles 12-35), Fundamental Duties, and the role of the Drafting Committee led by Dr. Ambedkar." },
-        { n: "State Government Functions", e: "🏛️", award: "State Strategist", req: 40, details: "Roles of the Governor, CM, and Council of Ministers; difference between Vidhan Sabha and Vidhan Parishad; legislative process at state level." },
-        { n: "Women Pioneers & Reformers", e: "👩‍🏫", award: "Reform Ranger", req: 40, details: "History of the women's movement; icons like Savitribai Phule, Rashsundari Devi, and modern achievers; legal protections like the 73rd Amendment." },
-        { n: "The Indian Judicial System", e: "⚖️", award: "Justice Judge", req: 40, details: "Hierarchy of courts (Supreme, High, District); PIL (Public Interest Litigation); FIR process; independent judiciary and Article 21." },
-        { n: "India in Space (ISRO 2026)", e: "🚀", award: "Space Scout", req: 40, details: "Gaganyaan G1 uncrewed mission (March 2026) with Vyommitra robot; Chandrayaan-3 legacy; Aditya-L1 solar studies; LVM3 rocket technology." },
-        { n: "Renewable Energy & Sustainability", e: "☀️", award: "Green Guardian", req: 40, details: "India's 500GW non-fossil goal by 2030; status as 3rd largest solar market; National Green Hydrogen Mission; solar-powered EV charging infrastructure." },
-        { n: "Cyber Safety & Digital Literacy", e: "💻", award: "Cyber Sentinel", req: 40, details: "Digital footprints; privacy settings on social media; identifying phishing and cyber-bullying; safe use of UPI and digital payments." },
-        { n: "Artificial Intelligence (AI)", e: "🤖", award: "AI Ace", req: 40, details: "Basic AI concepts; impact of Generative AI (like ChatGPT); AI in healthcare and education; ethical use of technology." },
-        { n: "Sustainable Development Goals", e: "🌱", award: "SDG Scholar", req: 40, details: "The 17 UN SDGs to be achieved by 2030; India's progress in 'No Poverty', 'Quality Education', and 'Climate Action'." },
-        { n: "The Himalayan Ecosystem", e: "🏔️", award: "Highland Hero", req: 40, details: "Physical geography of the Himalayas; importance of glaciers as water towers; impact of climate change on mountain biodiversity." },
-        { n: "Major World Rivers", e: "🌊", award: "River Runner", req: 40, details: "Importance of the Nile, Amazon, and Yangtze; India's Ganga-Brahmaputra system; river pollution and rejuvenation projects (Namami Gange)." },
-        { n: "Wildlife Conservation in India", e: "🐅", award: "Wildlife Warden", req: 40, details: "Project Tiger and Project Elephant; National Parks vs. Sanctuaries; endangered species like the Snow Leopard and Great Indian Bustard." },
-        { n: "Medieval India Highlights", e: "🏰", award: "History Hunter", req: 40, details: "The Delhi Sultanate (Razia Sultan); Mughal Empire architecture; the rise of the Marathas under Shivaji Maharaj." },
-        { n: "Classical Dances & Culture", e: "💃", award: "Culture Captain", req: 40, details: "The 8 Indian classical dances; states of origin (e.g., Kathak-UP, Mohiniyattam-Kerala); intangible cultural heritage recognized by UNESCO." },
-        { n: "Bhakti & Sufi Movements", e: "🪕", award: "Soul Seeker", req: 40, details: "Teachings of saints like Mirabai, Kabir, and Guru Nanak; the message of social equality and devotion over rituals." },
-        { n: "Basic Economics & RBI", e: "💰", award: "Econ Expert", req: 40, details: "Role of the Reserve Bank of India; understanding inflation; the transition from barter to digital currency; GST basics." },
-        { n: "International Organizations", e: "🇺🇳", award: "Global Guardian", req: 40, details: "Roles of the UN, WHO, and UNESCO; India's G20 Presidency legacy; BRICS and Quad alliances." },
-        { n: "Literature & Famous Authors", e: "🖋️", award: "Literary Legend", req: 40, details: "Works of Rabindranath Tagore; modern literature by Sudha Murty and Arundhati Roy; the significance of the Jnanpith Award." },
-        { n: "Sports Icons & Achievements", e: "🏅", award: "Sports Star", req: 40, details: "India's performance in recent Olympics/Paralympics; rise of the WPL (Women’s Premier League); icons like Neeraj Chopra and P.V. Sindhu." },
-        { n: "Health, Wellness & Nutrition", e: "🧘", award: "Wellness Warrior", req: 40, details: "The science of Yoga and Pranyama; benefits of millets (Shree Anna); mental health awareness and balanced lifestyles for teenagers." }
     ]
 };
