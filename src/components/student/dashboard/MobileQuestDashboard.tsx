@@ -416,7 +416,6 @@ export default function MobileQuestDashboard() {
         if (selectedAnswer) return; // Prevent double taps
         setSelectedAnswer(answerId);
         const currentQ = questions[currentQIndex];
-
         // Sound played in view component wrapper now
         setFeedback(isCorrect ? 'correct' : 'wrong');
 
@@ -425,6 +424,7 @@ export default function MobileQuestDashboard() {
         }
 
         const ansText = currentQ.options.find(o => o.id === answerId)?.text || answerId;
+        const correctAnsText = currentQ.options.find(o => o.isCorrect)?.text || 'N/A';
         const duration = timeSpent || seconds || (Date.now() - qStartTime) / 1000;
 
         // Subject Mapping Normalization
@@ -436,6 +436,7 @@ export default function MobileQuestDashboard() {
             questionId: currentQ.id as string,
             questionText: currentQ.question_text || 'Quest Challenge',
             studentAnswer: ansText,
+            correctAnswer: correctAnsText,
             isCorrect,
             timestamp: new Date(),
             timeSpent: duration,

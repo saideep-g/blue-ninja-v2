@@ -15,9 +15,12 @@ const SUBJECTS = [
 
 const getTimestamp = (ts: any) => {
     if (!ts) return Date.now();
-    if (typeof ts === 'number') return ts;
-    if (ts.toDate) return ts.toDate().getTime(); // Handles Firestore Timestamp
-    if (ts.seconds) return ts.seconds * 1000;    // Handles simple seconds object
+    // Handle Firestore Timestamp
+    if (ts.toDate) return ts.toDate().getTime();
+    if (ts.seconds) return ts.seconds * 1000;
+    // Handle JS Date object or ISO String
+    if (ts instanceof Date) return ts.getTime();
+
     const parsed = new Date(ts).getTime();
     return isNaN(parsed) ? Date.now() : parsed;
 };

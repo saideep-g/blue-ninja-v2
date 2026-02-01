@@ -409,12 +409,12 @@ export function NumericAutoTemplate({ question, onAnswer, onInteract, isSubmitti
                         </div>
                         <div className="space-y-4 w-full">
                             <div>
-                                <h4 className={`font-bold ${isPreview ? 'text-emerald-800' : 'text-red-800'} dark:text-red-400 text-lg mb-1`}>
-                                    {isPreview ? 'Solution Breakdown' : "Let's review this! 🧐"}
+                                <h4 className={`font-bold ${isPreview ? 'text-emerald-800' : 'text-red-800'} dark:text-red-400 text-lg mb-1 uppercase tracking-wider`}>
+                                    {isPreview ? 'Solution Breakdown' : "Step-by-Step Fix"}
                                 </h4>
-                                <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 inline-block shadow-sm">
-                                    <span className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block mb-1">Correct Answer</span>
-                                    <span className="text-xl font-mono font-bold text-slate-800 dark:text-indigo-400">{String(rawCorrectValue)} {unit}</span>
+                                <div className="mt-2 p-4 bg-indigo-50 dark:bg-slate-900 rounded-xl border border-indigo-100 dark:border-slate-700 inline-block shadow-sm">
+                                    <span className="text-xs text-indigo-400 dark:text-slate-500 font-black uppercase tracking-widest block mb-1">Correct Answer</span>
+                                    <span className="text-2xl font-mono font-black text-indigo-600 dark:text-indigo-400">{String(rawCorrectValue)} {unit}</span>
                                 </div>
                             </div>
 

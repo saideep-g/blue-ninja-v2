@@ -326,20 +326,20 @@ export function McqEraTemplate({ question, onAnswer, onInteract, isSubmitting, r
                     } else {
                         // Result State
                         if (shouldHighlightCorrect) {
-                            // Success State (Theme Aware) - Stronger dark mode contrast
-                            btnClasses += "bg-emerald-50 border-emerald-500 text-emerald-800 dark:bg-emerald-900/40 dark:border-emerald-400 dark:text-emerald-300 transform scale-[1.02] shadow-[0_0_15px_rgba(16,185,129,0.3)] ";
+                            // Success State (Theme Aware - Forced High Contrast)
+                            btnClasses += "!bg-emerald-500 !border-emerald-600 !text-white transform scale-[1.02] shadow-[0_0_20px_rgba(16,185,129,0.4)] ";
 
-                            // Important: Clear inline bg/border so classes work
-                            styleProperties = { ...styleProperties, transform: 'scale(1.02)' };
+                            // Clear inline
+                            styleProperties = { ...styleProperties, transform: 'scale(1.02)', backgroundColor: '', borderColor: '' };
 
-                            optionTextStyle = { ...optionTextStyle, color: 'currentColor', fontWeight: '900' };
-                            labelStyle = { backgroundColor: 'transparent', borderColor: 'currentColor', color: 'currentColor' };
-                            icon = <CheckCircle2 className="text-emerald-600 dark:text-emerald-400 w-8 h-8" />;
+                            optionTextStyle = { ...optionTextStyle, color: 'white', fontWeight: '900' };
+                            labelStyle = { backgroundColor: 'white', borderColor: 'white', color: '#059669' }; // Green text on white circle
+                            icon = <CheckCircle2 className="text-white w-8 h-8" />;
                         } else if (isWrongSelected) {
-                            // Error State (Theme Aware) - Stronger
+                            // Error State
                             btnClasses += "bg-rose-50 border-rose-500 text-rose-800 dark:bg-rose-900/40 dark:border-rose-400 dark:text-rose-300 ";
 
-                            styleProperties = { ...styleProperties }; // Clear bg/border logic handled by classes? No, we must allow classes
+                            styleProperties = { ...styleProperties, backgroundColor: '', borderColor: '' };
 
                             optionTextStyle = { ...optionTextStyle, color: 'currentColor', textDecoration: 'line-through', opacity: 0.9, fontWeight: 'bold' };
                             labelStyle = { backgroundColor: 'transparent', borderColor: 'currentColor', color: 'currentColor' };
@@ -414,8 +414,9 @@ export function McqEraTemplate({ question, onAnswer, onInteract, isSubmitting, r
                                 </div>
                             )}
 
-                            {/* Explanation Body */}
-                            {(isPreview || !feedback?.isCorrect) && (
+
+                            {/* Explanation Body - Show for BOTH Correct & Incorrect if explanation exists */}
+                            {(submitted || isPreview) && question.explanation && (
                                 <div className="animate-in fade-in zoom-in-95 duration-500">
                                     {/* MCQ Conditional Layout */}
                                     {['MCQ_SIMPLIFIED', 'MCQ_ERA', 'MCQ'].includes((question as any).type || (question as any).template_id || 'MCQ_SIMPLIFIED') ? (
