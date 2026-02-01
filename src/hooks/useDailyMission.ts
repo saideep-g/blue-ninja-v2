@@ -402,7 +402,9 @@ export function useDailyMission(devQuestions: Question[] | null = null) {
                 masteryBefore: 0.5,
                 masteryAfter: 0.5,
                 atomId: currentQuestion.atom || 'UNKNOWN',
+                atomId: currentQuestion.atom || 'UNKNOWN',
                 mode: 'DAILY',
+                subject: currentQuestion.subject || 'math',
                 selectionRationale: currentQuestion.metadata?.selectionRationale
             }, currentIndex);
 

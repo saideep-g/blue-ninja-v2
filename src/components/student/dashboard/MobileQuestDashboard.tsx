@@ -430,8 +430,8 @@ export default function MobileQuestDashboard() {
 
         // Subject Mapping Normalization
         let logSubject = (currentQ.subject || activePathSubject).toLowerCase();
-        if (logSubject === 'english') logSubject = 'vocabulary';
-        else if (logSubject === 'gk') logSubject = 'world';
+        if (logSubject === 'words') logSubject = 'vocabulary';
+        else if (logSubject === 'world') logSubject = 'gk';
         else if (logSubject === 'geo') logSubject = 'geography';
 
         logQuestionResult({

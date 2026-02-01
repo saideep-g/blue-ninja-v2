@@ -289,7 +289,7 @@ export function MonthlyLogsView() {
                                             })()}
                                         </span>
                                         <span className="text-[10px] uppercase font-black tracking-wider text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded-md">
-                                            {log.subject || 'Era'}
+                                            {log.subject || (log.mode === 'DIAGNOSTIC' ? 'Diagnostic' : 'Daily Quest')}
                                         </span>
                                         {log.questionType && (
                                             <span className="text-[10px] uppercase font-black tracking-wider text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-0.5 rounded-md">
