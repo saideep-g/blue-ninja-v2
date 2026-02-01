@@ -21,6 +21,28 @@ export const CHAPTERS = {
         { n: "Even & Odd", e: "🤝", award: "Prime Pal", req: 50, details: "Determining whether a group of objects (up to 20) has an odd or even number of members." },
         { n: "Endless Numbers", e: "♾️", award: "Infinite Idol", req: 60, details: "Introduction to three-digit numbers (100-120) and basic regrouping concepts." }
     ],
+    Geography: [
+        { n: "Map Reading Basics", e: "🗺️", award: "Navigator", req: 40, details: "Understanding legends, scales, and compass roses." },
+        { n: "Latitude & Longitude", e: "🌐", award: "Coordinate Captain", req: 40, details: "Finding locations using global coordinates." },
+        { n: "Earth's Layers", e: "🌍", award: "Geology Gen", req: 40, details: "Crust, mantle, outer and inner core properties." },
+        { n: "Plate Tectonics", e: "🌋", award: "Quake Queen", req: 40, details: "How continents move; earthquakes and volcanoes." },
+        { n: "Weathering & Erosion", e: "🏜️", award: "Rock Ranger", req: 30, details: "How wind and water shape the land over time." },
+        { n: "The Water Cycle", e: "💧", award: "Hydro Hero", req: 40, details: "Evaporation, condensation, precipitation, collection." },
+        { n: "Climate Zones", e: "❄️", award: "Climate Commander", req: 40, details: "Tropical, temperate, and polar regions." },
+        { n: "Biomes of the World", e: "🌴", award: "Biome Boss", req: 40, details: "Rainforests, deserts, tundras, and grasslands." },
+        { n: "Natural Resources", e: "💎", award: "Resource Rookie", req: 30, details: "Renewable vs. non-renewable resources." },
+        { n: "Population & Settlement", e: "🏘️", award: "City Planner", req: 30, details: "Why people live where they do; urban vs rural." },
+        { n: "North America", e: "🗽", award: "Western Wanderer", req: 40, details: "Major countries, physical features, and landmarks." },
+        { n: "South America", e: "🦜", award: "Amazon Ace", req: 40, details: "The Andes, Amazon Rainforest, and cultures." },
+        { n: "Europe", e: "🏰", award: "Euro Expert", req: 40, details: "Peninsulas, history, and diverse nations." },
+        { n: "Asia", e: "🐉", award: "Eastern Explorer", req: 50, details: "Himalayas, major rivers, and vast populations." },
+        { n: "Africa", e: "🦁", award: "Safari Scout", req: 50, details: "Sahara Desert, Savanna, and Nile River." },
+        { n: "Australia & Oceania", e: "🦘", award: "Outback Operator", req: 30, details: "The Great Barrier Reef and island nations." },
+        { n: "Antarctica", e: "🐧", award: "Polar Pioneer", req: 30, details: "The frozen continent and scientific research." },
+        { n: "Oceans & Seas", e: "🌊", award: "Marine Master", req: 40, details: "The 5 oceans and major seas of the world." },
+        { n: "Human Impact", e: "♻️", award: "Eco Guardian", req: 40, details: "Pollution, conservation, and sustainable living." },
+        { n: "Global Trade", e: "🚢", award: "Trade Tycoon", req: 40, details: "Imports, exports, and how goods move around the world." }
+    ],
     Science: [
         { n: "Space Travel", e: "🚀", award: "Rocket Ranger", req: 40, details: "Identifying components of the solar system (Sun, Earth, Moon)." },
         { n: "Fossils", e: "🦖", award: "Dino Digger", req: 40, details: "Basic understanding of dinosaurs and how we learn from fossils." },

@@ -247,7 +247,8 @@ const StudyEraDashboard = () => {
                 const keyMap: Record<string, string> = {
                     'math': 'Math', 'science': 'Science',
                     'vocabulary': 'Words', 'english': 'Words',
-                    'gk': 'World', 'tables': 'Tables'
+                    'gk': 'World', 'tables': 'Tables',
+                    'geography': 'Geography'
                 };
                 const dbKey = keyMap[quizSubject];
                 if (dbKey) {

@@ -44,6 +44,29 @@ export const SCIENCE_CHAPTERS = [
     { "id": "s20", "n": "Sustainable Science Practices", "e": "♻️", "details": "The 5 R's (Refuse, Reduce, Reuse, Repurpose, Recycle); vermicomposting; solar-powered energy applications." }
 ];
 
+export const GEOGRAPHY_CHAPTERS = [
+    { n: "Map Reading Basics", e: "🗺️", id: "geo1", details: "Understanding legends, scales, and compass roses." },
+    { n: "Latitude & Longitude", e: "🌐", id: "geo2", details: "Finding locations using global coordinates." },
+    { n: "Earth's Layers", e: "🌍", id: "geo3", details: "Crust, mantle, outer and inner core properties." },
+    { n: "Plate Tectonics", e: "🌋", id: "geo4", details: "How continents move; earthquakes and volcanoes." },
+    { n: "Weathering & Erosion", e: "🏜️", id: "geo5", details: "How wind and water shape the land over time." },
+    { n: "The Water Cycle", e: "💧", id: "geo6", details: "Evaporation, condensation, precipitation, collection." },
+    { n: "Climate Zones", e: "❄️", id: "geo7", details: "Tropical, temperate, and polar regions." },
+    { n: "Biomes of the World", e: "🌴", id: "geo8", details: "Rainforests, deserts, tundras, and grasslands." },
+    { n: "Natural Resources", e: "💎", id: "geo9", details: "Renewable vs. non-renewable resources." },
+    { n: "Population & Settlement", e: "🏘️", id: "geo10", details: "Why people live where they do; urban vs rural." },
+    { n: "North America", e: "🗽", id: "geo11", details: "Major countries, physical features, and landmarks." },
+    { n: "South America", e: "🦜", id: "geo12", details: "The Andes, Amazon Rainforest, and cultures." },
+    { n: "Europe", e: "🏰", id: "geo13", details: "Peninsulas, history, and diverse nations." },
+    { n: "Asia", e: "🐉", id: "geo14", details: "Himalayas, major rivers, and vast populations." },
+    { n: "Africa", e: "🦁", id: "geo15", details: "Sahara Desert, Savanna, and Nile River." },
+    { n: "Australia & Oceania", e: "🦘", id: "geo16", details: "The Great Barrier Reef and island nations." },
+    { n: "Antarctica", e: "🐧", id: "geo17", details: "The frozen continent and scientific research." },
+    { n: "Oceans & Seas", e: "🌊", id: "geo18", details: "The 5 oceans and major seas of the world." },
+    { n: "Human Impact", e: "♻️", id: "geo19", details: "Pollution, conservation, and sustainable living." },
+    { n: "Global Trade", e: "🚢", id: "geo20", details: "Imports, exports, and how goods move around the world." }
+];
+
 export const SUBJECT_TEMPLATE = [
     {
         id: 'science',
@@ -60,6 +83,24 @@ export const SUBJECT_TEMPLATE = [
                 atoms: [
                     { id: 's1', name: 'Photosynthesis', mastery: 90, status: 'Mastered' },
                     { id: 's2', name: 'Cell Structure', mastery: 10, status: 'New' }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'geography',
+        name: 'Geography Era',
+        icon: '🌍',
+        color: 'from-[#4facfe] to-[#00f2fe]',
+        accent: '#00c6ff',
+        completedToday: false,
+        modules: [
+            {
+                id: 'g_basics',
+                name: 'Core Geography',
+                mastery: 0,
+                atoms: [
+                    { id: 'geo1', name: 'Map Skills', mastery: 0, status: 'New' }
                 ]
             }
         ]

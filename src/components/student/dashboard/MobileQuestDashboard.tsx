@@ -39,7 +39,7 @@ export default function MobileQuestDashboard() {
 
     // --- STATE ---
     // Persistent stats
-    const [dailyProgress, setDailyProgress] = useState<Record<string, number>>({ Math: 0, Science: 0, Words: 0, World: 0, Tables: 0 });
+    const [dailyProgress, setDailyProgress] = useState<Record<string, number>>({ Math: 0, Science: 0, Words: 0, World: 0, Geography: 0, Tables: 0 });
     const [currentStreak, setCurrentStreak] = useState(0);
     const [totalPoints, setTotalPoints] = useState(0);
     const [tablesMasteryScore, setTablesMasteryScore] = useState(0);
@@ -193,7 +193,7 @@ export default function MobileQuestDashboard() {
                                     newStreak = 1; // Reset to 1 (active today)
                                 }
 
-                                const zeros = { Math: 0, Science: 0, Words: 0, World: 0, Tables: 0 };
+                                const zeros = { Math: 0, Science: 0, Words: 0, World: 0, Geography: 0, Tables: 0 };
                                 setDailyProgress(zeros);
                                 setCurrentStreak(newStreak);
                                 updateDoc(docRef, {
@@ -351,9 +351,10 @@ export default function MobileQuestDashboard() {
             const chapterIndex = subjChapters.findIndex(c => c.n === topic);
 
             // Construct probable IDs based on Subject first letter + Index+1
-            // Math -> m, Science -> s, Words -> w, World -> g
+            // Math -> m, Science -> s, Words -> w, World -> g, Geography -> y
             let shortCode = subject.charAt(0).toLowerCase();
             if (subject === 'World') shortCode = 'g';
+            if (subject === 'Geography') shortCode = 'y';
 
             const targetId = `${shortCode}${chapterIndex + 1}`;
 
@@ -431,6 +432,7 @@ export default function MobileQuestDashboard() {
         let logSubject = (currentQ.subject || activePathSubject).toLowerCase();
         if (logSubject === 'english') logSubject = 'vocabulary';
         else if (logSubject === 'gk') logSubject = 'world';
+        else if (logSubject === 'geo') logSubject = 'geography';
 
         logQuestionResult({
             questionId: currentQ.id as string,

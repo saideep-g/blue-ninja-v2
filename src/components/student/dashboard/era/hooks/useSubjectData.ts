@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import coreCurriculum from '../../../../../data/cbse7_core_curriculum_v3.json';
-import { SUBJECT_TEMPLATE, VOCAB_CHAPTERS, SCIENCE_CHAPTERS } from '../../../../../constants/studyEraData';
+import { SUBJECT_TEMPLATE, VOCAB_CHAPTERS, SCIENCE_CHAPTERS, GEOGRAPHY_CHAPTERS } from '../../../../../constants/studyEraData';
 import { calculateWeightedTableMastery } from '../../../../../utils/tablesLogic';
 
 export const useSubjectData = (ninjaStats: any, user: any, completedSubjects: Set<string>) => {
@@ -88,6 +88,29 @@ export const useSubjectData = (ninjaStats: any, user: any, completedSubjects: Se
             });
         }
 
+        // Geography Logic
+        if (enrolled.includes('geography') || enrolled.length === 0) {
+            const geoModules = GEOGRAPHY_CHAPTERS.map(ch => ({
+                id: ch.id,
+                name: `${ch.e} ${ch.n}`,
+                mastery: 0,
+                status: 'New',
+                description: ch.details,
+                atoms: []
+            }));
+
+            activeSubjects.push({
+                id: 'geography',
+                name: 'Geography Era',
+                icon: '🌍',
+                color: 'from-[#4facfe] to-[#00f2fe]',
+                accent: '#00c6ff',
+                hasAtoms: false,
+                completedToday: completedSubjects.has('geography'),
+                modules: geoModules
+            });
+        }
+
         // Tables Era Logic (Dynamic)
         const hasTablesData = !!(ninjaStats as any).tables_config;
 
@@ -140,6 +163,7 @@ export const useSubjectData = (ninjaStats: any, user: any, completedSubjects: Se
             // Filter duplicate/conflicting IDs
             if (tpl.id === 'vocabulary') return;
             if (tpl.id === 'science') return;
+            if (tpl.id === 'geography') return;
             if (tpl.id === 'tables') return; // Handled explicitly above
 
             if (enrolled.includes(tpl.id) || enrolled.length === 0) {

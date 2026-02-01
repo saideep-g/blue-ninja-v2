@@ -10,6 +10,7 @@ const SUBJECTS = [
     { id: 'science', label: 'Science', color: 'emerald' },
     { id: 'vocabulary', label: 'Words', color: 'purple' },
     { id: 'gk', label: 'World', color: 'amber' },
+    { id: 'geography', label: 'Geography', color: 'cyan' },
     { id: 'tables', label: 'Tables', color: 'rose' }
 ];
 
