@@ -7,6 +7,7 @@ import { User as UserType } from '../../types/models';
 const SUBJECTS = [
     { id: 'math', name: 'Math' },
     { id: 'science', name: 'Science' },
+    { id: 'social', name: 'Social' },
     { id: 'tables', name: 'Tables' },
     { id: 'vocabulary', name: 'Vocabulary' },
     { id: 'english', name: 'English' },

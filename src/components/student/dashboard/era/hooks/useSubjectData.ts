@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import coreCurriculum from '../../../../../data/cbse7_core_curriculum_v3.json';
-import { SUBJECT_TEMPLATE, VOCAB_CHAPTERS, SCIENCE_CHAPTERS, GEOGRAPHY_CHAPTERS } from '../../../../../constants/studyEraData';
+import { SUBJECT_TEMPLATE, VOCAB_CHAPTERS, SCIENCE_CHAPTERS, GEOGRAPHY_CHAPTERS, SOCIAL_CHAPTERS } from '../../../../../constants/studyEraData';
 import { calculateWeightedTableMastery } from '../../../../../utils/tablesLogic';
 
 export const useSubjectData = (ninjaStats: any, user: any, completedSubjects: Set<string>) => {
@@ -88,6 +88,32 @@ export const useSubjectData = (ninjaStats: any, user: any, completedSubjects: Se
             });
         }
 
+        // Social Logic - NEW Grade 7 Implementation
+        if (enrolled.includes('social') || enrolled.length === 0) {
+            const socialModules = SOCIAL_CHAPTERS.map(ch => {
+                const mScore = ninjaStats?.mastery?.[ch.id] || 0;
+                return {
+                    id: ch.id,
+                    name: ch.n,
+                    mastery: Math.min(100, Math.round(mScore * 100)),
+                    status: mScore > 0.8 ? 'Mastered' : mScore > 0.1 ? 'Learning' : 'New',
+                    description: ch.details,
+                    atoms: []
+                };
+            });
+
+            activeSubjects.push({
+                id: 'social',
+                name: 'Social Era',
+                icon: '🏛️',
+                color: 'from-[#FF9A8B] to-[#FF6A88]',
+                accent: '#FF6B6B',
+                hasAtoms: false,
+                completedToday: completedSubjects.has('social'),
+                modules: socialModules
+            });
+        }
+
         // Geography Logic
         if (enrolled.includes('geography') || enrolled.length === 0) {
             const geoModules = GEOGRAPHY_CHAPTERS.map(ch => ({
@@ -111,7 +137,7 @@ export const useSubjectData = (ninjaStats: any, user: any, completedSubjects: Se
             });
         }
 
-        // Tables Era Logic (Dynamic)
+        // Tables Era Logic
         const hasTablesData = !!(ninjaStats as any).tables_config;
 
         if (enrolled.includes('tables') || enrolled.length === 0 || hasTablesData) {
@@ -119,7 +145,6 @@ export const useSubjectData = (ninjaStats: any, user: any, completedSubjects: Se
             const tConfig = (ninjaStats as any).tables_config;
 
             if (tConfig && tConfig.tableStats) {
-                // New System Calculation
                 const userClass = parseInt(String((ninjaStats as any).class || (ninjaStats as any).grade || 2));
                 const isAdvanced = userClass >= 7;
                 const maxTable = isAdvanced ? 20 : 12;
@@ -136,7 +161,6 @@ export const useSubjectData = (ninjaStats: any, user: any, completedSubjects: Se
                 }
                 tablesScore = Math.round((masteredCount / totalTables) * 100);
             } else {
-                // Legacy System Fallback
                 tablesScore = calculateWeightedTableMastery(ninjaStats?.mastery || {});
             }
 
@@ -160,14 +184,13 @@ export const useSubjectData = (ninjaStats: any, user: any, completedSubjects: Se
 
         // Other Subjects
         SUBJECT_TEMPLATE.forEach(tpl => {
-            // Filter duplicate/conflicting IDs
             if (tpl.id === 'vocabulary') return;
             if (tpl.id === 'science') return;
             if (tpl.id === 'geography') return;
-            if (tpl.id === 'tables') return; // Handled explicitly above
+            if (tpl.id === 'social') return; // Filter out social as it's handled explicitly now
+            if (tpl.id === 'tables') return;
 
             if (enrolled.includes(tpl.id) || enrolled.length === 0) {
-                // Clone and properly set completedToday
                 activeSubjects.push({
                     ...tpl,
                     completedToday: completedSubjects.has(tpl.id)

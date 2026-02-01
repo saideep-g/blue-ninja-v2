@@ -11,6 +11,7 @@ interface CreateBundleFormProps {
 const SUBJECTS = [
     { id: 'math', name: 'Math' },
     { id: 'science', name: 'Science' },
+    { id: 'social', name: 'Social' },
     { id: 'vocabulary', name: 'Vocabulary (Words)' },
     { id: 'english', name: 'English (Grammar)' },
     { id: 'world', name: 'World (GK)' },

@@ -248,7 +248,8 @@ const StudyEraDashboard = () => {
                     'math': 'Math', 'science': 'Science',
                     'vocabulary': 'Words', 'english': 'Words',
                     'gk': 'World', 'tables': 'Tables',
-                    'geography': 'Geography'
+                    'geography': 'Geography',
+                    'social': 'Social' // Added Social for daily progress tracking
                 };
                 const dbKey = keyMap[quizSubject];
                 if (dbKey) {

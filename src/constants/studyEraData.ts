@@ -67,6 +67,15 @@ export const GEOGRAPHY_CHAPTERS = [
     { n: "Global Trade", e: "🚢", id: "geo20", details: "Imports, exports, and how goods move around the world." }
 ];
 
+export const SOCIAL_CHAPTERS = [
+    { id: 'soc_h1', n: 'History: 1. Tracing Changes', e: '📜', details: 'Tracing changes through a thousand years.' },
+    { id: 'soc_h2', n: 'History: 2. New Kings', e: '👑', details: 'New kings and kingdoms (7th-12th Century).' },
+    { id: 'soc_g1', n: 'Geography: 1. Environment', e: '🌱', details: 'Exploring our natural and human environment.' },
+    { id: 'soc_g2', n: 'Geography: 2. Inside Our Earth', e: '🌍', details: 'Structure of the earth, rocks, and minerals.' },
+    { id: 'soc_c1', n: 'Civics: 1. On Equality', e: '⚖️', details: 'Equality in Indian Democracy and its importance.' },
+    { id: 'soc_c2', n: 'Civics: 2. Role of Health', e: '🏥', details: 'Government’s role in public healthcare.' }
+];
+
 export const SUBJECT_TEMPLATE = [
     {
         id: 'science',
@@ -153,6 +162,38 @@ export const SUBJECT_TEMPLATE = [
                 ]
             }
         ]
+    },
+    {
+        id: 'social',
+        name: 'Social Era',
+        icon: '🏛️',
+        color: 'from-[#FF9A8B] to-[#FF6A88]',
+        accent: '#FF6B6B',
+        completedToday: false,
+        modules: [
+            // History Chapters
+            { id: 'soc_h6', name: 'History: 6. Towns, Traders and Craftspersons', mastery: 0 },
+            { id: 'soc_h7', name: 'History: 7. Tribes, Nomads and Settled Communities', mastery: 0 },
+            { id: 'soc_h8', name: 'History: 8. Devotional Paths to the Divine', mastery: 0 },
+            { id: 'soc_h9', name: 'History: 9. The Making of Regional Cultures', mastery: 0 },
+            { id: 'soc_h10', name: 'History: 10. Eighteenth Century Political Formations', mastery: 0 },
+
+            // Geography Chapters
+            { id: 'soc_g8', name: 'Geography: 8. Water: Ocean Waters and Their Circulation', mastery: 0 },
+            { id: 'soc_g9', name: 'Geography: 9. Natural Vegetation and Wildlife', mastery: 0 },
+            { id: 'soc_g10', name: 'Geography: 10. Human Environment: Settlement, Transport and Communication', mastery: 0 },
+            { id: 'soc_g11', name: 'Geography: 11. Human Environment Interaction: Tropical and Subtropical Regions', mastery: 0 },
+            { id: 'soc_g12', name: 'Geography: 12. Human Environment Interaction: Life in the Temperate Grasslands', mastery: 0 },
+            { id: 'soc_g13', name: 'Geography: 13. Human Environment Interactions: Life in the Deserts', mastery: 0 },
+
+            // Civics Chapters (Social & Political Life)
+            { id: 'soc_c6', name: 'Civics: 6. Understanding Media', mastery: 0 },
+            { id: 'soc_c7', name: 'Civics: 7. Understanding Advertising', mastery: 0 },
+            { id: 'soc_c8', name: 'Civics: 8. Markets around Us', mastery: 0 },
+            { id: 'soc_c9', name: 'Civics: 9. A Shirt in the Market', mastery: 0 },
+            { id: 'soc_c10', name: 'Civics: 10. Struggles for Equality', mastery: 0 }
+        ]
+
     },
     {
         id: 'tables',

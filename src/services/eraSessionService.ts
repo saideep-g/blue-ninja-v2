@@ -12,7 +12,7 @@ export interface EraSession {
     version: number;
 }
 
-const SESSION_VERSION = 3; // Bumped to force refresh for SVG updates
+const SESSION_VERSION = 4; // Bumped to force refresh for SVG updates
 const SESSION_CACHE_PREFIX = 'era_session_v1_'; // Prefix can stay same or change, checking prop is safer
 
 export const eraSessionService = {
@@ -37,10 +37,14 @@ export const eraSessionService = {
                     console.log(`[EraSession] Cache version mismatch (Cached: ${session.version}, Current: ${SESSION_VERSION}). Invalidating.`);
                     localStorage.removeItem(cacheKey);
                 }
-                // Safety check: ensure questions exist
-                else if (session.questions && session.questions.length > 0) {
+                // Safety check: ensure questions exist.
+                // If specific subject session has 0 real questions (e.g. only mock fail), invalidate it.
+                else if (session.questions && session.questions.length > 0 && session.questions[0].id !== 'mock_fail_1') {
                     console.log(`[EraSession] Resumed ${subjectId} session from cache.`);
                     return session;
+                } else {
+                    console.log(`[EraSession] Cached session for ${subjectId} was empty or mock. Invalidating.`);
+                    localStorage.removeItem(cacheKey);
                 }
             }
         } catch (e) {
