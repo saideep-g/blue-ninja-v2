@@ -67,6 +67,9 @@ export interface Question {
     updated_by?: string;
     visualType?: 'svg' | 'image' | null;
     visualData?: string | null;
+    model_answer?: string; // For SHORT_ANSWER
+    evaluation_criteria?: string[]; // For SHORT_ANSWER rubric
+    max_points?: number; // For SHORT_ANSWER partial scoring
 
     // Legacy/Support fields
     atom?: string;
@@ -141,6 +144,8 @@ export interface QuestionLog {
     value?: any; // Added for numeric/other answer types
     subject?: string; // Added for subject tracking
     questionType?: string; // Added for template type tracking
+    aiFeedback?: any; // JSON from Gemini
+    isSelfEvaluated?: boolean; // If student manually graded it
 }
 
 

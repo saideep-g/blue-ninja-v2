@@ -154,7 +154,25 @@ export const eraSessionService = {
                             } as unknown as Question;
                         }
 
-                        // 2. MCQ (Default)
+                        // 2. SHORT ANSWER
+                        if (sq.type === 'SHORT_ANSWER' || sq.template_id === 'SHORT_ANSWER') {
+                            return {
+                                id: sq.id,
+                                type: 'SHORT_ANSWER',
+                                question_text: sq.question,
+                                model_answer: sq.model_answer,
+                                evaluation_criteria: sq.evaluation_criteria || [],
+                                max_points: sq.max_points || 3,
+                                content: {
+                                    prompt: { text: sq.question },
+                                    instruction: sq.instruction || "Type your answer in detail."
+                                },
+                                subject: querySubject,
+                                explanation: sq.explanation,
+                            } as unknown as Question;
+                        }
+
+                        // 3. MCQ (Default)
                         const mappedOptions = sq.options?.map((o: string, i: number) => ({
                             id: String(i + 1),
                             text: o,

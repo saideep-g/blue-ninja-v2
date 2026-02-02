@@ -57,6 +57,14 @@ export const BundleEditor: React.FC<BundleEditorProps> = ({ bundle, onBack, onUp
                 return;
             }
 
+            // SHORT_ANSWER Validation
+            if (template === 'SHORT_ANSWER') {
+                if (!q.model_answer || !q.evaluation_criteria || q.evaluation_criteria.length === 0) {
+                    invalidSet.add(id);
+                }
+                return;
+            }
+
             // MCQ Validation (Default)
             // Ensure answer exists in options
             if (!q.options || q.options.length === 0) {

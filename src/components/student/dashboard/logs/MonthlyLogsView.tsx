@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { doc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../../../services/db/firebase';
 import { useNinja } from '../../../../context/NinjaContext';
-import { ChevronLeft, ChevronRight, Calculator, CheckCircle2, XCircle, FileText, Calendar, BookOpen, BarChart3, Target, AlertCircle, Wrench, RefreshCw, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calculator, CheckCircle2, XCircle, FileText, Calendar, BookOpen, BarChart3, Target, AlertCircle, Wrench, RefreshCw, Loader2, Sparkles } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 import { InlineMath } from 'react-katex';
 
@@ -69,6 +69,7 @@ export function MonthlyLogsView() {
     const [selectedSubject, setSelectedSubject] = useState('all');
     const [logs, setLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [selectedLog, setSelectedLog] = useState<any | null>(null);
 
     const fetchLogs = async () => {
         if (!user) return;
@@ -398,12 +399,148 @@ export function MonthlyLogsView() {
                                             <div className="leading-normal"><LatexRenderer text={log.explanation} /></div>
                                         </div>
                                     )}
+
+                                    {/* Detailed Feedback Button for Short Answer */}
+                                    {(log.questionType === 'SHORT_ANSWER' || log.aiFeedback) && (
+                                        <button
+                                            onClick={() => setSelectedLog(log)}
+                                            className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 dark:hover:bg-indigo-800/50 transition-all border border-indigo-100 dark:border-indigo-700/50"
+                                        >
+                                            <Sparkles size={14} /> View Detailed Feedback
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     ))
                 )}
             </div>
+
+            {/* Detailed Feedback Modal */}
+            {selectedLog && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300">
+                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={() => setSelectedLog(null)} />
+
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+                        {/* Modal Header */}
+                        <div className="p-6 md:p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                            <div className="flex items-center gap-4">
+                                <div className={`p-3 rounded-2xl ${selectedLog.isCorrect ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-500'}`}>
+                                    {selectedLog.isCorrect ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
+                                </div>
+                                <div>
+                                    <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white">Detailed Review</h3>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        {selectedLog.subject || 'Mission'} • {new Date(getTimestamp(selectedLog.timestamp)).toLocaleDateString()}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedLog(null)}
+                                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400"
+                            >
+                                <XCircle size={32} strokeWidth={1.5} />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 scrollbar-hide">
+                            {/* Question Section */}
+                            <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">The Challenge</h4>
+                                <div className="text-lg md:text-xl font-serif italic text-slate-700 dark:text-slate-300 leading-relaxed">
+                                    <LatexRenderer text={selectedLog.questionText || "Question Content"} />
+                                </div>
+                            </div>
+
+                            {/* Student Answer */}
+                            <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Your Answer</h4>
+                                <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 italic text-slate-800 dark:text-slate-200">
+                                    <LatexRenderer text={selectedLog.studentAnswer || "-"} />
+                                </div>
+                            </div>
+
+                            {/* AI Feedback (if exists) */}
+                            {selectedLog.aiFeedback && (
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-center px-2">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500">AI Evaluation</h4>
+                                        <div className="px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/40 rounded-full border border-indigo-100 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-black text-sm">
+                                            Score: {selectedLog.score || 0} / 3
+                                        </div>
+                                    </div>
+
+                                    {/* Evaluation Criteria Checklist */}
+                                    <div className="space-y-4">
+                                        {selectedLog.aiFeedback.results?.map((res: any, i: number) => (
+                                            <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                                <div className={`shrink-0 pt-0.5 ${res.passed ? 'text-emerald-500' : 'text-slate-300 dark:text-slate-700'}`}>
+                                                    {res.passed ? <CheckCircle2 size={20} /> : <Circle size={20} className="opacity-20" />}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-sm text-slate-800 dark:text-white mb-1">{res.criterion}</p>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{res.feedback}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* AI Summary */}
+                                    <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-3xl border border-amber-100 dark:border-amber-900/20 text-amber-900 dark:text-amber-100 flex gap-4">
+                                        <Sparkles className="shrink-0 text-amber-500" size={20} />
+                                        <p className="text-sm font-medium italic">"{selectedLog.aiFeedback.summary}"</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Model Answer & Explanation */}
+                            <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                                <div>
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-2">Model Answer</h4>
+                                    <div className="text-sm font-bold text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                                        <LatexRenderer text={selectedLog.correctAnswer || "Not provided"} />
+                                    </div>
+                                </div>
+                                {selectedLog.explanation && (
+                                    <div>
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 mb-2">Deep Dive</h4>
+                                        <div className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                                            <LatexRenderer text={selectedLog.explanation} />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-6 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 text-center">
+                            <button
+                                onClick={() => setSelectedLog(null)}
+                                className="px-12 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-lg active:scale-95"
+                            >
+                                Back to History
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
+const Circle = ({ size, className }: { size: number, className?: string }) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+    >
+        <circle cx="12" cy="12" r="10" />
+    </svg>
+);

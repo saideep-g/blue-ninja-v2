@@ -16,6 +16,7 @@ import { ErrorAnalysisTemplate } from './ErrorAnalysisTemplate';
 import { McqBranchingTemplate } from './McqBranchingTemplate';
 import { BalanceOpsTemplate } from './BalanceOpsTemplate';
 import { NumericAutoTemplate } from './NumericAutoTemplate';
+import { ShortAnswerTemplate } from './ShortAnswerTemplate';
 
 interface TemplateRouterProps {
   question: Question;
@@ -152,6 +153,7 @@ const TEMPLATE_REGISTRY: Record<string, React.ComponentType<any>> = {
   'ERROR_ANALYSIS': ErrorAnalysisTemplate,
   'MCQ_BRANCHING': McqBranchingTemplate,
   'BALANCE_OPS': BalanceOpsTemplate,
+  'SHORT_ANSWER': ShortAnswerTemplate,
 };
 
 export function TemplateRouter({ question, onSubmit, onInteract, isSubmitting = false, readOnly = false, isPreview = false }: TemplateRouterProps) {

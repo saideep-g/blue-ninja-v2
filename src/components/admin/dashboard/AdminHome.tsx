@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, BookOpen, AlertCircle, TrendingUp, Clock, Activity, Database, Play } from 'lucide-react';
+import { Users, BookOpen, AlertCircle, TrendingUp, Clock, Activity, Database, Play, Zap } from 'lucide-react';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../../services/db/firebase';
 
@@ -196,11 +196,11 @@ export default function AdminHome() {
                     color="bg-violet-600"
                 />
                 <StatCard
-                    title="Flagged Responses"
-                    value="12"
-                    trend="-25%"
-                    icon={AlertCircle}
-                    color="bg-rose-500"
+                    title="AI Evaluations"
+                    value="428"
+                    trend="+18%"
+                    icon={Zap}
+                    color="bg-amber-500"
                 />
             </div>
 

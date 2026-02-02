@@ -11,6 +11,11 @@ export interface SimplifiedQuestion {
     visualData?: string | null;
     imageUrl?: string | null;
 
+    // AI Short Answer Fields
+    model_answer?: string;
+    evaluation_criteria?: string[];
+    max_points?: number;
+
     // Metadata for tracking
     timeLimit?: number; // Optional custom time limit in seconds
     chapter_id?: string; // Optional chapter identifier

@@ -21,6 +21,29 @@ export const EditQuestionModal: React.FC<EditQuestionModalProps> = ({ question, 
                     <button onClick={onClose} className="hover:bg-white/10 p-2 rounded-full"><X size={20} /></button>
                 </div>
                 <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Chapter ID</label>
+                            <input
+                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-purple-400 outline-none"
+                                value={edited.chapter_id || ''}
+                                onChange={e => setEdited({ ...edited, chapter_id: e.target.value })}
+                                placeholder="e.g. m1"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Template ID</label>
+                            <select
+                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-indigo-600 focus:ring-2 focus:ring-purple-400 outline-none appearance-none"
+                                value={edited.template_id || 'MCQ_SIMPLIFIED'}
+                                onChange={e => setEdited({ ...edited, template_id: e.target.value })}
+                            >
+                                <option value="MCQ_SIMPLIFIED">MCQ Standard</option>
+                                <option value="SHORT_ANSWER">Short Answer (AI)</option>
+                                <option value="NUMERIC">Numeric</option>
+                            </select>
+                        </div>
+                    </div>
                     <div>
                         <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Question Text</label>
                         <textarea
@@ -31,64 +54,102 @@ export const EditQuestionModal: React.FC<EditQuestionModalProps> = ({ question, 
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Answer (Must match an option exactly)</label>
-                        <input
-                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-600 focus:ring-2 focus:ring-emerald-400 outline-none"
-                            value={edited.answer}
-                            onChange={e => setEdited({ ...edited, answer: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Explanation</label>
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Kid-Friendly Explanation</label>
                         <textarea
                             className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-purple-400 outline-none"
                             rows={2}
                             value={edited.explanation || ''}
                             onChange={e => setEdited({ ...edited, explanation: e.target.value })}
-                            placeholder="Explain why the answer is correct..."
+                            placeholder="Explain the concept simply..."
                         />
                     </div>
-                    <div>
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Options</label>
-                        <div className="space-y-2">
-                            {edited.options?.map((opt, idx) => {
-                                const similarity = getSimilarity(edited.answer || '', opt);
-                                const score = Math.round(similarity * 100);
-                                let scoreColor = 'text-red-400 bg-red-50';
-                                if (score === 100) scoreColor = 'text-emerald-600 bg-emerald-50 border-emerald-200';
-                                else if (score > 80) scoreColor = 'text-emerald-500 bg-emerald-50';
-                                else if (score > 50) scoreColor = 'text-amber-500 bg-amber-50';
+                    {edited.template_id === 'SHORT_ANSWER' ? (
+                        <>
+                            <div>
+                                <label className="block text-xs font-black text-emerald-500 uppercase tracking-wider mb-2">Model Answer (The Guide)</label>
+                                <textarea
+                                    className="w-full p-3 bg-emerald-50/30 border border-emerald-100 rounded-xl font-medium focus:ring-2 focus:ring-emerald-400 outline-none"
+                                    rows={4}
+                                    value={edited.model_answer || ''}
+                                    onChange={e => setEdited({ ...edited, model_answer: e.target.value })}
+                                    placeholder="The ideal answer for the AI to compare against..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-indigo-400 uppercase tracking-wider mb-2">Evaluation Criteria (One per line)</label>
+                                <textarea
+                                    className="w-full p-3 bg-indigo-50/30 border border-indigo-100 rounded-xl font-mono text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
+                                    rows={5}
+                                    value={edited.evaluation_criteria?.join('\n') || ''}
+                                    onChange={e => setEdited({ ...edited, evaluation_criteria: e.target.value.split('\n').filter(l => l.trim()) })}
+                                    placeholder="1. Mention the force of gravity&#10;2. Explain acceleration&#10;3. Correct units used"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1 font-bold uppercase tracking-tight">Gemini will score based on these {edited.evaluation_criteria?.length || 0} points.</p>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Max Points (1-5)</label>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={5}
+                                    className="w-24 p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-2 focus:ring-purple-400 outline-none"
+                                    value={edited.max_points || 3}
+                                    onChange={e => setEdited({ ...edited, max_points: parseInt(e.target.value) || 3 })}
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Answer (Must match an option exactly)</label>
+                                <input
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-600 focus:ring-2 focus:ring-emerald-400 outline-none"
+                                    value={edited.answer || ''}
+                                    onChange={e => setEdited({ ...edited, answer: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Options</label>
+                                <div className="space-y-2">
+                                    {(edited.options || []).map((opt, idx) => {
+                                        const similarity = getSimilarity(edited.answer || '', opt);
+                                        const score = Math.round(similarity * 100);
+                                        let scoreColor = 'text-red-400 bg-red-50';
+                                        if (score === 100) scoreColor = 'text-emerald-600 bg-emerald-50 border-emerald-200';
+                                        else if (score > 80) scoreColor = 'text-emerald-500 bg-emerald-50';
+                                        else if (score > 50) scoreColor = 'text-amber-500 bg-amber-50';
 
-                                return (
-                                    <div key={idx} className="flex gap-2 items-center">
-                                        <div className="flex-1 relative">
-                                            <input
-                                                className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-400 outline-none pr-16"
-                                                value={opt}
-                                                onChange={e => {
-                                                    const newOpts = [...(edited.options || [])];
-                                                    newOpts[idx] = e.target.value;
-                                                    setEdited({ ...edited, options: newOpts });
-                                                }}
-                                            />
-                                            <span className={`absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold px-1.5 py-0.5 rounded border ${scoreColor}`}>
-                                                {score}% Match
-                                            </span>
-                                        </div>
-                                        <button
-                                            onClick={() => {
-                                                // Quick Action: Set as Answer
-                                                setEdited({ ...edited, answer: opt });
-                                            }}
-                                            className="px-3 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-purple-100 hover:text-purple-600 transition-colors border border-slate-200 whitespace-nowrap"
-                                        >
-                                            Set as Answer
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
+                                        return (
+                                            <div key={idx} className="flex gap-2 items-center">
+                                                <div className="flex-1 relative">
+                                                    <input
+                                                        className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-400 outline-none pr-16"
+                                                        value={opt}
+                                                        onChange={e => {
+                                                            const newOpts = [...(edited.options || [])];
+                                                            newOpts[idx] = e.target.value;
+                                                            setEdited({ ...edited, options: newOpts });
+                                                        }}
+                                                    />
+                                                    <span className={`absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold px-1.5 py-0.5 rounded border ${scoreColor}`}>
+                                                        {score}% Match
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        setEdited({ ...edited, answer: opt });
+                                                    }}
+                                                    className="px-3 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-purple-100 hover:text-purple-600 transition-colors border border-slate-200 whitespace-nowrap"
+                                                >
+                                                    Set as Answer
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
                 <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-4">
                     <button onClick={onClose} className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>

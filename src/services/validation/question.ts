@@ -112,7 +112,17 @@ export async function validateQuestionV3(item: any): Promise<ValidationResultV3>
         if (!item.interaction) result.errors.push("Missing interaction");
 
         if (item.template_id !== 'MCQ_BRANCHING') {
-            if (!item.answer_key) result.errors.push("Missing answer_key");
+            if (!item.answer_key && item.template_id !== 'SHORT_ANSWER') result.errors.push("Missing answer_key");
+        }
+
+        // SHORT_ANSWER specific checks
+        if (item.template_id === 'SHORT_ANSWER') {
+            const hasModelAnswer = item.model_answer || item.interaction?.config?.model_answer;
+            const hasCriteria = (item.evaluation_criteria && Array.isArray(item.evaluation_criteria)) ||
+                (item.interaction?.config?.evaluation_criteria && Array.isArray(item.interaction.config.evaluation_criteria));
+
+            if (!hasModelAnswer) result.errors.push("Short Answer questions must have a 'model_answer'");
+            if (!hasCriteria) result.errors.push("Short Answer questions must have an 'evaluation_criteria' array");
         }
     }
 

@@ -1,6 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getFunctions } from "firebase/functions";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 /**
  * Blue Ninja Firebase Configuration
@@ -18,3 +20,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const functions = getFunctions(app);
+
+// Initialize App Check (Safe guarding AI calls)
+if (typeof window !== 'undefined') {
+    initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6Lc_k9sqAAAAAN-N0s0-0-0-0-0-0-0-0-0'),
+        isTokenAutoRefreshEnabled: true
+    });
+}

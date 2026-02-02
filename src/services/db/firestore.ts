@@ -74,11 +74,25 @@ export const questionBundlesCollection = collection(db, 'question_bundles_v3');
 
 
 /**
- * Session Logs Sub-Collection
+ * Session Logs Sub-Collection (Sub-collection)
  * Path: /students/{uid}/session_logs/{logId}
  */
 export const getSessionLogsCollection = (uid: string) =>
     collection(db, 'students', uid, 'session_logs').withConverter(createConverter<QuestionLog>());
+
+/**
+ * Monthly Session Logs (Optimized Buckets)
+ * Path: /students/{uid}/monthly_logs/{YYYY-MM}
+ */
+export const getMonthlyLogRef = (uid: string, monthKey: string) =>
+    doc(db, 'students', uid, 'monthly_logs', monthKey);
+
+/**
+ * Admin AI Monitoring Logs (Quarterly Buckets)
+ * Path: /admin/system/ai_monitoring/{YYYY-QUARTER}
+ */
+export const getAdminMonitoringLogRef = (quarterKey: string) =>
+    doc(db, 'admin', 'system', 'ai_monitoring', quarterKey);
 
 
 // ------------------------------------------------------------------
