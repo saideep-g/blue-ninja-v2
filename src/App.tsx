@@ -1,21 +1,21 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { NinjaProvider, useNinja } from './context/NinjaContext';
 import { ThemeProvider } from './theme/provider';
 
-// Components
-import Login from './components/auth/Login';
-import StudentApp from './components/student/StudentApp';
-import CurriculumViewer from './components/curriculum/CurriculumViewer';
-import TemplateWorkbench from './components/templates/TemplateWorkbench';
-import UserProfile from './components/profile/UserProfile';
-import MobileQuestDashboard from './components/student/dashboard/MobileQuestDashboard';
-import StudyEraDashboard from './components/student/dashboard/StudyEraDashboard';
-import StudyEraProfile from './components/profile/StudyEraProfile';
+// Lazy Loaded Components for Code Splitting
+const Login = lazy(() => import('./components/auth/Login'));
+const StudentApp = lazy(() => import('./components/student/StudentApp'));
+const CurriculumViewer = lazy(() => import('./components/curriculum/CurriculumViewer'));
+const TemplateWorkbench = lazy(() => import('./components/templates/TemplateWorkbench'));
+const UserProfile = lazy(() => import('./components/profile/UserProfile'));
+const MobileQuestDashboard = lazy(() => import('./components/student/dashboard/MobileQuestDashboard'));
+const StudyEraDashboard = lazy(() => import('./components/student/dashboard/StudyEraDashboard'));
+const StudyEraProfile = lazy(() => import('./components/profile/StudyEraProfile'));
 
 // Routes
-import AdminRoutes from './routes/AdminRoutes';
-import TablesFeature from './features/multiplication-tables/TablesFeature';
+const AdminRoutes = lazy(() => import('./routes/AdminRoutes'));
+const TablesFeature = lazy(() => import('./features/multiplication-tables/TablesFeature'));
 
 // Data
 import coreCurriculum from './data/cbse7_core_curriculum_v3.json';
@@ -77,29 +77,35 @@ export default function App() {
       <ThemeProvider>
         <NinjaProvider>
 
-          <Routes>
-            {/* Main Entry Point - Handles Role Check and Nested Student Routes */}
-            <Route path="/*" element={<RootRedirector />} />
+          <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-blue-50">
+              <div className="animate-pulse text-4xl">🌊</div>
+            </div>
+          }>
+            <Routes>
+              {/* Main Entry Point - Handles Role Check and Nested Student Routes */}
+              <Route path="/*" element={<RootRedirector />} />
 
-            {/* Admin Module - Delegated Routing */}
-            <Route path="/admin/*" element={<AdminRoutes />} />
+              {/* Admin Module - Delegated Routing */}
+              <Route path="/admin/*" element={<AdminRoutes />} />
 
-            <Route path="/tables/*" element={<TablesFeature />} />
+              <Route path="/tables/*" element={<TablesFeature />} />
 
-            <Route
-              path="/curriculum"
-              element={
-                <CurriculumViewer
-                  coreCurriculum={coreCurriculum as any}
-                  templateLibrary={templateLibrary as any}
-                  assessmentGuide={assessmentGuide as any}
-                />
-              }
-            />
-            <Route path="/template/:templateId" element={<TemplateWorkbench />} />
-            <Route path="/profile" element={<ProfileRedirector />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route
+                path="/curriculum"
+                element={
+                  <CurriculumViewer
+                    coreCurriculum={coreCurriculum as any}
+                    templateLibrary={templateLibrary as any}
+                    assessmentGuide={assessmentGuide as any}
+                  />
+                }
+              />
+              <Route path="/template/:templateId" element={<TemplateWorkbench />} />
+              <Route path="/profile" element={<ProfileRedirector />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </NinjaProvider>
       </ThemeProvider>
     </Router>

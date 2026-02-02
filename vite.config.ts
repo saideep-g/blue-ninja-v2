@@ -22,6 +22,15 @@ export default defineConfig({
             if (id.includes('lucide-react')) {
               return 'vendor-lucide';
             }
+            if (id.includes('recharts')) {
+              return 'vendor-recharts';
+            }
+            if (id.includes('framer-motion')) {
+              return 'vendor-framer';
+            }
+            if (id.includes('react-dom') || id.includes('react-router-dom') || id.includes('react-confetti') || id.includes('/node_modules/react/')) {
+              return 'vendor-react';
+            }
             return 'vendor';
           }
         },
