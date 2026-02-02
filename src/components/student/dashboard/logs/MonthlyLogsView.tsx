@@ -47,6 +47,7 @@ const SUBJECTS = [
     { id: 'vocabulary', label: 'Words', color: 'purple' },
     { id: 'gk', label: 'World', color: 'amber' },
     { id: 'geography', label: 'Geography', color: 'cyan' },
+    { id: 'social', label: 'Social', color: 'orange' },
     { id: 'tables', label: 'Tables', color: 'rose' },
     { id: 'diagnostic', label: 'Diagnostic', color: 'slate' }
 ];
@@ -114,6 +115,7 @@ export function MonthlyLogsView() {
             if (subj === 'eng' || subj === 'english') subj = 'vocabulary';
             if (subj === 'world') subj = 'gk';
             if (subj === 'geo') subj = 'geography';
+            if (subj === 'soc') subj = 'social';
 
             if (!summary[subj]) {
                 summary[subj] = { answered: 0, correct: 0, incorrect: 0, timeSeconds: 0 };
@@ -150,6 +152,7 @@ export function MonthlyLogsView() {
             if (subj === 'eng' || subj === 'english') subj = 'vocabulary';
             if (subj === 'world') subj = 'gk';
             if (subj === 'geo') subj = 'geography';
+            if (subj === 'soc') subj = 'social';
             return subj === selectedSubject;
         });
 
