@@ -12,6 +12,7 @@ const UserProfile = lazy(() => import('./components/profile/UserProfile'));
 const MobileQuestDashboard = lazy(() => import('./components/student/dashboard/MobileQuestDashboard'));
 const StudyEraDashboard = lazy(() => import('./components/student/dashboard/StudyEraDashboard'));
 const StudyEraProfile = lazy(() => import('./components/profile/StudyEraProfile'));
+const StudentProfileLayout = lazy(() => import('./components/student/profile/StudentProfileLayout'));
 
 // Routes
 const AdminRoutes = lazy(() => import('./routes/AdminRoutes'));
@@ -67,7 +68,8 @@ function RootRedirector() {
 
 function ProfileRedirector() {
   const { ninjaStats } = useNinja();
-  if (ninjaStats?.layout === 'study-era') return <StudyEraProfile />;
+  // Use new Phase 1 profile for Study Era students
+  if (ninjaStats?.layout === 'study-era') return <StudentProfileLayout />;
   return <UserProfile />;
 }
 

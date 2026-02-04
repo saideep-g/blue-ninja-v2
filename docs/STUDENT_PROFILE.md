@@ -506,3 +506,8 @@ function calculateStreak(dailyCompletions: DailyCompletion[]): number {
 **Document Status:** Requirements v1.0  
 **Target Users:** Students (ages 7-16)  
 **Devices:** 10-inch tablets, Android phones, iOS devices
+
+
+For all the pages, ensure a separate route/URL is used using react-router-dom. 
+
+Ensure that these pages are compatible for dark and light theme. And we need an option for student to select theme. and this should be saved in firestore as well.
