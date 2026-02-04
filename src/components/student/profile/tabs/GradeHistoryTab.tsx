@@ -223,7 +223,7 @@ export default function GradeHistoryTab() {
                                     {Object.entries(entry.subjectStats || {}).map(([subject, stats]) => (
                                         <div
                                             key={subject}
-                                            className="bg-white p-4 rounded-2xl border border-gray-100"
+                                            className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700"
                                         >
                                             <div className="flex items-center justify-between mb-3">
                                                 <h5 className="font-bold text-gray-700 capitalize flex items-center gap-2">

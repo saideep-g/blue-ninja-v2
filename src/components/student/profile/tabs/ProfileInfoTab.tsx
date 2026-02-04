@@ -11,16 +11,24 @@ import {
     TrendingUp,
     Zap,
     Target,
-    AlertCircle
+    AlertCircle,
+    Moon,
+    Sun
 } from 'lucide-react';
 import { useNinja } from '../../../../context/NinjaContext';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../../services/db/firebase';
+import { useTheme } from '../../../../theme/provider';
+import { useProfileStore } from '../../../../store/profile';
 
 interface StudentProfile {
-    studentName: string;
+    studentName?: string;
+    name?: string;
+    displayName?: string;
     email: string;
-    grade: number;
+    grade?: number;
+    currentGrade?: number;
+    gradeLevel?: number;
     curriculum: string;
     preferredLayout: string;
     enrolledSubjects: string[];
@@ -36,6 +44,7 @@ interface StudentProfile {
         startDate: string;
         endDate: string;
     };
+    theme?: 'light' | 'dark';
 }
 
 const cardVariants = {
@@ -44,9 +53,14 @@ const cardVariants = {
 };
 
 export default function ProfileInfoTab() {
-    const { user } = useNinja();
+    const { user, ninjaStats } = useNinja();
     const [profile, setProfile] = useState<StudentProfile | null>(null);
     const [loading, setLoading] = useState(true);
+    const [updatingTheme, setUpdatingTheme] = useState(false);
+
+    // Use existing theme system
+    const { theme, effectiveTheme, setTheme } = useTheme();
+    const { updateProfile } = useProfileStore();
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -57,7 +71,13 @@ export default function ProfileInfoTab() {
                 const profileSnap = await getDoc(profileRef);
 
                 if (profileSnap.exists()) {
-                    setProfile(profileSnap.data() as StudentProfile);
+                    const data = profileSnap.data() as StudentProfile;
+                    setProfile(data);
+
+                    // Sync theme from Firestore to local state if available
+                    if (data.theme && data.theme !== theme) {
+                        setTheme(data.theme as 'light' | 'dark');
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching profile:', error);
@@ -68,6 +88,58 @@ export default function ProfileInfoTab() {
 
         fetchProfile();
     }, [user]);
+
+    const handleThemeToggle = async () => {
+        if (!user?.uid) return;
+
+        setUpdatingTheme(true);
+        const newTheme = effectiveTheme === 'light' ? 'dark' : 'light';
+
+        try {
+            // Update Firestore - save to profile map
+            const profileRef = doc(db, 'students', user.uid);
+            await updateDoc(profileRef, {
+                'profile.theme': newTheme
+            });
+
+            // Update local state
+            if (profile) {
+                setProfile({
+                    ...profile,
+                    theme: newTheme
+                });
+            }
+
+            // Update global theme state (this will apply the theme)
+            setTheme(newTheme);
+
+            console.log(`✅ Theme updated to: ${newTheme}`);
+        } catch (error) {
+            console.error('❌ Error updating theme:', error);
+            alert('Failed to update theme. Please try again.');
+        } finally {
+            setUpdatingTheme(false);
+        }
+    };
+
+    // Helper function to get student name from various possible fields
+    const getStudentName = (): string => {
+        return profile?.studentName ||
+            profile?.name ||
+            profile?.displayName ||
+            ninjaStats?.username ||
+            user?.displayName ||
+            'Not set';
+    };
+    console.log('profile:', profile)
+    // Helper function to get grade from various possible fields
+    const getGrade = (): string => {
+        const grade = profile?.profile?.grade ||
+            profile?.currentGrade ||
+            profile?.gradeLevel ||
+            ninjaStats?.grade;
+        return grade ? `Grade ${grade}` : 'Not set';
+    };
 
     if (loading) {
         return (
@@ -104,18 +176,18 @@ export default function ProfileInfoTab() {
                 initial="hidden"
                 animate="visible"
             >
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
-                    <div className="p-2 bg-pink-50 rounded-xl text-pink-400">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+                    <div className="p-2 bg-pink-50 dark:bg-pink-900/20 rounded-xl text-pink-400">
                         <User size={20} />
                     </div>
                     <h2 className="font-serif italic text-2xl text-theme-text">Basic Details</h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-800/50 p-6 rounded-2xl">
                     <InfoField
                         icon={<User size={18} />}
                         label="Student Name"
-                        value={profile.studentName || user?.displayName || 'Not set'}
+                        value={getStudentName()}
                     />
                     <InfoField
                         icon={<Mail size={18} />}
@@ -125,7 +197,7 @@ export default function ProfileInfoTab() {
                     <InfoField
                         icon={<GraduationCap size={18} />}
                         label="Grade"
-                        value={`Grade ${profile.grade || 'Not set'}`}
+                        value={getGrade()}
                     />
                     <InfoField
                         icon={<BookOpen size={18} />}
@@ -140,16 +212,71 @@ export default function ProfileInfoTab() {
                 </div>
             </motion.div>
 
+            {/* Theme Preference Card - EDITABLE */}
+            <motion.div
+                className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 p-6 md:p-8 rounded-3xl border border-indigo-100 dark:border-indigo-900/30 shadow-lg"
+                variants={cardVariants}
+                initial="hidden"
+                animate="visible"
+                transition={{ delay: 0.05 }}
+            >
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400">
+                            {effectiveTheme === 'light' ? <Sun size={20} /> : <Moon size={20} />}
+                        </div>
+                        <div>
+                            <h2 className="font-serif italic text-2xl text-theme-text">Theme Preference</h2>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Choose your preferred color scheme</p>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleThemeToggle}
+                        disabled={updatingTheme}
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-bold text-sm hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {updatingTheme ? (
+                            <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                <span>Updating...</span>
+                            </>
+                        ) : (
+                            <>
+                                {effectiveTheme === 'light' ? (
+                                    <>
+                                        <Moon size={16} />
+                                        <span>Switch to Dark</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sun size={16} />
+                                        <span>Switch to Light</span>
+                                    </>
+                                )}
+                            </>
+                        )}
+                    </button>
+                </div>
+
+                <div className="mt-6 p-6 bg-yellow-50 dark:bg-yellow-900/10 border-l-4 border-yellow-400 dark:border-yellow-600 rounded-2xl">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <span className="font-bold">Current Theme:</span>{' '}
+                        <span className="capitalize">{effectiveTheme}</span>
+                    </p>
+                </div>
+            </motion.div>
+
             {/* Enrolled Subjects Card */}
             <motion.div
                 className="bg-theme-card/60 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-theme-border shadow-lg"
                 variants={cardVariants}
                 initial="hidden"
                 animate="visible"
-                transition={{ delay: 0.1 }}
+                transition={{ delay: 0.15 }}
             >
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
-                    <div className="p-2 bg-blue-50 rounded-xl text-blue-400">
+                    <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-400">
                         <BookOpen size={20} />
                     </div>
                     <h2 className="font-serif italic text-2xl text-theme-text">Enrolled Subjects</h2>
@@ -178,10 +305,10 @@ export default function ProfileInfoTab() {
                 variants={cardVariants}
                 initial="hidden"
                 animate="visible"
-                transition={{ delay: 0.2 }}
+                transition={{ delay: 0.25 }}
             >
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
-                    <div className="p-2 bg-green-50 rounded-xl text-green-400">
+                    <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-xl text-green-400">
                         <Target size={20} />
                     </div>
                     <h2 className="font-serif italic text-2xl text-theme-text">Practice Settings</h2>
@@ -255,13 +382,13 @@ export default function ProfileInfoTab() {
                 variants={cardVariants}
                 initial="hidden"
                 animate="visible"
-                transition={{ delay: 0.3 }}
+                transition={{ delay: 0.35 }}
             >
                 <div className="flex items-start gap-3">
                     <AlertCircle size={18} className="text-yellow-600 mt-0.5 flex-shrink-0" />
                     <div>
                         <p className="text-xs font-bold text-yellow-800 mb-1">Read-Only Profile</p>
-                        <p className="text-xs text-yellow-700">
+                        <p className="text-xs text-yellow-800 dark:text-yellow-200 leading-relaxed">
                             All profile settings are managed by your admin/parent. Contact them to make changes.
                         </p>
                     </div>

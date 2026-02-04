@@ -214,7 +214,7 @@ export default function ChapterAnalyticsTab() {
         <div className="space-y-6">
             {/* Header */}
             <motion.div
-                className="bg-gradient-to-r from-blue-50 to-cyan-50 p-6 rounded-3xl border border-blue-100"
+                className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 p-6 rounded-3xl border border-blue-100 dark:border-blue-900/30"
                 variants={cardVariants}
                 initial="hidden"
                 animate="visible"
@@ -224,7 +224,7 @@ export default function ChapterAnalyticsTab() {
                         <BookOpen className="text-blue-400" size={32} />
                         <div>
                             <h2 className="font-serif italic text-2xl text-theme-text">Chapter Analytics</h2>
-                            <p className="text-sm text-gray-600">Detailed performance by chapter</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Detailed performance by chapter</p>
                         </div>
                     </div>
                     <button
@@ -256,7 +256,7 @@ export default function ChapterAnalyticsTab() {
                             <select
                                 value={selectedSubject}
                                 onChange={(e) => setSelectedSubject(e.target.value)}
-                                className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-bold appearance-none cursor-pointer focus:border-blue-400 focus:outline-none"
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold appearance-none cursor-pointer focus:border-blue-400 focus:outline-none dark:text-gray-200"
                             >
                                 {subjects.map(subject => (
                                     <option key={subject} value={subject}>
@@ -277,7 +277,7 @@ export default function ChapterAnalyticsTab() {
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value as any)}
-                                className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-bold appearance-none cursor-pointer focus:border-blue-400 focus:outline-none"
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold appearance-none cursor-pointer focus:border-blue-400 focus:outline-none dark:text-gray-200"
                             >
                                 <option value="mastery">Mastery Level</option>
                                 <option value="recent">Recently Practiced</option>
@@ -362,10 +362,10 @@ export default function ChapterAnalyticsTab() {
 // Helper Component
 function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: React.ReactNode; color: string }) {
     const colorClasses = {
-        blue: 'bg-blue-50 text-blue-600 border-blue-200',
-        green: 'bg-green-50 text-green-600 border-green-200',
-        purple: 'bg-purple-50 text-purple-600 border-purple-200',
-        orange: 'bg-orange-50 text-orange-600 border-orange-200'
+        blue: 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/30',
+        green: 'bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-900/30',
+        purple: 'bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-900/30',
+        orange: 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-900/30'
     };
 
     return (

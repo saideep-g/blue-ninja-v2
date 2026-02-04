@@ -48,12 +48,13 @@ export default function StudentProfileLayout() {
         { id: 'gradeHistory', label: 'Grade History', icon: History }
     ];
 
+
     return (
         <div className="min-h-screen bg-theme-bg text-theme-text font-sans selection:bg-pink-100 overflow-x-hidden p-4 md:p-8 transition-colors duration-300">
-            {/* Background decoration */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-pink-100/50 rounded-full blur-[120px] animate-pulse"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-purple-100/40 rounded-full blur-[100px]"></div>
+            {/* Background decoration - subtle, non-animated */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30 dark:opacity-10">
+                <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-pink-100 dark:bg-pink-900/20 rounded-full blur-[120px]"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-purple-100 dark:bg-purple-900/20 rounded-full blur-[100px]"></div>
             </div>
 
             <motion.div
@@ -78,12 +79,12 @@ export default function StudentProfileLayout() {
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="bg-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-sm text-pink-400 border border-pink-50">
+                                    <span className="bg-white dark:bg-gray-800 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-sm text-pink-400 border border-pink-50 dark:border-pink-900/30">
                                         Level {ninjaStats?.heroLevel || 1}
                                     </span>
                                 </div>
                                 <h1 className="text-3xl md:text-4xl font-serif italic text-theme-text">
-                                    {ninjaStats?.username || user?.displayName || 'Student Profile'}
+                                    {((ninjaStats?.name || user?.displayName) + "'s" || 'Student') + ' Profile'}
                                 </h1>
                                 <p className="text-color-text-secondary text-xs font-bold uppercase tracking-widest mt-1">
                                     Read-Only View

@@ -162,7 +162,7 @@ export default function ConsistencyTab() {
         <div className="space-y-6">
             {/* Header with Streak */}
             <motion.div
-                className="bg-gradient-to-r from-orange-50 to-yellow-50 p-6 rounded-3xl border border-orange-100"
+                className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950/30 dark:to-yellow-950/30 p-6 rounded-3xl border border-orange-100 dark:border-orange-900/30"
                 variants={cardVariants}
                 initial="hidden"
                 animate="visible"
@@ -172,7 +172,7 @@ export default function ConsistencyTab() {
                         <Flame className="text-orange-400" size={32} fill="currentColor" />
                         <div>
                             <h2 className="font-serif italic text-2xl text-theme-text">Consistency Tracker</h2>
-                            <p className="text-sm text-gray-600">Build your learning streak</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Build your learning streak</p>
                         </div>
                     </div>
                     <StreakDisplay current={currentStreak} longest={longestStreak} />
@@ -239,7 +239,7 @@ export default function ConsistencyTab() {
 
             {/* Info Note */}
             <motion.div
-                className="bg-blue-50/50 backdrop-blur-xl p-4 rounded-2xl border border-blue-200"
+                className="bg-blue-50/50 dark:bg-blue-950/30 backdrop-blur-xl p-4 rounded-2xl border border-blue-200 dark:border-blue-900/30"
                 variants={cardVariants}
                 initial="hidden"
                 animate="visible"
@@ -248,8 +248,8 @@ export default function ConsistencyTab() {
                 <div className="flex items-start gap-3">
                     <AlertCircle size={18} className="text-blue-600 mt-0.5 flex-shrink-0" />
                     <div>
-                        <p className="text-xs font-bold text-blue-800 mb-1">How Streaks Work</p>
-                        <p className="text-xs text-blue-700">
+                        <p className="text-xs font-bold text-blue-800 dark:text-blue-300 mb-1">How Streaks Work</p>
+                        <p className="text-xs text-blue-700 dark:text-blue-200">
                             Your streak only increases when you complete ALL 6 subjects in a day (Perfect Day 🟢).
                             Partial days (🔵) show your effort but don't break your streak!
                         </p>
@@ -263,16 +263,16 @@ export default function ConsistencyTab() {
 // Helper Component
 function StatCard({ label, value, color, icon }: { label: string; value: number; color: string; icon: string }) {
     const colorClasses = {
-        green: 'bg-green-50 border-green-200',
-        blue: 'bg-blue-50 border-blue-200',
-        gray: 'bg-gray-50 border-gray-200'
+        green: 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900/30',
+        blue: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/30',
+        gray: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
     };
 
     return (
         <div className={`${colorClasses[color]} p-4 rounded-2xl border text-center`}>
             <div className="text-3xl mb-2">{icon}</div>
-            <div className="text-2xl font-black text-gray-800">{value}</div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-gray-600">{label}</div>
+            <div className="text-2xl font-black text-gray-800 dark:text-gray-200">{value}</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{label}</div>
         </div>
     );
 }

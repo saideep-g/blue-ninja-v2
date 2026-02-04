@@ -61,12 +61,12 @@ export default function ConsistencyCalendar({
         const isFuture = dateStr > today;
 
         if (isFuture) {
-            return 'bg-gray-50 text-gray-300 cursor-not-allowed';
+            return 'bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed border border-gray-200 dark:border-gray-700';
         }
 
         if (!completion || completion.completedSubjects.length === 0) {
             // Inactive Day - White
-            return 'bg-white text-gray-400 hover:bg-gray-50 border border-gray-200';
+            return 'bg-white dark:bg-gray-700 text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600';
         }
 
         if (completion.isPerfectDay) {
@@ -96,7 +96,7 @@ export default function ConsistencyCalendar({
             <div className="flex items-center justify-between mb-6">
                 <button
                     onClick={() => onMonthChange('prev')}
-                    className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
                     aria-label="Previous month"
                 >
                     <ChevronLeft size={20} />
@@ -108,7 +108,7 @@ export default function ConsistencyCalendar({
 
                 <button
                     onClick={() => onMonthChange('next')}
-                    className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
                     aria-label="Next month"
                 >
                     <ChevronRight size={20} />
@@ -120,7 +120,7 @@ export default function ConsistencyCalendar({
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                     <div
                         key={day}
-                        className="text-center text-[10px] font-black uppercase tracking-wider text-gray-500 py-2"
+                        className="text-center text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 py-2"
                     >
                         {day}
                     </div>
@@ -160,19 +160,19 @@ export default function ConsistencyCalendar({
             </div>
 
             {/* Legend */}
-            <div className="mt-6 pt-4 border-t border-gray-100">
+            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-center gap-6 flex-wrap text-xs">
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                        <span className="text-gray-600 font-medium">Perfect (6/6)</span>
+                        <span className="text-gray-600 dark:text-gray-400 font-medium">Perfect (6/6)</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-4 rounded-full bg-blue-500"></div>
-                        <span className="text-gray-600 font-medium">Partial (1-5)</span>
+                        <span className="text-gray-600 dark:text-gray-400 font-medium">Partial (1-5)</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded-full bg-white border-2 border-gray-200"></div>
-                        <span className="text-gray-600 font-medium">Inactive (0)</span>
+                        <div className="w-4 h-4 rounded-full bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600"></div>
+                        <span className="text-gray-600 dark:text-gray-400 font-medium">Inactive (0)</span>
                     </div>
                 </div>
             </div>

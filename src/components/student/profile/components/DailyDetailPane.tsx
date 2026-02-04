@@ -137,12 +137,12 @@ export default function DailyDetailPane({
                         {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </h3>
                     {isToday && (
-                        <span className="px-3 py-1 bg-pink-100 text-pink-600 rounded-full text-[10px] font-black uppercase tracking-wider">
+                        <span className="px-3 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded-full text-[10px] font-black uppercase tracking-wider">
                             Today
                         </span>
                     )}
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                     {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
             </div>
@@ -158,7 +158,7 @@ export default function DailyDetailPane({
                             stroke="currentColor"
                             strokeWidth="8"
                             fill="transparent"
-                            className="text-gray-100"
+                            className="text-gray-100 dark:text-gray-700"
                         />
                         <circle
                             cx="64"
@@ -174,10 +174,10 @@ export default function DailyDetailPane({
                         />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <div className="text-3xl font-black text-gray-800">
+                        <div className="text-3xl font-black text-gray-800 dark:text-gray-200">
                             {completedCount}/{totalSubjects}
                         </div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                             Subjects
                         </div>
                     </div>
@@ -186,8 +186,8 @@ export default function DailyDetailPane({
 
             {/* Status Message */}
             {isFuture && (
-                <div className="mb-6 p-3 bg-gray-50 rounded-xl text-center">
-                    <p className="text-xs text-gray-500">Future date - no data yet</p>
+                <div className="mb-6 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl text-center">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Future date - no data yet</p>
                 </div>
             )}
 
@@ -205,13 +205,13 @@ export default function DailyDetailPane({
                                     disabled={!isToday || updating}
                                     className={`
                                         w-full flex items-center gap-3 p-3 rounded-xl transition-all
-                                        ${isToday ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'}
-                                        ${isCompleted ? 'bg-green-50 border-2 border-green-200' : 'bg-gray-50 border-2 border-gray-100'}
+                                        ${isToday ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700' : 'cursor-default'}
+                                        ${isCompleted ? 'bg-green-50 dark:bg-green-950/30 border-2 border-green-200 dark:border-green-900/30' : 'bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700'}
                                         ${updating ? 'opacity-50' : ''}
                                     `}
                                 >
                                     <span className="text-2xl">{subject.icon}</span>
-                                    <span className={`flex-1 text-left font-bold text-sm ${isCompleted ? 'text-green-700' : 'text-gray-600'}`}>
+                                    <span className={`flex-1 text-left font-bold text-sm ${isCompleted ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-300'}`}>
                                         {subject.name}
                                     </span>
                                     {isCompleted ? (
@@ -226,34 +226,34 @@ export default function DailyDetailPane({
 
                     {/* Status Badge */}
                     {isPerfect && (
-                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 text-center">
+                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-2xl border border-green-200 dark:border-green-900/30 text-center">
                             <div className="text-2xl mb-1">🎉</div>
-                            <p className="text-sm font-black text-green-700">Perfect Day!</p>
-                            <p className="text-xs text-green-600">All subjects completed</p>
+                            <p className="text-sm font-black text-green-700 dark:text-green-400">Perfect Day!</p>
+                            <p className="text-xs text-green-600 dark:text-green-500">All subjects completed</p>
                         </div>
                     )}
 
                     {!isPerfect && completedCount > 0 && (
-                        <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl border border-blue-200 text-center">
+                        <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-2xl border border-blue-200 dark:border-blue-900/30 text-center">
                             <div className="text-2xl mb-1">💪</div>
-                            <p className="text-sm font-black text-blue-700">Good Progress!</p>
-                            <p className="text-xs text-blue-600">{completedCount} of {totalSubjects} subjects done</p>
+                            <p className="text-sm font-black text-blue-700 dark:text-blue-400">Good Progress!</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-500">{completedCount} of {totalSubjects} subjects done</p>
                         </div>
                     )}
 
                     {completedCount === 0 && isPast && (
-                        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-center">
+                        <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 text-center">
                             <div className="text-2xl mb-1">😴</div>
-                            <p className="text-sm font-black text-gray-600">Inactive Day</p>
-                            <p className="text-xs text-gray-500">No subjects completed</p>
+                            <p className="text-sm font-black text-gray-600 dark:text-gray-400">Inactive Day</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500">No subjects completed</p>
                         </div>
                     )}
 
                     {completedCount === 0 && isToday && (
-                        <div className="p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl border border-pink-200 text-center">
+                        <div className="p-4 bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/30 dark:to-purple-950/30 rounded-2xl border border-pink-200 dark:border-pink-900/30 text-center">
                             <div className="text-2xl mb-1">🚀</div>
-                            <p className="text-sm font-black text-pink-700">Let's Start!</p>
-                            <p className="text-xs text-pink-600">Mark subjects as you complete them</p>
+                            <p className="text-sm font-black text-pink-700 dark:text-pink-400">Let's Start!</p>
+                            <p className="text-xs text-pink-600 dark:text-pink-500">Mark subjects as you complete them</p>
                         </div>
                     )}
                 </>
