@@ -53,7 +53,7 @@ export default function DailyDetailPane({
 
     useEffect(() => {
         setLocalCompletedSubjects(completedSubjects);
-    }, [dateStr, completedSubjects]);
+    }, [dateStr, JSON.stringify(completedSubjects)]);
 
     const handleToggleSubject = async (subjectId: string) => {
         if (!isToday || !user?.uid) return;
