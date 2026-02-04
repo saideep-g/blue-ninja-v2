@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Save, User, BookOpen, Settings, X, Layers, TrendingUp, Target } from 'lucide-react';
+import { ChevronLeft, Save, User, BookOpen, Settings, X, Layers, TrendingUp, Target, History } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStudentWithMetrics } from '../../../hooks/admin/useStudents';
 import { studentService } from '../../../services/admin/studentService';
@@ -11,9 +11,10 @@ import PracticeSettingsTab from './tabs/PracticeSettingsTab';
 import ModulesTab from './tabs/ModulesTab';
 import BoostPeriodsTab from './tabs/BoostPeriodsTab';
 import ExamModeTab from './tabs/ExamModeTab';
+import GradeHistoryTab from './tabs/GradeHistoryTab';
 import type { StudentProfileUpdateData } from '../../../types/admin/student';
 
-type TabId = 'basic' | 'subjects' | 'practice' | 'modules' | 'boost' | 'exam';
+type TabId = 'basic' | 'subjects' | 'practice' | 'modules' | 'boost' | 'exam' | 'history';
 
 interface Tab {
     id: TabId;
@@ -27,7 +28,8 @@ const TABS: Tab[] = [
     { id: 'practice', label: 'Practice', icon: Settings },
     { id: 'modules', label: 'Chapters', icon: Layers },
     { id: 'boost', label: 'Boost Periods', icon: TrendingUp },
-    { id: 'exam', label: 'Exam Mode', icon: Target }
+    { id: 'exam', label: 'Exam Mode', icon: Target },
+    { id: 'history', label: 'Grade History', icon: History }
 ];
 
 export default function StudentProfileEditor() {
@@ -255,6 +257,11 @@ export default function StudentProfileEditor() {
                                 studentId={studentId}
                                 student={student}
                                 onRefresh={refetch}
+                            />
+                        )}
+                        {activeTab === 'history' && (
+                            <GradeHistoryTab
+                                student={student}
                             />
                         )}
                     </div>
