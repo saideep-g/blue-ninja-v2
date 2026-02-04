@@ -25,6 +25,29 @@ export interface StudentProfile {
         holiday: number;    // default: 30
     };
 
+    // Phase 2: Module Management
+    enabledModules?: {
+        [subject: string]: {
+            [moduleId: string]: {
+                enabled: boolean;
+                enabledDate: string;
+                scheduledDate?: string;
+            };
+        };
+    };
+
+    // Phase 2: Boost Periods
+    boostPeriods?: Array<{
+        id: string;
+        name: string;
+        startDate: string;
+        endDate: string;
+        subjectBoosts: {
+            [subject: string]: number;
+        };
+        active: boolean;
+    }>;
+
     // Metadata
     lastActive?: Timestamp;
     createdAt: Timestamp;

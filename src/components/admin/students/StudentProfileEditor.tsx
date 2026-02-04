@@ -1,16 +1,18 @@
 // @ts-nocheck
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Save, User, BookOpen, Settings, X } from 'lucide-react';
+import { ChevronLeft, Save, User, BookOpen, Settings, X, Layers, TrendingUp } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStudentWithMetrics } from '../../../hooks/admin/useStudents';
 import { studentService } from '../../../services/admin/studentService';
 import BasicInfoTab from './tabs/BasicInfoTab';
 import SubjectsTab from './tabs/SubjectsTab';
 import PracticeSettingsTab from './tabs/PracticeSettingsTab';
+import ModulesTab from './tabs/ModulesTab';
+import BoostPeriodsTab from './tabs/BoostPeriodsTab';
 import type { StudentProfileUpdateData } from '../../../types/admin/student';
 
-type TabId = 'basic' | 'subjects' | 'practice';
+type TabId = 'basic' | 'subjects' | 'practice' | 'modules' | 'boost';
 
 interface Tab {
     id: TabId;
@@ -21,7 +23,9 @@ interface Tab {
 const TABS: Tab[] = [
     { id: 'basic', label: 'Basic Info', icon: User },
     { id: 'subjects', label: 'Subjects', icon: BookOpen },
-    { id: 'practice', label: 'Practice Settings', icon: Settings }
+    { id: 'practice', label: 'Practice', icon: Settings },
+    { id: 'modules', label: 'Chapters', icon: Layers },
+    { id: 'boost', label: 'Boost Periods', icon: TrendingUp }
 ];
 
 export default function StudentProfileEditor() {
@@ -225,6 +229,23 @@ export default function StudentProfileEditor() {
                             <PracticeSettingsTab
                                 formData={formData}
                                 onChange={(updates) => setFormData({ ...formData, ...updates })}
+                            />
+                        )}
+                        {activeTab === 'modules' && studentId && (
+                            <ModulesTab
+                                studentId={studentId}
+                                grade={student.grade}
+                                enrolledSubjects={student.enrolledSubjects || []}
+                                enabledModules={student.enabledModules || {}}
+                                onRefresh={refetch}
+                            />
+                        )}
+                        {activeTab === 'boost' && studentId && (
+                            <BoostPeriodsTab
+                                studentId={studentId}
+                                enrolledSubjects={student.enrolledSubjects || []}
+                                boostPeriods={student.boostPeriods || []}
+                                onRefresh={refetch}
                             />
                         )}
                     </div>
