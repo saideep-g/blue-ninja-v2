@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Save, User, BookOpen, Settings, X, Layers, TrendingUp } from 'lucide-react';
+import { ChevronLeft, Save, User, BookOpen, Settings, X, Layers, TrendingUp, Target } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStudentWithMetrics } from '../../../hooks/admin/useStudents';
 import { studentService } from '../../../services/admin/studentService';
@@ -10,9 +10,10 @@ import SubjectsTab from './tabs/SubjectsTab';
 import PracticeSettingsTab from './tabs/PracticeSettingsTab';
 import ModulesTab from './tabs/ModulesTab';
 import BoostPeriodsTab from './tabs/BoostPeriodsTab';
+import ExamModeTab from './tabs/ExamModeTab';
 import type { StudentProfileUpdateData } from '../../../types/admin/student';
 
-type TabId = 'basic' | 'subjects' | 'practice' | 'modules' | 'boost';
+type TabId = 'basic' | 'subjects' | 'practice' | 'modules' | 'boost' | 'exam';
 
 interface Tab {
     id: TabId;
@@ -25,7 +26,8 @@ const TABS: Tab[] = [
     { id: 'subjects', label: 'Subjects', icon: BookOpen },
     { id: 'practice', label: 'Practice', icon: Settings },
     { id: 'modules', label: 'Chapters', icon: Layers },
-    { id: 'boost', label: 'Boost Periods', icon: TrendingUp }
+    { id: 'boost', label: 'Boost Periods', icon: TrendingUp },
+    { id: 'exam', label: 'Exam Mode', icon: Target }
 ];
 
 export default function StudentProfileEditor() {
@@ -245,6 +247,13 @@ export default function StudentProfileEditor() {
                                 studentId={studentId}
                                 enrolledSubjects={student.enrolledSubjects || []}
                                 boostPeriods={student.boostPeriods || []}
+                                onRefresh={refetch}
+                            />
+                        )}
+                        {activeTab === 'exam' && studentId && (
+                            <ExamModeTab
+                                studentId={studentId}
+                                student={student}
                                 onRefresh={refetch}
                             />
                         )}

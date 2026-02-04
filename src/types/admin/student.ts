@@ -48,6 +48,19 @@ export interface StudentProfile {
         active: boolean;
     }>;
 
+    // Phase 3: Exam Mode
+    examMode?: {
+        enabled: boolean;
+        examName: string;
+        startDate: string;
+        endDate: string;
+        focusTopics: {
+            [subject: string]: string[];
+        };
+        questionMultiplier: number;
+        difficultyLevel: 'medium' | 'hard';
+    };
+
     // Metadata
     lastActive?: Timestamp;
     createdAt: Timestamp;
