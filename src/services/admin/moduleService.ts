@@ -130,10 +130,11 @@ export const moduleService = {
         try {
             const studentRef = doc(db, 'students', studentId);
 
-            const newBoostPeriod: BoostPeriod = {
+            // Use Timestamp.now() instead of serverTimestamp() for arrayUnion
+            const newBoostPeriod: any = {
                 ...boostPeriod,
                 id: `boost_${Date.now()}`,
-                createdAt: serverTimestamp() as any
+                createdAt: new Date().toISOString() // Use ISO string instead of Timestamp
             };
 
             await updateDoc(studentRef, {

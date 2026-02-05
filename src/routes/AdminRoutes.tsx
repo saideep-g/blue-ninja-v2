@@ -13,6 +13,8 @@ import { MigrationDashboard } from '../features/questions/admin/MigrationDashboa
 import { TemplateManager } from '../features/questions/admin/TemplateManager';
 import QuestionBundleCreator from '../components/admin/QuestionBundleCreator';
 import ReviewQueue from '../components/admin/ReviewQueue';
+import StudentListPage from '../components/admin/students/StudentListPage';
+import StudentProfileEditor from '../components/admin/students/StudentProfileEditor';
 
 import StudentLogsDownloader from '../components/admin/tools/StudentLogsDownloader';
 
@@ -36,6 +38,8 @@ export default function AdminRoutes() {
                 <Route path="question-bundles" element={<QuestionBundleCreator />} />
                 <Route path="review" element={<ReviewQueue />} />
                 <Route path="export-table-logs" element={<StudentLogsDownloader />} />
+                <Route path="students" element={<StudentListPage />} />
+                <Route path="students/:studentId" element={<StudentProfileEditor />} />
             </Route>
         </Routes>
     );

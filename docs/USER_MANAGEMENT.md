@@ -194,6 +194,7 @@ Active Boost Periods:
 - Subject-specific boost amounts
 - Toggle to activate/deactivate
 - Visual calendar showing active periods
+- validate that atleast one of the subject has more than 0 questions before saving otherwise give a message to the admin
 
 ---
 

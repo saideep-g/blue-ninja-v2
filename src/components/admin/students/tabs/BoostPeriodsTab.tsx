@@ -45,6 +45,13 @@ export default function BoostPeriodsTab({
                 return;
             }
 
+            // Validate that at least one subject has more than 0 questions
+            const totalBoost = Object.values(formData.subjectBoosts).reduce((sum, val) => sum + val, 0);
+            if (totalBoost === 0) {
+                setError('Please add extra questions for at least one subject');
+                return;
+            }
+
             await moduleService.addBoostPeriod(studentId, formData);
 
             // Reset form

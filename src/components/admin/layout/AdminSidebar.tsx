@@ -16,7 +16,8 @@ import {
     GitPullRequest,
     Layers,
     AlertOctagon,
-    FileJson
+    FileJson,
+    GraduationCap
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -32,6 +33,7 @@ export default function AdminSidebar() {
         { icon: Activity, label: 'Live Logs', to: '/admin/logs' },
         { icon: BarChart2, label: 'Analytics', to: '/admin/analytics' },
         { icon: Users, label: 'Users', to: '/admin/users' },
+        { icon: GraduationCap, label: 'Students', to: '/admin/students' },
         { icon: FlaskConical, label: 'Test Lab', to: '/admin/test-lab' },
         { icon: AlertOctagon, label: 'Review Queue', to: '/admin/review' },
         { icon: FileJson, label: 'Data Export', to: '/admin/export-table-logs' },

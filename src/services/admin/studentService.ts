@@ -100,17 +100,30 @@ export const studentService = {
      */
     updateStudentProfile: async (
         studentId: string,
-        updates: StudentProfileUpdateData
+        updates: StudentProfileUpdateData | any
     ): Promise<void> => {
         try {
             const studentRef = doc(db, 'students', studentId);
 
-            await updateDoc(studentRef, {
-                ...updates,
-                updatedAt: serverTimestamp()
+            // Filter out undefined values to prevent Firestore errors
+            const cleanUpdates: any = {};
+            Object.entries(updates).forEach(([key, value]) => {
+                if (value !== undefined) {
+                    cleanUpdates[key] = value;
+                }
             });
 
-            console.log(`✅ Student ${studentId} profile updated`);
+            // Only update if there are valid fields
+            if (Object.keys(cleanUpdates).length > 0) {
+                await updateDoc(studentRef, {
+                    ...cleanUpdates,
+                    updatedAt: serverTimestamp()
+                });
+
+                console.log(`✅ Student ${studentId} profile updated`);
+            } else {
+                console.warn('No valid fields to update');
+            }
         } catch (error) {
             console.error('Error updating student profile:', error);
             throw new Error('Failed to update student profile');
