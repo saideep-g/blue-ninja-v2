@@ -16,3 +16,6 @@ Supplemental Subjects:
 -> Vocabulary
 -> GK (General Knowledge)
 -> Reasoning
+
+
+Optimize for firestore reads. Once

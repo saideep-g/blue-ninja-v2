@@ -195,6 +195,7 @@ Active Boost Periods:
 - Toggle to activate/deactivate
 - Visual calendar showing active periods
 - validate that atleast one of the subject has more than 0 questions before saving otherwise give a message to the admin
+- ability to delete or edit a boost period
 
 ---
 
