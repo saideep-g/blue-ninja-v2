@@ -59,7 +59,7 @@ export interface Question {
     chapter: string;
     difficulty: "easy" | "medium" | "hard" | number;
     type: string; // Template type
-    question_text: string; // The prompt
+    question: string; // The question text/prompt
     options: QuestionOption[];
     correct_answer: string;
     explanation?: string;

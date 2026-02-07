@@ -118,7 +118,10 @@ export const BundlePreviewSimulator: React.FC<BundlePreviewSimulatorProps> = ({
     const isShortAnswer = currentQuestion.template_id === 'SHORT_ANSWER';
 
     return (
-        <div className={`fixed inset-0 z-[100] flex flex-col ${s.backdrop} animate-in fade-in duration-300 overflow-hidden`}>
+        <div
+            className={`fixed inset-0 z-[100] flex flex-col ${s.backdrop} animate-in fade-in duration-300 overflow-hidden`}
+            data-theme={theme === 'era' ? 'dark' : 'light'}
+        >
             {/* Header */}
             <div className={`w-full flex justify-between items-center px-4 py-3 border-b transition-all ${theme === 'era' ? 'bg-slate-900/50 border-white/5' : 'bg-white border-slate-200'}`}>
                 <div className="flex items-center gap-6">
@@ -182,7 +185,9 @@ export const BundlePreviewSimulator: React.FC<BundlePreviewSimulatorProps> = ({
                                         ...currentQuestion,
                                         type: currentQuestion.template_id || 'MCQ_SIMPLIFIED'
                                     } as any}
-                                    onSubmit={() => nextQuestion()}
+                                    onSubmit={(result, shouldAdvance) => {
+                                        if (shouldAdvance !== false) nextQuestion();
+                                    }}
                                     isPreview={true}
                                     readOnly={false}
                                 />

@@ -7,6 +7,10 @@ import { initializeQuestionRegistry } from './features/questions';
 // Initialize the Question Lifecycle Management System
 initializeQuestionRegistry();
 
+// Initialize Firebase App Check for security
+import './services/db/appCheck';
+
+
 
 /**
  * Global Keyboard Shortcut Listener

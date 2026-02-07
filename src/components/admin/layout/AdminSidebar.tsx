@@ -17,7 +17,8 @@ import {
     Layers,
     AlertOctagon,
     FileJson,
-    GraduationCap
+    GraduationCap,
+    Sparkles
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -32,6 +33,7 @@ export default function AdminSidebar() {
         { icon: Package, label: 'Bundles', to: '/admin/bundles' },
         { icon: Activity, label: 'Live Logs', to: '/admin/logs' },
         { icon: BarChart2, label: 'Analytics', to: '/admin/analytics' },
+        { icon: Sparkles, label: 'AI Monitoring', to: '/admin/ai-monitoring' },
         { icon: Users, label: 'Users', to: '/admin/users' },
         { icon: GraduationCap, label: 'Students', to: '/admin/students' },
         { icon: FlaskConical, label: 'Test Lab', to: '/admin/test-lab' },

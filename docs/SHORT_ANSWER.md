@@ -219,3 +219,85 @@ The Admin Panel includes a dedicated "Test with AI" flow to ensure rubric qualit
 *   **Rubric Verification**: Triggers a live call to the Gemini 3 Flash evaluation function to confirm the rubric correctly identifies passing/failing criteria.
 *   **Context Injection / System Instruction Visibility**: In the preview modal, add a "View System Logic" toggle. This displays the full System Instruction being sent to Gemini, helping admins understand if a result was due to a vague rubric or specific AI "strictness" settings.
 *   **Audit Trail**: All test attempts are logged to the `ai_monitoring_logs` collection with the student name set to `ADMIN_DRY_RUN` for easy identification and cost tracking.
+
+Pls ensure all the new features and paths related to them are correctly added to the admin sidebar so that it is accessible to the admin user.
+
+========================================================================================================
+
+# Functional Requirement Document: Interactive AI Feedback Reveal
+
+## 1. Objective
+To enhance student engagement during the 30–60 second AI processing window by replacing static loaders with a sequenced, interactive "Reveal" experience. This transforms wait time into a pedagogical moment where students see their work analyzed point-by-point.
+
+---
+
+## 2. Technical Architecture & State Flow
+The UI will move through three distinct phases: **Submission**, **Processing (Simulation)**, and **The Big Reveal**.
+
+
+
+### 2.1 The Submission Phase
+* **Input Conversion:** Upon clicking "Submit," the active `textarea` immediately transitions to a read-only "Your Answer" container to provide a visual anchor for comparison.
+* **Skeleton Framework:** The "Detailed Evaluation" section renders the titles of the `evaluation_criteria` fetched from the local question JSON metadata.
+
+---
+
+## 3. Sequenced Animation Logic (The "Reveal")
+Once the Cloud Function returns the Gemini JSON, the UI will not display it all at once. Instead, it will iterate through the results to simulate a "live" tutor grading.
+
+### 3.1 Step-by-Step Execution
+1.  **Rubric Item Focus:** The first rubric item shows a spinning loader for a set duration (e.g., 800ms to 1.5s).
+2.  **Icon Transformation:** The spinner "pops" into a **Green Tick (✓)** if the criterion is met or a **Red Cross (✗)** if not.
+3.  **Feedback Stream:** The specific `feedback` string for that criterion fades in or uses a "typewriter" effect below the title.
+4.  **Score Increment:** If the point is awarded, the **Score Display** (e.g., 0/4) increments in real-time with a "counter-up" animation.
+5.  **Sequential Delay:** The system waits 1 second before starting the animation for the next rubric point. If an evaluation criteria is incorrect or not met, the next criteria feedback shouldnt shown until the previous criteria feedback is revelealed + a 500ms delay after the previous criteria feedback is revealed.
+
+### 3.2 Visual Component Mapping
+| Element | Initial State (Wait) | Transition State (Reveal) | Final State |
+| :--- | :--- | :--- | :--- |
+| **Criterion Icon** | Pulse/Grey Circle | Spinning Loader | Green Check / Red X |
+| **Criterion Feedback** | Hidden | Fade-In / Typewriter | Static Text |
+| **Overall Score** | 0 / Max | Animated Counter (+1) | Final Calculated Score |
+| **Tutor's Summary** | Hidden | Fade-In (After all points) | Full Summary Text |
+
+---
+
+## 4. Error & Fallback Experience
+If the API takes too long or fails, the animation sequence must gracefully degrade.
+
+* **Timeout (45s+):** If the request exceeds the threshold, stop the "Spinning" icons and display the **Self-Evaluation UI**.
+* **Validation Failure:** If the AI returns invalid JSON, the `isValid` flag is set to `No`. The system should then display the `model_answer` and ask the student to provide their own score out of `max_points`.
+* **Empty Answer:** If the student's answer is below a minimum word count, the UI should prevent submission to save API tokens.
+
+---
+
+## 5. UI Layout Structure
+Following the reveal, the page should be organized as follows to maximize comparison:
+
+1.  **Question Header:** (Current implementation).
+2.  **Your Answer Box:** A clear box showing exactly what the student submitted.
+3.  **Detailed Rubric Check:** The animated checklist section.
+4.  **Tutor's Summary:** The concluding thought from the AI.
+5.  **Model Answer & Teacher's Explanation:** Revealed only *after* the animation sequence finishes to encourage independent review.
+6.  **Navigation:** "Next Challenge" button becomes active.
+
+---
+
+## 6. Implementation Checklist
+* [ ] **Local State Logic:** Create an `activeStep` state to control which rubric index is currently animating.
+* [ ] **CSS Animations:** Define the "Pop" effect for icons and "Typewriter" for feedback strings.
+* [ ] **Score Integration:** Use a library like `react-countup` to handle the score incrementation.
+* [ ] **Skip Function:** Provide a small "Skip Animation" link for students who want to see their results immediately.
+
+
+Consider below when  sending to gemini for the short answer feedback 
+## 4. AI Persona & Prompt Engineering
+
+### 4.1 The "Supportive Peer" Tone
+The AI must move away from clinical, third-person language (e.g., "The student did...").
+
+* **Second-Person Perspective:** The AI must address the student directly as "**You**".
+* **Encouraging Personas:** Use warm, peer-like language such as "Great start!" or "You nailed this part!" while remaining firm on scientific accuracy.
+* **The Feedback "Sandwich":** 1. Acknowledge what the student got right.
+    2. Identify the specific gap using the rubric.
+    3. Provide a helpful hint for the missing logic.

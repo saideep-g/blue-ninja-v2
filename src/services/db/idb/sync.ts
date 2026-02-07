@@ -42,16 +42,17 @@ export async function logSync(
 
 // ===== SYNC OPERATIONS =====
 export async function getUnSyncedRecords() {
+  // Use filter() because booleans are not valid Indexable Types in IndexedDB
   const unSyncedAssessments = await db.assessments
-    .where('synced')
-    .equals(false)
+    .filter(record => !record.synced)
     .toArray();
 
-  const unSyncedProgress = await db.progress.where('synced').equals(false).toArray();
+  const unSyncedProgress = await db.progress
+    .filter(record => !record.synced)
+    .toArray();
 
   const unSyncedMissions = await db.dailyMissions
-    .where('synced')
-    .equals(false)
+    .filter(record => !record.synced)
     .toArray();
 
   return {

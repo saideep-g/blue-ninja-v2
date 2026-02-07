@@ -27,3 +27,9 @@ dist-ssr
 .env.example.v2     
 .firebase
 .firebaserc
+
+
+functions/node_modules/
+functions/lib/
+functions/.env
+functions/*.log

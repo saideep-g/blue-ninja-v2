@@ -39,17 +39,24 @@ export const aiEvaluationService = {
 
         try {
             const result = await evaluateFn({
-                question: question.question_text || question.content?.prompt?.text,
+                question: question.question_text || question.content?.prompt?.text || question.question || 'Question Text Missing',
+                question_id: question.id,
+                subject: question.subject || 'General',
                 student_answer: studentAnswer,
-                evaluation_criteria: question.evaluation_criteria,
-                max_points: question.max_points || 3
+                evaluation_criteria: question.evaluation_criteria || [],
+                max_points: question.max_points || 3,
+                student_name: studentName,
+                user_id: userId
             });
 
             const data = result.data as any;
             const latency = Date.now() - startTime;
 
-            // Log successful response
-            await this.logInteraction(userId, studentName, question, studentAnswer, data, true, latency);
+            // Client-side logging restored per user request
+            // This runs in parallel with formatting the response
+            this.logInteraction(userId, studentName, question, studentAnswer, data, true, latency).catch(err =>
+                console.warn('[AIEvaluation] Background logging warning:', err)
+            );
 
             return {
                 isSuccess: true,
@@ -64,8 +71,10 @@ export const aiEvaluationService = {
             const latency = Date.now() - startTime;
             console.error('[AIEvaluation] Error:', error);
 
-            // Log failure
-            await this.logInteraction(userId, studentName, question, studentAnswer, null, false, latency, error.message);
+            // Log failure on client side too
+            this.logInteraction(userId, studentName, question, studentAnswer, null, false, latency, error.message).catch(err =>
+                console.warn('[AIEvaluation] Background failure logging warning:', err)
+            );
 
             return {
                 isSuccess: false,
@@ -98,42 +107,51 @@ export const aiEvaluationService = {
         const logEntry = {
             date: now.toISOString(),
             timestamp: now.getTime(),
-            questionId: question.id,
-            questionText: question.question_text || question.content?.prompt?.text,
-            subject: question.subject,
+            questionId: question.id || 'unknown',
+            questionText: question.question_text || question.content?.prompt?.text || question.question || 'No Question Text',
+            subject: question.subject || 'General',
             questionType: 'SHORT_ANSWER',
-            inputText: studentAnswer,
+            inputText: studentAnswer || '',
             outputText: aiResponse ? JSON.stringify(aiResponse) : null,
             aiFeedback: aiResponse?.evaluation || null,
-            score: aiResponse?.evaluation?.score || 0,
-            isCorrect: (aiResponse?.evaluation?.score === (question.max_points || 3)),
-            responseTime: latency,
-            inputTokensCount: aiResponse?.usage?.input_tokens || 0,
-            outputTokensCount: aiResponse?.usage?.output_tokens || 0,
-            isSuccess,
+            score: aiResponse?.evaluation?.score ?? 0, // Use ?? for 0
+            isCorrect: Boolean(aiResponse?.evaluation?.score === (question.max_points || 3)),
+            responseTime: latency || 0,
+            inputTokensCount: aiResponse?.usage?.input_tokens ?? 0,
+            outputTokensCount: aiResponse?.usage?.output_tokens ?? 0,
+            isSuccess: Boolean(isSuccess), // Ensure boolean
             isValid: !!aiResponse?.evaluation,
-            errorMessage: errorMessage || null,
-            studentId: userId,
-            studentName
+            errorMessage: errorMessage || null, // null instead of undefined
+            studentId: userId || 'anonymous',
+            studentName: studentName || 'Student'
         };
 
+        // 1. Student Monthly Log (Personal - should allow write)
         try {
-            // 1. Student Monthly Log (arrayUnion)
             const studentLogRef = getMonthlyLogRef(userId, monthKey);
             await setDoc(studentLogRef, {
                 entries: arrayUnion(logEntry),
                 lastUpdated: now.toISOString()
             }, { merge: true });
+        } catch (e) {
+            console.warn('[AIEvaluation] Student logging failed:', e);
+        }
 
-            // 2. Admin Monitoring Log (arrayUnion)
+        // 2. Admin Monitoring Log (System - might fail for students due to permissions)
+        try {
             const adminLogRef = getAdminMonitoringLogRef(quarterKey);
             await setDoc(adminLogRef, {
                 entries: arrayUnion(logEntry),
                 lastUpdated: now.toISOString()
             }, { merge: true });
-
         } catch (e) {
-            console.error('[AIEvaluation] Logging failed:', e);
+            // Check if permission error, suppress it for students so UI doesn't look broken
+            // But log to console for debugging
+            if ((e as any).code === 'permission-denied') {
+                console.log('[AIEvaluation] Admin logging skipped (permission denied)');
+            } else {
+                console.warn('[AIEvaluation] Admin logging failed:', e);
+            }
         }
     },
 

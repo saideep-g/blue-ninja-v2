@@ -15,6 +15,7 @@ import QuestionBundleCreator from '../components/admin/QuestionBundleCreator';
 import ReviewQueue from '../components/admin/ReviewQueue';
 import StudentListPage from '../components/admin/students/StudentListPage';
 import StudentProfileEditor from '../components/admin/students/StudentProfileEditor';
+import { AIMonitoringDashboard } from '../components/admin/AIMonitoringDashboard';
 
 import StudentLogsDownloader from '../components/admin/tools/StudentLogsDownloader';
 
@@ -31,6 +32,7 @@ export default function AdminRoutes() {
                 <Route path="bundles" element={<AdminBundleManager />} />
                 <Route path="logs" element={<AnalyticsLogViewer />} />
                 <Route path="analytics" element={<TeacherAnalyticsDashboard />} />
+                <Route path="ai-monitoring" element={<AIMonitoringDashboard />} />
                 <Route path="users" element={<UserManagementDashboard />} />
                 <Route path="test-lab" element={<TestLab />} />
                 <Route path="migration" element={<MigrationDashboard />} />
