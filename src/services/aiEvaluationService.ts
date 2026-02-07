@@ -41,7 +41,7 @@ export const aiEvaluationService = {
             const result = await evaluateFn({
                 question: question.question_text || question.content?.prompt?.text || question.question || 'Question Text Missing',
                 question_id: question.id,
-                subject: question.subject || 'General',
+                subject: question.subject || question.metadata?.subject || question.bundle?.subject || 'General',
                 student_answer: studentAnswer,
                 evaluation_criteria: question.evaluation_criteria || [],
                 max_points: question.max_points || 3,
@@ -109,7 +109,7 @@ export const aiEvaluationService = {
             timestamp: now.getTime(),
             questionId: question.id || 'unknown',
             questionText: question.question_text || question.content?.prompt?.text || question.question || 'No Question Text',
-            subject: question.subject || 'General',
+            subject: question.subject || question.metadata?.subject || question.bundle?.subject || 'General',
             questionType: 'SHORT_ANSWER',
             inputText: studentAnswer || '',
             outputText: aiResponse ? JSON.stringify(aiResponse) : null,
@@ -119,6 +119,7 @@ export const aiEvaluationService = {
             responseTime: latency || 0,
             inputTokensCount: aiResponse?.usage?.input_tokens ?? 0,
             outputTokensCount: aiResponse?.usage?.output_tokens ?? 0,
+            thoughtsTokenCount: aiResponse?.usage?.thoughts_tokens ?? 0,
             isSuccess: Boolean(isSuccess), // Ensure boolean
             isValid: !!aiResponse?.evaluation,
             errorMessage: errorMessage || null, // null instead of undefined
@@ -173,7 +174,7 @@ export const aiEvaluationService = {
             timestamp: now.getTime(),
             questionId: question.id,
             questionText: question.question_text || question.content?.prompt?.text,
-            subject: question.subject,
+            subject: question.subject || question.metadata?.subject || question.bundle?.subject || 'General',
             questionType: 'SHORT_ANSWER',
             inputText: studentAnswer,
             aiFeedback: null,

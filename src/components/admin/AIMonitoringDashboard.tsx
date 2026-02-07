@@ -21,15 +21,17 @@ interface AILogEntry {
     responseTime: number;
     inputTokensCount: number;
     outputTokensCount: number;
+    thoughtsTokenCount?: number;
     isSuccess: boolean;
     isValid: boolean;
     errorMessage?: string;
     score?: number;
 }
 
+
 const GEMINI_PRICING = {
-    inputPer1M: 0.075,  // $0.075 per 1M input tokens
-    outputPer1M: 0.30   // $0.30 per 1M output tokens
+    inputPer1M: 0.30,   // $0.30 per 1M input tokens
+    outputPer1M: 2.50   // $2.50 per 1M output tokens (includes thinking)
 };
 
 export function AIMonitoringDashboard() {
@@ -39,6 +41,15 @@ export function AIMonitoringDashboard() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<'all' | 'success' | 'failed'>('all');
     const [selectedLog, setSelectedLog] = useState<AILogEntry | null>(null);
+
+    // Helper to format latency
+    const formatLatency = (ms: number) => {
+        if (!ms) return '0ms';
+        if (ms > 1000) {
+            return (ms / 1000).toFixed(2) + 's';
+        }
+        return ms + 'ms';
+    };
 
     // Generate quarter options
     const getQuarterOptions = () => {
@@ -106,9 +117,10 @@ export function AIMonitoringDashboard() {
 
         const totalInputTokens = logs.reduce((sum, l) => sum + (l.inputTokensCount || 0), 0);
         const totalOutputTokens = logs.reduce((sum, l) => sum + (l.outputTokensCount || 0), 0);
+        const totalThoughtsTokens = logs.reduce((sum, l) => sum + (l.thoughtsTokenCount || 0), 0);
 
         const inputCost = (totalInputTokens / 1_000_000) * GEMINI_PRICING.inputPer1M;
-        const outputCost = (totalOutputTokens / 1_000_000) * GEMINI_PRICING.outputPer1M;
+        const outputCost = ((totalOutputTokens + totalThoughtsTokens) / 1_000_000) * GEMINI_PRICING.outputPer1M;
         const totalCost = inputCost + outputCost;
 
         const avgLatency = totalLogs > 0
@@ -123,7 +135,7 @@ export function AIMonitoringDashboard() {
             successRate: totalLogs > 0 ? ((successCount / totalLogs) * 100).toFixed(1) : '0',
             totalInputTokens,
             totalOutputTokens,
-            totalTokens: totalInputTokens + totalOutputTokens,
+            totalTokens: totalInputTokens + totalOutputTokens + totalThoughtsTokens,
             totalCost,
             avgLatency: Math.round(avgLatency)
         };
@@ -157,7 +169,7 @@ export function AIMonitoringDashboard() {
     const exportToCSV = () => {
         const headers = [
             'Date', 'Student Name', 'Question ID', 'Subject', 'Input Text',
-            'Output Text', 'Latency (ms)', 'Input Tokens', 'Output Tokens',
+            'Output Text', 'Latency', 'Input Tokens', 'Output Tokens', 'Thoughts Tokens',
             'Success', 'Valid JSON', 'Error Message', 'Score'
         ];
 
@@ -168,9 +180,10 @@ export function AIMonitoringDashboard() {
             log.subject,
             `"${(log.inputText || '').replace(/"/g, '""')}"`,
             `"${(log.outputText || '').replace(/"/g, '""')}"`,
-            log.responseTime,
+            formatLatency(log.responseTime),
             log.inputTokensCount,
             log.outputTokensCount,
+            log.thoughtsTokenCount || 0,
             log.isSuccess ? 'Yes' : 'No',
             log.isValid ? 'Yes' : 'No',
             log.errorMessage || '',
@@ -187,7 +200,7 @@ export function AIMonitoringDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
+        <div data-theme="dark" className="dark min-h-screen bg-slate-900 bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-slate-100">
             {/* Header */}
             <header className="max-w-7xl mx-auto mb-8">
                 <div className="flex justify-between items-start mb-6">
@@ -242,6 +255,9 @@ export function AIMonitoringDashboard() {
                         </div>
                         <p className="text-3xl font-black text-amber-700 dark:text-amber-400">
                             ${stats.totalCost.toFixed(4)}
+                            <span className="block text-sm text-amber-600 dark:text-amber-500">
+                                ₹{(stats.totalCost * 90).toFixed(2)}
+                            </span>
                         </p>
                         <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
                             {(stats.totalTokens / 1000).toFixed(1)}K tokens
@@ -383,7 +399,7 @@ export function AIMonitoringDashboard() {
                                                 <div className="flex items-center justify-center gap-1">
                                                     <Clock className="w-3 h-3 text-slate-400" />
                                                     <span className="text-sm font-mono text-slate-600 dark:text-slate-400">
-                                                        {log.responseTime}ms
+                                                        {formatLatency(log.responseTime)}
                                                     </span>
                                                 </div>
                                             </td>
@@ -391,7 +407,7 @@ export function AIMonitoringDashboard() {
                                                 <div className="flex items-center justify-center gap-1">
                                                     <Zap className="w-3 h-3 text-amber-500" />
                                                     <span className="text-sm font-mono text-slate-600 dark:text-slate-400">
-                                                        {(log.inputTokensCount + log.outputTokensCount).toLocaleString()}
+                                                        {(log.inputTokensCount + log.outputTokensCount + (log.thoughtsTokenCount || 0)).toLocaleString()}
                                                     </span>
                                                 </div>
                                             </td>
@@ -455,7 +471,7 @@ export function AIMonitoringDashboard() {
                                         Avg Latency
                                     </p>
                                     <p className="text-lg font-black text-indigo-700 dark:text-indigo-300">
-                                        {stats.avgLatency}ms
+                                        {formatLatency(stats.avgLatency)}
                                     </p>
                                 </div>
                                 <div>
@@ -464,6 +480,9 @@ export function AIMonitoringDashboard() {
                                     </p>
                                     <p className="text-lg font-black text-indigo-700 dark:text-indigo-300">
                                         ${stats.totalCost.toFixed(4)}
+                                        <span className="block text-xs text-indigo-500 dark:text-indigo-400">
+                                            ₹{(stats.totalCost * 90).toFixed(2)}
+                                        </span>
                                     </p>
                                 </div>
                             </div>
@@ -516,7 +535,7 @@ export function AIMonitoringDashboard() {
                                 </div>
                                 <div>
                                     <p className="text-xs font-black text-slate-500 uppercase tracking-wider mb-1">Response Time</p>
-                                    <p className="text-lg font-mono font-bold text-slate-900 dark:text-white">{selectedLog.responseTime}ms</p>
+                                    <p className="text-lg font-mono font-bold text-slate-900 dark:text-white">{formatLatency(selectedLog.responseTime)}</p>
                                 </div>
                             </div>
 
@@ -547,7 +566,7 @@ export function AIMonitoringDashboard() {
                                         {selectedLog.outputText || 'No output'}
                                     </pre>
                                     <p className="text-xs text-slate-500 mt-2">
-                                        Tokens: {selectedLog.outputTokensCount}
+                                        Tokens: {selectedLog.outputTokensCount} | Thoughts: {selectedLog.thoughtsTokenCount || 0}
                                     </p>
                                 </div>
                             </div>

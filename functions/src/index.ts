@@ -196,9 +196,12 @@ Evaluate the student's answer and respond with this EXACT JSON structure:
             // Calculate latency
             const latency = Date.now() - startTime;
 
-            // Calculate tokens (approximate)
-            const inputTokens = Math.ceil((systemPrompt.length + userPrompt.length) / 4);
-            const outputTokens = Math.ceil(responseText.length / 4);
+            // Extract Usage Metadata (or fallback to approximation)
+            const usageMetadata = (response as any).usageMetadata || {};
+            const inputTokens = usageMetadata.promptTokenCount || Math.ceil((systemPrompt.length + userPrompt.length) / 4);
+            const outputTokens = usageMetadata.candidatesTokenCount || Math.ceil(responseText.length / 4);
+            const thoughtsTokens = usageMetadata.thoughtsTokenCount || 0;
+            const totalTokens = usageMetadata.totalTokenCount || (inputTokens + outputTokens + thoughtsTokens);
 
             // Perform Server-Side Logging
             const now = new Date();
@@ -209,6 +212,22 @@ Evaluate the student's answer and respond with this EXACT JSON structure:
             const quarters = ['JAN-MAR', 'APR-JUN', 'JUL-SEP', 'OCT-DEC'];
             const quarterKey = `${year}-${quarters[quarter]}`;
 
+            // Construct full response object
+            const finalResponse = {
+                evaluation,
+                usage: {
+                    input_tokens: inputTokens,
+                    output_tokens: outputTokens,
+                    thoughts_tokens: thoughtsTokens,
+                    total_tokens: totalTokens
+                },
+                metadata: {
+                    latency,
+                    model: modelName,
+                    timestamp: now.toISOString()
+                }
+            };
+
             // Log Data Structure
             const logEntry = {
                 date: now.toISOString(),
@@ -218,13 +237,15 @@ Evaluate the student's answer and respond with this EXACT JSON structure:
                 subject: request.data.subject || 'General',
                 questionType: 'SHORT_ANSWER',
                 inputText: student_answer,
-                outputText: JSON.stringify(evaluation), // Store parsed JSON response
-                aiFeedback: evaluation, // Store actual object too
+                outputText: JSON.stringify(finalResponse), // Store FULL response as requested
+                aiFeedback: evaluation, // Keep structured access to evaluation
                 score: evaluation.score || 0,
                 isCorrect: (evaluation.score === (max_points || 3)),
                 responseTime: latency,
                 inputTokensCount: inputTokens,
                 outputTokensCount: outputTokens,
+                thoughtsTokenCount: thoughtsTokens,
+                totalTokenCount: totalTokens,
                 isSuccess: true,
                 isValid: true,
                 errorMessage: null,
@@ -260,18 +281,7 @@ Evaluate the student's answer and respond with this EXACT JSON structure:
                 }
             }
 
-            return {
-                evaluation,
-                usage: {
-                    input_tokens: inputTokens,
-                    output_tokens: outputTokens
-                },
-                metadata: {
-                    latency,
-                    model: modelName,
-                    timestamp: new Date().toISOString()
-                }
-            };
+            return finalResponse;
 
         } catch (error: any) {
             console.error('Gemini API Error:', error);

@@ -25,7 +25,7 @@ export const BundlePreviewSimulator: React.FC<BundlePreviewSimulatorProps> = ({
     const [aiResult, setAiResult] = useState<any | null>(null);
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [showSystemLogic, setShowSystemLogic] = useState(false);
-    const [showDebugSidebar, setShowDebugSidebar] = useState(true);
+    const [showDebugSidebar, setShowDebugSidebar] = useState(false);
 
     const currentQuestion = questions[currentIndex];
 
