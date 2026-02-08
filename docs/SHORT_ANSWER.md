@@ -8,9 +8,9 @@ The objective is to enhance the existing quiz application by introducing a **Sho
 ## 2. Technical Architecture
 The integration follows a secure, serverless pattern to protect API keys and ensure consistent evaluation logic.
 
-* **Frontend:** React (Vite) with Tailwind CSS for a responsive, accessible UI.
+* **Frontend:** React (Vite) with Tailwind CSS for a responsive, accessible UI (Dark Mode supported).
 * **Backend:** Firebase Cloud Functions (Node.js) to handle Gemini API orchestration.
-* **AI Engine:** Gemini 1.5 Flash (configured for JSON mode).
+* **AI Engine:** Gemini 2.5 Flash (configured for JSON mode).
 * **Database:** Firestore for question storage and optimized monthly session logging.
 * **Security:** Firebase App Check to prevent unauthorized API consumption.
 
@@ -66,10 +66,10 @@ Each document contains an `entries` array where each element includes:
 ### 3.3 Admin Monitoring Log (Global)
 
 A collection for performance and cost tracking which is optimized for firestore reads grouped by quarter:
-admin/{adminId}/ai_monitoring_logs/{YYYY-JAN-MAR}
+**Path:** `admin/system/ai_monitoring/{YYYY-QUARTER}` (e.g., `2026-JAN-MAR`)
 
 Each document contains an `entries` array where each element includes:
-`date`, `studentId`, `studentName`, `questionId`, `questionText`, `subject`, `questionType`, `inputText`, `outputText`, `responseTime`, `inputTokensCount`, `outputTokensCount`, `isSuccess`, `isValid`, `errorMessage`.
+`date`, `studentId`, `studentName`, `questionId`, `questionText`, `subject`, `questionType`, `inputText`, `outputText` (Full response with metadata), `responseTime` (E2E Latency), `inputTokensCount`, `outputTokensCount`, `thoughtsTokenCount`, `isSuccess`, `isValid`, `errorMessage`.
 
 ---
 
@@ -82,10 +82,15 @@ The Firebase Cloud Function acts as the bridge between the student and the AI.
     * **System Prompt:** Set the persona as a "Precise Educational Grading Engine."
     * **Constraint:** Force JSON output with a strict schema (Score, Results, Feedback, Summary).
     * **Context:** Pass the `question`, `student_answer`, and `evaluation_criteria`.
-3.  **Model Settings:** * **Model ID:** `gemini-1.5-flash`
-    * **Temperature:** `0.0` (to ensure deterministic, consistent grading).
+3.  **Model Settings:**
+    * **Model ID:** `gemini-2.5-flash`
+    * **Temperature:** `0.3` (for natural but consistent tone).
     * **Response MIME:** `application/json`.
-4.  **Logging:** Concurrent with the return, write the record to the student's monthly log and the Admin usage log (handle both success and failure cases like unable to parse JSON response).
+4.  **Logging & Deduplication:**
+    *   **Deduplication:** The client service implements a request lock to prevent simultaneous duplicate calls for the same question/answer.
+    *   **Logging:**
+        *   **Success & Failure:** Logged exclusively on the client-side to capture true End-to-End (E2E) latency and network performance.
+        *   **Server-Side:** Logging is completely disabled in the Cloud Function to prevent duplicates and ensure latency accuracy.
 
 **AI Failure (Fallback):** * System displays a friendly message: *"We couldn't reach the AI grader right now. Please compare your answer with the model answer below."*
     * Display `model_answer` and `evaluation_criteria`.
@@ -133,16 +138,18 @@ A dedicated dashboard in tabular format accessible via the sidebar for monitorin
 4.  **questionText:** The question text.
 5.  **subject:** The subject.
 6.  **Input Text:** The raw student answer.
-7.  **Output Text:** The raw AI JSON response.
-8.  **Latency:** `responseTime` in milliseconds.
-6.  **Tokens:** `inputTokensCount` and `outputTokensCount`.
-7.  **Status:** `isSuccess` (Boolean).
-8.  **Error Message:** `errorMessage` (String).
-9.  **Valid JSON:** `isValid` (Boolean).
+7.  **Output Text:** The raw AI JSON response (including usage metadata).
+8.  **Latency:** Dual metrics:
+    *   **Overall:** End-to-End latency (Client reported).
+    *   **Gemini:** Processing latency (Server reported via metadata).
+9.  **Tokens:** `inputTokensCount`, `outputTokensCount`, and `thoughtsTokenCount`.
+10. **Status:** `isSuccess` (Boolean).
+11. **Error Message:** `errorMessage` (String).
+12. **Valid JSON:** `isValid` (Boolean).
 
 **Additional Monitoring Features:**
-* **Filtering:** Filter by date range, month, or specific student.
-* **Totals Row:** Summation of all tokens and an estimated cost ($) based on current Gemini pricing.
+* **Filtering:** Filter by quarter, status, or search term.
+* **Totals Row:** Summation of all tokens and an estimated cost in **USD ($)** and **INR (₹)** based on Gemini 2.5 Flash pricing ($0.30 input / $2.50 output per 1M tokens).
 * **Quality Flagging:** A toggle to mark a response as "Incorrect Evaluation" for future prompt tuning.
 
 
@@ -218,7 +225,8 @@ The Admin Panel includes a dedicated "Test with AI" flow to ensure rubric qualit
 *   **Prompt Testing**: Admins can submit sample "Good" and "Bad" answers directly within the preview modal.
 *   **Rubric Verification**: Triggers a live call to the Gemini 3 Flash evaluation function to confirm the rubric correctly identifies passing/failing criteria.
 *   **Context Injection / System Instruction Visibility**: In the preview modal, add a "View System Logic" toggle. This displays the full System Instruction being sent to Gemini, helping admins understand if a result was due to a vague rubric or specific AI "strictness" settings.
-*   **Audit Trail**: All test attempts are logged to the `ai_monitoring_logs` collection with the student name set to `ADMIN_DRY_RUN` for easy identification and cost tracking.
+*   **Audit Trail:** All test attempts are logged to the `ai_monitoring` collection with the student name set to `Admin Preview` and `ADMIN_DRY_RUN` subject.
+*   **State Management:** The "Dry Run" sidebar is disabled by default in Live Preview to reduce clutter, but can be toggled via the UI.
 
 Pls ensure all the new features and paths related to them are correctly added to the admin sidebar so that it is accessible to the admin user.
 

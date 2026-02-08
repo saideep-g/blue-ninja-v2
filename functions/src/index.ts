@@ -228,38 +228,7 @@ Evaluate the student's answer and respond with this EXACT JSON structure:
         } catch (error: any) {
             console.error('Gemini API Error:', error);
 
-            // Log FAILURE to FireStore
-            const now = new Date();
-            const quarter = Math.floor(now.getMonth() / 3);
-            const quarters = ['JAN-MAR', 'APR-JUN', 'JUL-SEP', 'OCT-DEC'];
-            const quarterKey = `${now.getFullYear()}-${quarters[quarter]}`;
-
-            const failLogEntry = {
-                date: now.toISOString(),
-                timestamp: now.getTime(),
-                questionId: request.data.question_id || 'unknown',
-                questionText: request.data.question || 'unknown',
-                subject: request.data.subject || 'General',
-                questionType: 'SHORT_ANSWER',
-                inputText: request.data.student_answer || '',
-                isSuccess: false,
-                isValid: false,
-                errorMessage: error.message || 'Unknown error',
-                studentId: request.auth?.uid || request.data.user_id || 'anonymous',
-                studentName: request.data.student_name || 'Student'
-            };
-
-            try {
-                await admin.firestore()
-                    .collection('admin').doc('system')
-                    .collection('ai_monitoring').doc(quarterKey)
-                    .set({
-                        entries: admin.firestore.FieldValue.arrayUnion(failLogEntry),
-                        lastUpdated: now.toISOString()
-                    }, { merge: true });
-            } catch (loggingError) {
-                console.error("Failed to log error:", loggingError);
-            }
+            // Server-side logging removed per user request. Failure logging is handled by client.
 
             throw new HttpsError(
                 'internal',
