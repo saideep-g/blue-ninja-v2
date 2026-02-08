@@ -343,7 +343,7 @@ export function AIMonitoringDashboard() {
                                     <th className="px-6 py-4 text-left">Question</th>
                                     <th className="px-6 py-4 text-left">Subject</th>
                                     <th className="px-6 py-4 text-center">Latency</th>
-                                    <th className="px-6 py-4 text-center">Tokens</th>
+                                    <th className="px-6 py-4 text-center">Tokens & Cost</th>
                                     <th className="px-6 py-4 text-center">Status</th>
                                     <th className="px-6 py-4 text-center">Actions</th>
                                 </tr>
@@ -406,8 +406,11 @@ export function AIMonitoringDashboard() {
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex items-center justify-center gap-1">
                                                     <Zap className="w-3 h-3 text-amber-500" />
-                                                    <span className="text-sm font-mono text-slate-600 dark:text-slate-400">
+                                                    <span className="text-sm font-mono text-slate-600 dark:text-slate-400 block">
                                                         {(log.inputTokensCount + log.outputTokensCount + (log.thoughtsTokenCount || 0)).toLocaleString()}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 block mt-1">
+                                                        ₹{(((log.inputTokensCount / 1_000_000) * 0.30 + ((log.outputTokensCount + (log.thoughtsTokenCount || 0)) / 1_000_000) * 2.50) * 90).toFixed(2)}
                                                     </span>
                                                 </div>
                                             </td>
@@ -534,8 +537,29 @@ export function AIMonitoringDashboard() {
                                     <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{selectedLog.subject}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs font-black text-slate-500 uppercase tracking-wider mb-1">Response Time</p>
-                                    <p className="text-lg font-mono font-bold text-slate-900 dark:text-white">{formatLatency(selectedLog.responseTime)}</p>
+                                    <p className="text-xs font-black text-slate-500 uppercase tracking-wider mb-1">Latency Breakdown</p>
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-500">Overall (E2E):</span>
+                                            <span className="font-mono font-bold text-slate-900 dark:text-white">{formatLatency(selectedLog.responseTime)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-indigo-500">Gemini (AI):</span>
+                                            <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                                                {(() => {
+                                                    try {
+                                                        const data = JSON.parse(selectedLog.outputText || '{}');
+                                                        if (data.metadata?.latency) {
+                                                            return formatLatency(data.metadata.latency);
+                                                        }
+                                                        return 'N/A';
+                                                    } catch {
+                                                        return 'N/A';
+                                                    }
+                                                })()}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
