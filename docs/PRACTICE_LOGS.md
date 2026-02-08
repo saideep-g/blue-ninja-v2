@@ -58,7 +58,40 @@ interface LogEntry {
 
 ---
 
-## 2. Multiplication Tables Logs (High-Frequency)
+## 2. AI Evaluation Logs (Short Answer Specific)
+
+Specific logs for AI-evaluated interactions, stored separately to capture detailed token usage and latency metrics directly from the client.
+
+**Path:** `students/{studentId}/monthly_logs/{YYYY-MM}`
+
+### Document Structure
+```typescript
+{
+  entries: [
+    {
+      timestamp: number;
+      questionId: string;
+      questionType: 'SHORT_ANSWER';
+      inputText: string;
+      outputText: string;         // Full JSON response string
+      aiFeedback: Object;         // Parsed feedback
+      score: number;
+      inputTokensCount: number;
+      outputTokensCount: number;
+      thoughtsTokenCount: number;
+      responseTime: number;       // Latency (ms)
+      isSuccess: boolean;
+      errorMessage?: string;
+    }
+  ],
+  lastUpdated: string
+}
+```
+**Note:** Short Answer attempts currently trigger write events to BOTH `session_logs` (via Dashboard logic) and `monthly_logs` (via AI Service logic). The Dashboard primarily reads `session_logs`.
+
+---
+
+## 3. Multiplication Tables Logs (High-Frequency)
 
 Dedicated storage for rapid-fire multiplication practice to handle high volume without bloating the main session logs.
 

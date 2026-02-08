@@ -97,7 +97,38 @@ Stores detailed practice history for general subjects (Math, Science, etc.).
 
 ---
 
-## 3. Multiplication Logs (Subcollection)
+## 3. AI Evaluation Logs (Short Answer Specific)
+**Path:** `students/{studentId}/monthly_logs/{YYYY-MM}`
+
+Stores detailed AI interaction metrics (latency, tokens) for Short Answer questions.
+
+### Document Schema
+```typescript
+{
+  entries: [
+    {
+      timestamp: number;
+      questionId: string;
+      questionType: 'SHORT_ANSWER';
+      inputText: string;
+      outputText: string;         // Full JSON response string
+      aiFeedback: Object;         // Parsed feedback
+      score: number;
+      inputTokensCount: number;
+      outputTokensCount: number;
+      thoughtsTokenCount: number;
+      responseTime: number;       // Latency (ms)
+      isSuccess: boolean;
+      errorMessage?: string;
+    }
+  ],
+  lastUpdated: string
+}
+```
+
+---
+
+## 4. Multiplication Logs (Subcollection)
 **Path:** `students/{studentId}/table_practice_logs/{bucketId}`
 **Buckets:** `logs_until_jun2026` (Archive), `logs_{YYYY}_h1`, `logs_{YYYY}_h2`
 
@@ -122,7 +153,7 @@ Stores high-frequency, rapid-fire multiplication attempts.
 
 ---
 
-## 4. Admin Monitoring (System)
+## 5. Admin Monitoring (System)
 **Path:** `admin/system/ai_monitoring/{YYYY-QUARTER}`
 **Example:** `admin/system/ai_monitoring/2026-JAN-MAR`
 
