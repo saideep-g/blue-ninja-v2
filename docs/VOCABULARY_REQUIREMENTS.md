@@ -1124,24 +1124,5 @@ match /curriculum_packs/{packId} {
 
 ---
 
-## SIGN-OFF
-
-### Stakeholder Approval
-
-| Role | Name | Signature | Date |
-|:-----|:-----|:----------|:-----|
-| Product Owner | | | |
-| Tech Lead | | | |
-| UX Designer | | | |
-| Content Lead | | | |
-| QA Lead | | | |
-
-### Document History
-
-| Version | Date | Author | Changes |
-|:--------|:-----|:-------|:--------|
-| 1.0 | 2026-02-05 | System | Initial consolidated requirements document |
-
----
 
 **END OF REQUIREMENTS DOCUMENT**
