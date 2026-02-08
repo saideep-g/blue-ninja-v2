@@ -205,12 +205,6 @@ Evaluate the student's answer and respond with this EXACT JSON structure:
 
             // Perform Server-Side Logging
             const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const monthKey = `${year}-${month}`;
-            const quarter = Math.floor(now.getMonth() / 3);
-            const quarters = ['JAN-MAR', 'APR-JUN', 'JUL-SEP', 'OCT-DEC'];
-            const quarterKey = `${year}-${quarters[quarter]}`;
 
             // Construct full response object
             const finalResponse = {
@@ -228,59 +222,7 @@ Evaluate the student's answer and respond with this EXACT JSON structure:
                 }
             };
 
-            // Log Data Structure
-            const logEntry = {
-                date: now.toISOString(),
-                timestamp: now.getTime(),
-                questionId: request.data.question_id || 'unknown',
-                questionText: question,
-                subject: request.data.subject || 'General',
-                questionType: 'SHORT_ANSWER',
-                inputText: student_answer,
-                outputText: JSON.stringify(finalResponse), // Store FULL response as requested
-                aiFeedback: evaluation, // Keep structured access to evaluation
-                score: evaluation.score || 0,
-                isCorrect: (evaluation.score === (max_points || 3)),
-                responseTime: latency,
-                inputTokensCount: inputTokens,
-                outputTokensCount: outputTokens,
-                thoughtsTokenCount: thoughtsTokens,
-                totalTokenCount: totalTokens,
-                isSuccess: true,
-                isValid: true,
-                errorMessage: null,
-                studentId: request.auth?.uid || request.data.user_id || 'anonymous',
-                studentName: request.data.student_name || 'Student'
-            };
-
-            // 1. Admin Monitoring Log
-            try {
-                await admin.firestore()
-                    .collection('admin').doc('system')
-                    .collection('ai_monitoring').doc(quarterKey)
-                    .set({
-                        entries: admin.firestore.FieldValue.arrayUnion(logEntry),
-                        lastUpdated: now.toISOString()
-                    }, { merge: true });
-            } catch (err) {
-                console.error("Admin logging failed", err);
-            }
-
-            // 2. Student Monthly Log (if authenticated)
-            if (request.auth?.uid) {
-                try {
-                    await admin.firestore()
-                        .collection('students').doc(request.auth.uid)
-                        .collection('monthly_logs').doc(monthKey)
-                        .set({
-                            entries: admin.firestore.FieldValue.arrayUnion(logEntry),
-                            lastUpdated: now.toISOString()
-                        }, { merge: true });
-                } catch (err) {
-                    console.error("Student logging failed", err);
-                }
-            }
-
+            // Server-side logging removed per user request to capture true client-side latency.
             return finalResponse;
 
         } catch (error: any) {

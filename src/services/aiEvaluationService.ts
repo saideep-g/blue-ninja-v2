@@ -25,6 +25,9 @@ export interface EvaluationResponse {
 }
 
 export const aiEvaluationService = {
+    // Deduplication map
+    pendingRequests: new Map<string, Promise<EvaluationResponse>>(),
+
     /**
      * Calls the Cloud Function to evaluate a short answer.
      */
@@ -34,52 +37,67 @@ export const aiEvaluationService = {
         question: any,
         studentAnswer: string
     ): Promise<EvaluationResponse> {
-        const startTime = Date.now();
-        const evaluateFn = httpsCallable(functions, 'evaluateShortAnswer');
+        // Create a unique key for this request to prevent duplicates
+        const requestKey = `${userId}-${question.id}-${studentAnswer.length}`; // Use answer length to allow retries if answer changes
+
+        if (this.pendingRequests.has(requestKey)) {
+            console.log(`[AIEvaluation] Returned cached promise for ${requestKey}`);
+            return this.pendingRequests.get(requestKey)!;
+        }
+
+        const evaluationPromise = (async () => {
+            const startTime = Date.now();
+            const evaluateFn = httpsCallable(functions, 'evaluateShortAnswer');
+
+            try {
+                const result = await evaluateFn({
+                    question: question.question_text || question.content?.prompt?.text || question.question || 'Question Text Missing',
+                    question_id: question.id,
+                    subject: question.subject || question.metadata?.subject || question.bundle?.subject || 'General',
+                    student_answer: studentAnswer,
+                    evaluation_criteria: question.evaluation_criteria || [],
+                    max_points: question.max_points || 3,
+                    student_name: studentName,
+                    user_id: userId
+                });
+
+                const data = result.data as any;
+                const latency = Date.now() - startTime;
+
+                // Client-side logging restored to capture true E2E latency
+                this.logInteraction(userId, studentName, question, studentAnswer, data, true, latency);
+
+                return {
+                    isSuccess: true,
+                    data: data.evaluation, // Assuming Cloud Function wraps it this way
+                    metrics: {
+                        latency,
+                        inputTokens: data.usage?.input_tokens,
+                        outputTokens: data.usage?.output_tokens
+                    }
+                };
+            } catch (error: any) {
+                const latency = Date.now() - startTime;
+                console.error('[AIEvaluation] Error:', error);
+
+                // Log failure on client side too
+                this.logInteraction(userId, studentName, question, studentAnswer, null, false, latency, error.message).catch(err =>
+                    console.warn('[AIEvaluation] Background failure logging warning:', err)
+                );
+
+                return {
+                    isSuccess: false,
+                    error: error.message || 'Unknown evaluation error'
+                };
+            }
+        })();
+
+        this.pendingRequests.set(requestKey, evaluationPromise);
 
         try {
-            const result = await evaluateFn({
-                question: question.question_text || question.content?.prompt?.text || question.question || 'Question Text Missing',
-                question_id: question.id,
-                subject: question.subject || question.metadata?.subject || question.bundle?.subject || 'General',
-                student_answer: studentAnswer,
-                evaluation_criteria: question.evaluation_criteria || [],
-                max_points: question.max_points || 3,
-                student_name: studentName,
-                user_id: userId
-            });
-
-            const data = result.data as any;
-            const latency = Date.now() - startTime;
-
-            // Client-side logging restored per user request
-            // This runs in parallel with formatting the response
-            this.logInteraction(userId, studentName, question, studentAnswer, data, true, latency).catch(err =>
-                console.warn('[AIEvaluation] Background logging warning:', err)
-            );
-
-            return {
-                isSuccess: true,
-                data: data.evaluation, // Assuming Cloud Function wraps it this way
-                metrics: {
-                    latency,
-                    inputTokens: data.usage?.input_tokens,
-                    outputTokens: data.usage?.output_tokens
-                }
-            };
-        } catch (error: any) {
-            const latency = Date.now() - startTime;
-            console.error('[AIEvaluation] Error:', error);
-
-            // Log failure on client side too
-            this.logInteraction(userId, studentName, question, studentAnswer, null, false, latency, error.message).catch(err =>
-                console.warn('[AIEvaluation] Background failure logging warning:', err)
-            );
-
-            return {
-                isSuccess: false,
-                error: error.message || 'Unknown evaluation error'
-            };
+            return await evaluationPromise;
+        } finally {
+            this.pendingRequests.delete(requestKey);
         }
     },
 
