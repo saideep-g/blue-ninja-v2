@@ -1,108 +1,150 @@
-# Student Profile Data Structure - Firestore Paths
+# Firestore Student Paths & Structure
 
-## Primary Student Data
+This document serves as the source of truth for all student-related Firestore paths, including Profile, Session Logs, and Feature Specific Data.
 
-### Path: `students/{studentId}`
+## 1. Student Document (Root)
+**Path:** `students/{studentId}`
 
-This is the main student profile document. Expected fields:
+The main entry point for a student.
 
+### Fields
 ```typescript
 {
-  // Basic Info
-  studentName: string,          // Or could be 'name'
-  email: string,
-  grade: number,                // Current grade level
-  curriculum: string,           // e.g., "CBSE", "ICSE"
-  preferredLayout: string,      // "study-era", "mobile-quest-v1", "default"
-  
-  // Subjects
-  enrolledSubjects: string[],   // ["math", "science", "english", ...]
-  
-  // Practice Settings
-  dailyQuestionConfig: {
-    weekday: number,            // Questions per weekday
-    weekend: number,            // Questions per weekend
-    holiday: number             // Questions per holiday
+  // --- Profile Identity (Primary Source) ---
+  // Managed by `services/user` (ProfileService)
+  profile: {
+    userId: string;
+    studentName: string || user.displayName;
+    grade: string | number;         // e.g., "7"
+    school?: string;
+    preferredLanguage: 'en' | 'te' | 'hi';
+    theme: 'light' | 'dark' | 'system';
+    notifications: boolean;
+    autoAdvance: boolean;           // Default: true
+    dailyQuestionCount: number;     // Default: 5
+    diagnosticQuestionCount: number; // Default: 10
+    excludedChapters: string[];
+    updatedAt: number;              // Timestamp (ms)
   },
-  
-  // Boost Periods
-  boostPeriods: [{
-    name: string,
-    startDate: string,
-    endDate: string
-  }],
-  
-  // Exam Mode
-  examMode: {
-    enabled: boolean,
-    examName: string,
-    startDate: string,
-    endDate: string
-  },
-  
-  // Theme Preference (NEW - to be added)
-  theme: "light" | "dark",      // User's theme preference
-  
-  // Timestamps
-  createdAt: Timestamp,
+
+  // --- Legacy / Mixed Fields ---
+  // (Might exist from old migrations or Auth Sync)
+  email: string;
+  username: string;
+  role: 'STUDENT' | 'ADMIN';
+  createdAt: Timestamp;
+  lastActive: Timestamp;          // Updated daily by Tables/Quests
+
+  // --- Feature: Study Era Stats ---
+  // (Often merged into root for quick access)
+  powerPoints: number;
+  heroLevel: number;
+  streakCount: number;
+  lastMissionDate: string;
+  currentQuest: string;           // e.g., 'DIAGNOSTIC'
+  completedMissions: number;
+
+  // --- Feature: Multiplication Tables (Ledger) ---
+  // Stores currently calculated mastery to avoid re-scanning logs
+  tables_config: {
+    currentPathStage: number;     // e.g., 2 (Table 2)
+    daily: {                      // Daily progress reset at 4AM
+      Tables: number;             // Count for today
+    };
+    tableStats: Record<number, {  // Mastery per table
+      accuracy: number;
+      avgTime: number;
+      status: 'MASTERED' | ...;
+    }>;
+    ledger: Record<number, { ... }>; // Raw counts (correct/total)
+  };
+}
+```
+
+---
+
+## 2. Study Era Logs (Subcollection)
+**Path:** `students/{studentId}/session_logs/{YYYY-MM}`
+**Example:** `students/user123/session_logs/2026-02`
+
+Stores detailed practice history for general subjects (Math, Science, etc.).
+
+### Document Schema
+```typescript
+{
+  entries: [
+    {
+      timestamp: number | Date;
+      subject: string;            // 'math', 'science', 'vocabulary', etc.
+      questionId: string;
+      questionType: 'MCQ' | 'SHORT_ANSWER';
+      questionText: string;
+      studentAnswer: string;
+      correctAnswer: string;
+      isCorrect: boolean;
+      score?: number;             // 0-3 for Short Answer
+      timeSpent: number;          // Seconds
+      aiFeedback?: {              // Only for Short Answer
+        score: number,
+        summary: string,
+        results: [...]
+      }
+    }
+  ],
   lastUpdated: Timestamp
 }
 ```
 
-## Alternative Field Names
+---
 
-If `studentName` and `grade` are showing "Not Set", check these alternatives:
+## 3. Multiplication Logs (Subcollection)
+**Path:** `students/{studentId}/table_practice_logs/{bucketId}`
+**Buckets:** `logs_until_jun2026` (Archive), `logs_{YYYY}_h1`, `logs_{YYYY}_h2`
 
-### Possible field name variations:
-- `studentName` → `name`, `fullName`, `displayName`
-- `grade` → `currentGrade`, `gradeLevel`
+Stores high-frequency, rapid-fire multiplication attempts.
 
-### Data might be in NinjaStats instead:
-
-**Path:** `students/{studentId}/stats/current` or stored in memory
-
+### Document Schema
 ```typescript
 {
-  username: string,
-  email: string,
-  grade: number,              // Grade might be here
-  // ... other stats
+  logs: [
+    {
+      table: number;      // 7
+      multiplier: number; // 8
+      timeTaken: number;  // ms
+      isCorrect: boolean;
+      timestamp: Timestamp;
+      isValidForSpeed: boolean;
+    }
+  ],
+  lastUpdated: Timestamp
 }
 ```
 
-## Recommendation
+---
 
-1. **Check actual Firestore data** in Firebase Console:
-   - Go to Firestore Database
-   - Navigate to `students/{your-test-student-id}`
-   - Note the exact field names
+## 4. Admin Monitoring (System)
+**Path:** `admin/system/ai_monitoring/{YYYY-QUARTER}`
+**Example:** `admin/system/ai_monitoring/2026-JAN-MAR`
 
-2. **Update ProfileInfoTab.tsx** to handle multiple possible field names:
-   ```typescript
-   studentName: profile.studentName || profile.name || profile.displayName || user?.displayName || 'Not set'
-   grade: profile.grade || profile.currentGrade || ninjaStats?.grade || 'Not set'
-   ```
+Stores system-wide AI usage metrics for cost tracking.
 
-3. **Add grade to NinjaStats interface** if it's stored there:
-   ```typescript
-   export interface NinjaStats {
-     // ... existing fields
-     grade?: number;
-     studentName?: string;
-   }
-   ```
-
-## Theme Preference
-
-### New Field to Add:
-**Path:** `students/{studentId}`
+### Document Schema
 ```typescript
 {
-  theme: "light" | "dark"  // Default: "light"
+  entries: [
+    {
+      studentId: string;
+      questionId: string;
+      inputTokensCount: number;
+      outputTokensCount: number;
+      thoughtsTokenCount: number;
+      responseTime: number;       // E2E Latency (ms)
+      isSuccess: boolean;
+      errorMessage?: string;
+      timestamp: number;
+      outputText: string;         // Full JSON response
+    }
+  ],
+  lastUpdated: string
 }
 ```
-
-### Usage:
-- Student can toggle in Profile Info tab
-- Saved to Firestore
-- Applied globally via context/state management
